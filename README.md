@@ -199,3 +199,9 @@ internal/ui           WebView2 host, Save dialog, dev server, embedded web asset
 This is a simple connection-testing utility. It is not a monitoring
 platform, packet analyzer, router admin tool, Wi-Fi hacking tool or
 vulnerability scanner, and it is not meant to become one.
+
+## Credits
+
+- **[@tehgeii](https://github.com/tehgeii)**: product owner. Wrote the
+  [product brief](docs/PRODUCT_BRIEF.md) and owns the project.
+- **Claude Code**: implementation, tests and CI, built from that brief.
