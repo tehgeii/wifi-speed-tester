@@ -56,8 +56,10 @@ type SpeedServer struct {
 	// RateLimitAfter, when > 0, answers 429 to every download request after
 	// that many, like a server that throttles heavy testing.
 	RateLimitAfter int
-	mu             sync.Mutex
-	downloads      int
+	// MaxBytes, when > 0, answers 403 to download requests larger than this.
+	MaxBytes  int
+	mu        sync.Mutex
+	downloads int
 }
 
 // NewSpeedServer starts a server with /down?bytes=N and /up endpoints.
@@ -78,6 +80,10 @@ func NewSpeedServer(bytesPerSec int64) *SpeedServer {
 			return
 		}
 		n, _ := strconv.Atoi(r.URL.Query().Get("bytes"))
+		if s.MaxBytes > 0 && n > s.MaxBytes {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
 		w.Header().Set("Content-Length", strconv.Itoa(n))
 		buf := make([]byte, 32<<10)
 		for n > 0 && r.Context().Err() == nil {
