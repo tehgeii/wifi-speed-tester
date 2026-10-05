@@ -10,6 +10,8 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -77,6 +79,9 @@ type runner struct {
 	primary net.IP // internet ping target used for latency under load
 	server  int    // index of the server that worked
 	errs    map[string]error
+	// loadPinger creates the pinger used for latency under load: ICMP, or
+	// TCP when ICMP is blocked.
+	loadPinger func() (measure.Pinger, error)
 }
 
 // Run executes a full test. It always returns a result; when ctx is
@@ -90,7 +95,7 @@ func (e *Engine) Run(ctx context.Context, opts Options, emit func(Event)) *model
 	if mode != "gaming" {
 		mode = "general"
 	}
-	r := &runner{e: e, cfg: e.Config, emit: emit, errs: map[string]error{}, res: &model.TestResult{
+	r := &runner{e: e, cfg: e.Config, emit: emit, errs: map[string]error{}, loadPinger: e.NewPinger, res: &model.TestResult{
 		ID:        newID(),
 		StartedAt: time.Now(),
 		Mode:      mode,
@@ -215,8 +220,8 @@ func (r *runner) connectivity(ctx context.Context) bool {
 
 	var lastErr error
 	for i, s := range r.cfg.Servers {
-		url := strings.ReplaceAll(s.DownloadURL, "{bytes}", "0")
-		if lastErr = network.CheckInternet(ctx, r.e.Client, url); lastErr == nil {
+		endpoint := strings.ReplaceAll(s.DownloadURL, "{bytes}", "0")
+		if lastErr = network.CheckInternet(ctx, r.e.Client, endpoint); lastErr == nil {
 			r.server = i
 			r.check("Internet", model.CheckOK, "Reached test server "+s.Name)
 			return true
@@ -236,6 +241,11 @@ func (r *runner) connectivity(ctx context.Context) bool {
 // ping measures every configured target concurrently.
 func (r *runner) ping(ctx context.Context, mode string) {
 	r.emit(Event{Type: "stage", Stage: StagePing})
+	defer func() {
+		if r.primary == nil && ctx.Err() == nil {
+			r.tcpFallback(ctx, mode)
+		}
+	}()
 	if r.pinger == nil {
 		return
 	}
@@ -290,7 +300,7 @@ func (r *runner) ping(ctx context.Context, mode string) {
 					r.emit(ev)
 				},
 			})
-			st.IsGateway = j.gw
+			st.IsGateway, st.Method = j.gw, "icmp"
 			results[i] = st
 		}()
 	}
@@ -321,6 +331,49 @@ func (r *runner) ping(ctx context.Context, mode string) {
 	}
 }
 
+// tcpFallback measures latency with TCP connections to the test server
+// when no ICMP target answered (common on corporate and cloud networks).
+func (r *runner) tcpFallback(ctx context.Context, mode string) {
+	u, err := url.Parse(r.cfg.Servers[r.server].DownloadURL)
+	if err != nil || u.Hostname() == "" {
+		return
+	}
+	port := 443
+	if p, err := strconv.Atoi(u.Port()); err == nil {
+		port = p
+	} else if u.Scheme == "http" {
+		port = 80
+	}
+	ip, err := measure.ResolveIP(ctx, u.Hostname())
+	if err != nil {
+		return
+	}
+	count := r.cfg.PingCount
+	if mode == "gaming" {
+		count *= 2
+	}
+	tp := measure.TCPPinger{Port: port}
+	st, _ := measure.RunPing(ctx, tp, "Test server (TCP connect)", u.Hostname(), ip, measure.PingOptions{
+		Count: count, Interval: r.cfg.PingInterval(), Timeout: r.cfg.PingTimeout(),
+		OnReply: func(n int, rtt float64, ok bool) {
+			ev := Event{Type: "progress", Stage: StagePing, Progress: float64(n+1) / float64(count)}
+			if ok {
+				ev.RttMs = rtt
+			}
+			r.emit(ev)
+		},
+	})
+	st.Method = "tcp"
+	if st.Received > 0 {
+		st.PrimaryTarget = true
+		r.primary = ip
+		r.res.PingMs, r.res.JitterMs, r.res.PacketLoss = st.AvgMs, st.JitterMs, st.PacketLossPct
+		r.loadPinger = func() (measure.Pinger, error) { return tp, nil }
+	}
+	r.res.Pings = append(r.res.Pings, st)
+	r.emit(Event{Type: "ping", Stage: StagePing, Ping: &st})
+}
+
 // speed runs a download or upload test, falling back to the next server
 // when one fails before transferring data.
 func (r *runner) speed(ctx context.Context, stage string) *model.SpeedResult {
@@ -342,16 +395,16 @@ func (r *runner) speed(ctx context.Context, stage string) *model.SpeedResult {
 	for k := 0; k < n; k++ {
 		i := (r.server + k) % n
 		s := r.cfg.Servers[i]
-		url := s.DownloadURL
+		endpoint := s.DownloadURL
 		if stage == StageUpload {
-			url = s.UploadURL
+			endpoint = s.UploadURL
 		}
 
 		var loaded []float64
 		loadCtx, stopLoad := context.WithCancel(ctx)
 		var lw sync.WaitGroup
 		if r.cfg.MeasureLoadedPing && r.primary != nil {
-			if lp, perr := r.e.NewPinger(); perr == nil {
+			if lp, perr := r.loadPinger(); perr == nil {
 				lw.Add(1)
 				go func() {
 					defer lw.Done()
@@ -365,7 +418,7 @@ func (r *runner) speed(ctx context.Context, stage string) *model.SpeedResult {
 				}()
 			}
 		}
-		res, err = run(ctx, r.e.Client, url, opts)
+		res, err = run(ctx, r.e.Client, endpoint, opts)
 		stopLoad()
 		lw.Wait()
 

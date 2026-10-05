@@ -20,7 +20,9 @@ the defaults).
 3. **UNSTABLE** overrides the result when packet loss `>= unstableLossPct`
    or jitter `>= unstableJitterMs`.
 4. A metric that could not be measured, such as a failed upload, is skipped
-   and a note says so. If nothing was measured, the level is UNKNOWN.
+   and a note says so. If fewer than half of the profile's metrics were
+   measured, the level is UNKNOWN, so the app never shows EXCELLENT from
+   upload alone, for example.
 
 "Latency under load" is the median ping while the download or upload is
 running, minus the idle ping. The larger of the two is used.
@@ -77,7 +79,9 @@ FPS.
 ## Ping, jitter and packet loss definitions
 
 - **Ping**: average round-trip time to the first internet ping target that
-  answered (default 1.1.1.1). Min and max are shown in Details.
+  answered (default 1.1.1.1). Min and max are shown in Details. If no ICMP
+  target answers, the time to open a TCP connection to the test server is
+  used instead, and the app adds a note.
 - **Jitter**: mean absolute difference between consecutive ping samples. It
   measures how stable latency is, not how fast the connection is.
 - **Packet loss**: lost probes ÷ sent probes over the internet targets.

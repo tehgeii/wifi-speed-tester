@@ -53,6 +53,11 @@ type SpeedServer struct {
 	*httptest.Server
 	BytesPerSec int64 // 0 = unlimited
 	Status      int   // non-zero forces this status on every request
+	// RateLimitAfter, when > 0, answers 429 to every download request after
+	// that many, like a server that throttles heavy testing.
+	RateLimitAfter int
+	mu             sync.Mutex
+	downloads      int
 }
 
 // NewSpeedServer starts a server with /down?bytes=N and /up endpoints.
@@ -62,6 +67,14 @@ func NewSpeedServer(bytesPerSec int64) *SpeedServer {
 	mux.HandleFunc("/down", func(w http.ResponseWriter, r *http.Request) {
 		if s.Status != 0 {
 			w.WriteHeader(s.Status)
+			return
+		}
+		s.mu.Lock()
+		s.downloads++
+		limited := s.RateLimitAfter > 0 && s.downloads > s.RateLimitAfter
+		s.mu.Unlock()
+		if limited {
+			w.WriteHeader(http.StatusTooManyRequests)
 			return
 		}
 		n, _ := strconv.Atoi(r.URL.Query().Get("bytes"))

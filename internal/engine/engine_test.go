@@ -184,3 +184,33 @@ func TestExplainProxyBlock(t *testing.T) {
 		t.Fatalf("reason = %q", f.Reason)
 	}
 }
+
+// Seen on a hosted Windows runner: every ICMP target times out. Latency must
+// then come from TCP connects to the test server instead of being empty.
+func TestTCPFallbackWhenICMPBlocked(t *testing.T) {
+	srv := testutil.NewSpeedServer(1_000_000)
+	defer srv.Close()
+	p := &testutil.Pinger{RTT: time.Millisecond, Lose: map[string]bool{"192.168.1.1": true, "1.1.1.1": true, "8.8.8.8": true}}
+	res := testEngine(srv, p).Run(context.Background(), Options{}, nil)
+	if res.PingMs <= 0 {
+		t.Fatal("no latency measured")
+	}
+	var tcp *model.PingStats
+	for i := range res.Pings {
+		if res.Pings[i].Method == "tcp" {
+			tcp = &res.Pings[i]
+		}
+	}
+	if tcp == nil || !tcp.PrimaryTarget || tcp.Received == 0 {
+		t.Fatalf("tcp fallback missing: %+v", res.Pings)
+	}
+	if res.Download.LoadedSamples == 0 {
+		t.Fatal("latency under load should use the TCP pinger too")
+	}
+	if res.Quality.Level == model.QualityUnknown {
+		t.Fatal("rating should be available with TCP latency")
+	}
+	if !strings.Contains(strings.Join(res.Quality.Notes, " "), "blocks ICMP") {
+		t.Fatalf("notes = %v", res.Quality.Notes)
+	}
+}

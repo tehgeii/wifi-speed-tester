@@ -75,6 +75,7 @@ type PingStats struct {
 	JitterMs      float64   `json:"jitterMs"`
 	SamplesMs     []float64 `json:"samplesMs"`
 	Error         string    `json:"error,omitempty"`
+	Method        string    `json:"method"` // "icmp" or "tcp"
 	IsGateway     bool      `json:"isGateway"`
 	PrimaryTarget bool      `json:"primaryTarget"`
 }

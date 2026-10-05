@@ -62,9 +62,10 @@ func NewHTTPClient(streams int) *http.Client {
 }
 
 const (
-	downloadChunk  = 25_000_000 // bytes per download request
-	maxStreamFails = 5
-	sampleEvery    = 250 * time.Millisecond
+	downloadMinChunk = 10_000_000  // first request size per stream
+	downloadMaxChunk = 100_000_000 // largest request size
+	maxStreamFails   = 5
+	sampleEvery      = 250 * time.Millisecond
 )
 
 // sampler records a running byte counter at a fixed interval so the result
@@ -128,6 +129,15 @@ func (e *streamErrors) add(err error) int {
 	return e.count
 }
 
+// retryDelay backs off longer when the server says it is rate limiting.
+func retryDelay(err error) time.Duration {
+	var se *HTTPStatusError
+	if errors.As(err, &se) && se.StatusCode == http.StatusTooManyRequests {
+		return time.Second
+	}
+	return 300 * time.Millisecond
+}
+
 func fatal(err error) bool {
 	var se *HTTPStatusError
 	if errors.As(err, &se) {
@@ -147,16 +157,25 @@ func Download(ctx context.Context, client *http.Client, downloadURL string, opts
 	var total atomic.Int64
 	var errs streamErrors
 	var wg sync.WaitGroup
-	url := strings.ReplaceAll(downloadURL, "{bytes}", strconv.Itoa(downloadChunk))
-
 	for i := 0; i < opts.Streams; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			buf := make([]byte, 64<<10)
+			chunk := downloadMinChunk
 			for runCtx.Err() == nil {
+				url := strings.ReplaceAll(downloadURL, "{bytes}", strconv.Itoa(chunk))
+				t0 := time.Now()
 				err := downloadOnce(runCtx, client, url, buf, &total)
-				if err == nil || runCtx.Err() != nil {
+				if err == nil {
+					// Fewer, larger requests on fast links: servers rate-limit
+					// by request count.
+					if time.Since(t0) < time.Second && chunk < downloadMaxChunk {
+						chunk = min(chunk*2, downloadMaxChunk)
+					}
+					continue
+				}
+				if runCtx.Err() != nil {
 					continue
 				}
 				if errs.add(err) >= maxStreamFails*opts.Streams || fatal(err) {
@@ -165,7 +184,7 @@ func Download(ctx context.Context, client *http.Client, downloadURL string, opts
 				}
 				select {
 				case <-runCtx.Done():
-				case <-time.After(300 * time.Millisecond):
+				case <-time.After(retryDelay(err)):
 				}
 			}
 		}()
@@ -234,9 +253,17 @@ func finishSpeed(ctx context.Context, res model.SpeedResult, smp *sampler, opts 
 		return res, ctx.Err()
 	}
 	end := smp.times[len(smp.times)-1]
+	if firstErr != nil {
+		// After failures the counter may have stalled; don't let the idle
+		// tail dilute the rate.
+		for i := len(smp.totals) - 1; i > 0 && smp.totals[i] == smp.totals[i-1]; i-- {
+			end = smp.times[i-1]
+		}
+	}
 	wStart, wBytes := smp.at(opts.Warmup)
-	if end-wStart < time.Second {
-		// The run was cut short (e.g. by errors); use everything we have.
+	if end-wStart < time.Second || wBytes >= total {
+		// The run was cut short (e.g. by errors) before or soon after the
+		// warm-up ended; use everything we have.
 		wStart, wBytes = 0, 0
 	}
 	res.DurationSec = (end - wStart).Seconds()
@@ -349,7 +376,7 @@ func Upload(ctx context.Context, client *http.Client, uploadURL string, opts Spe
 				}
 				select {
 				case <-sendCtx.Done():
-				case <-time.After(300 * time.Millisecond):
+				case <-time.After(retryDelay(err)):
 				}
 			}
 		}()
