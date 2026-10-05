@@ -76,7 +76,8 @@ How it measures:
 
 - **Download**: 4 parallel HTTP/1.1 connections (one TCP connection each)
   stream data for 10 s. Requests start at 10 MB and grow up to 100 MB on fast
-  links, which keeps the request count low so servers don't rate-limit. The
+  links, which keeps the request count low so servers don't rate-limit. If the
+  server refuses a larger size, the test stays at the largest one that worked. The
   first 1.5 s of warm-up are excluded, and the speed comes from bytes
   received. If the server stops answering partway, the data already received
   is still reported, marked as incomplete.

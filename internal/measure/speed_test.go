@@ -115,3 +115,18 @@ func TestDownloadKeepsSpeedWhenRateLimited(t *testing.T) {
 		t.Fatalf("partial download lost: %.1f Mbps, %d bytes", res.Mbps, res.Bytes)
 	}
 }
+
+// Seen against Cloudflare: requests that grew too large got 403. The test
+// must settle on the largest size that worked instead of failing.
+func TestDownloadAdaptsToServerSizeLimit(t *testing.T) {
+	srv := testutil.NewSpeedServer(0)
+	srv.MaxBytes = 30_000_000
+	defer srv.Close()
+	res, err := measure.Download(context.Background(), measure.NewHTTPClient(2), srv.DownloadURL(), opts())
+	if err != nil {
+		t.Fatalf("err = %v", err)
+	}
+	if res.Mbps <= 0 {
+		t.Fatal("no speed measured")
+	}
+}

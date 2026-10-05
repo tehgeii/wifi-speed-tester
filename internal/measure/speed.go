@@ -162,7 +162,7 @@ func Download(ctx context.Context, client *http.Client, downloadURL string, opts
 		go func() {
 			defer wg.Done()
 			buf := make([]byte, 64<<10)
-			chunk := downloadMinChunk
+			chunk, maxChunk, lastGood := downloadMinChunk, downloadMaxChunk, 0
 			for runCtx.Err() == nil {
 				url := strings.ReplaceAll(downloadURL, "{bytes}", strconv.Itoa(chunk))
 				t0 := time.Now()
@@ -170,9 +170,17 @@ func Download(ctx context.Context, client *http.Client, downloadURL string, opts
 				if err == nil {
 					// Fewer, larger requests on fast links: servers rate-limit
 					// by request count.
-					if time.Since(t0) < time.Second && chunk < downloadMaxChunk {
-						chunk = min(chunk*2, downloadMaxChunk)
+					lastGood = chunk
+					if time.Since(t0) < time.Second && chunk < maxChunk {
+						chunk = min(chunk*2, maxChunk)
 					}
+					continue
+				}
+				var se *HTTPStatusError
+				if errors.As(err, &se) && se.StatusCode/100 == 4 && se.StatusCode != http.StatusTooManyRequests && lastGood > 0 && chunk > lastGood {
+					// The server refuses requests this large; stay at the
+					// largest size that worked.
+					chunk, maxChunk = lastGood, lastGood
 					continue
 				}
 				if runCtx.Err() != nil {
