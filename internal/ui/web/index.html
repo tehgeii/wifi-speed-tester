@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WiFi Speed + Ping Tester</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r="1.4"/></svg>
+    <div>
+      <h1>WiFi Speed + Ping Tester</h1>
+      <p class="tagline">Check your speed. Measure your ping. Understand your connection.</p>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Test mode" id="modeSeg">
+      <button data-mode="general" class="on">General</button>
+      <button data-mode="gaming">Gaming</button>
+    </div>
+    <div class="seg" role="group" aria-label="Speed unit" id="unitSeg">
+      <button data-unit="Mbps" class="on">Mbps</button>
+      <button data-unit="MB/s">MB/s</button>
+    </div>
+    <button class="ghost" id="historyBtn">History</button>
+    <button class="ghost icon" id="aboutBtn" title="About and privacy" aria-label="About and privacy">?</button>
+  </div>
+</header>
+
+<main id="dashboard">
+  <section class="card network" id="networkCard">
+    <div class="net-main">
+      <div><span class="k">Connection</span><span class="v" id="netConn">Detecting…</span></div>
+      <div><span class="k">Network</span><span class="v" id="netName">—</span></div>
+      <div><span class="k">IPv4</span><span class="v mono" id="netIP">—</span></div>
+      <div><span class="k">Gateway</span><span class="v mono" id="netGW">—</span></div>
+    </div>
+    <div class="net-wifi hidden" id="wifiRow">
+      <div><span class="k">Signal</span><span class="v" id="wifiSignal">—</span></div>
+      <div><span class="k">Band</span><span class="v" id="wifiBand">—</span></div>
+      <div><span class="k">Channel</span><span class="v" id="wifiChannel">—</span></div>
+      <div><span class="k" title="Radio rate between this device and the router. Not your internet speed.">Wi-Fi Link Speed ⓘ</span><span class="v" id="wifiLink">—</span></div>
+    </div>
+    <p class="note hidden" id="netNote"></p>
+  </section>
+
+  <section class="hero">
+    <div class="gauge-wrap card">
+      <svg viewBox="0 0 200 130" class="gauge" aria-hidden="true">
+        <path class="track" d="M20 110 A80 80 0 0 1 180 110"/>
+        <path class="fill" id="gaugeFill" d="M20 110 A80 80 0 0 1 180 110"/>
+      </svg>
+      <div class="gauge-read">
+        <div class="gauge-label" id="gaugeLabel">Ready</div>
+        <div class="gauge-value"><span id="gaugeValue">—</span> <small id="gaugeUnit"></small></div>
+      </div>
+      <button class="primary" id="startBtn">Start Test</button>
+      <button class="danger hidden" id="cancelBtn">Cancel</button>
+    </div>
+
+    <div class="metrics">
+      <div class="metric" id="m-download"><span class="k">Download</span><span class="v"><b>—</b><small>Mbps</small></span><span class="sub"></span></div>
+      <div class="metric" id="m-upload"><span class="k">Upload</span><span class="v"><b>—</b><small>Mbps</small></span><span class="sub"></span></div>
+      <div class="metric" id="m-ping"><span class="k">Ping</span><span class="v"><b>—</b><small>ms</small></span><span class="sub"></span></div>
+      <div class="metric" id="m-jitter"><span class="k">Jitter</span><span class="v"><b>—</b><small>ms</small></span><span class="sub"></span></div>
+      <div class="metric" id="m-loss"><span class="k">Packet Loss</span><span class="v"><b>—</b><small>%</small></span><span class="sub"></span></div>
+      <div class="metric quality" id="m-quality"><span class="k" id="qualityTitle">Connection Quality</span><span class="v"><b id="qualityLevel">—</b></span><span class="sub" id="qualityProfile"></span></div>
+    </div>
+  </section>
+
+  <section class="card progress hidden" id="progressCard">
+    <div class="checks" id="checks"></div>
+    <div class="stages">
+      <div class="stage" data-stage="ping"><span>Ping Test</span><div class="bar"><i></i></div><em>0%</em></div>
+      <div class="stage" data-stage="download"><span>Download</span><div class="bar"><i></i></div><em>0%</em></div>
+      <div class="stage" data-stage="upload"><span>Upload</span><div class="bar"><i></i></div><em>0%</em></div>
+    </div>
+  </section>
+
+  <section class="card failure hidden" id="failureCard" role="alert">
+    <h2 id="failTitle"></h2>
+    <p><b>Reason:</b> <span id="failReason"></span></p>
+    <p><b>Suggestion:</b> <span id="failSuggestion"></span></p>
+    <details><summary>Technical details</summary><code id="failTech"></code></details>
+  </section>
+
+  <section class="card summary hidden" id="summaryCard">
+    <div class="gaming hidden" id="gamingPanel">
+      <h2>Gaming Connection</h2>
+      <ul class="gamelist" id="gameList"></ul>
+    </div>
+    <p id="summaryText"></p>
+    <ul class="notes" id="notes"></ul>
+    <div class="actions">
+      <button class="ghost" id="detailsBtn">Details</button>
+      <div class="export">
+        <span>Export:</span>
+        <button data-export="txt">TXT</button>
+        <button data-export="json">JSON</button>
+        <button data-export="csv">CSV</button>
+        <button data-export="png">PNG card</button>
+        <label class="chk" title="SSID, BSSID and IP addresses are masked unless this is ticked."><input type="checkbox" id="includeSensitive"> Include network identifiers</label>
+      </div>
+    </div>
+  </section>
+
+  <section class="card details hidden" id="detailsCard">
+    <h2>Ping Details</h2>
+    <table class="tbl" id="pingTable">
+      <thead><tr><th>Target</th><th>Sent</th><th>Received</th><th>Loss</th><th>Min</th><th>Average</th><th>Max</th><th>Jitter</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="loaded hidden" id="loadedBox">
+      <h2>Latency Under Load</h2>
+      <div class="loadrow">
+        <div><span class="k">Idle Ping</span><span class="v" id="ldIdle">—</span></div>
+        <div><span class="k">During Download</span><span class="v" id="ldDown">—</span></div>
+        <div><span class="k">During Upload</span><span class="v" id="ldUp">—</span></div>
+      </div>
+    </div>
+    <h2>Throughput</h2>
+    <div class="charts">
+      <figure><figcaption>Download</figcaption><canvas id="chartDown" width="420" height="110"></canvas></figure>
+      <figure><figcaption>Upload</figcaption><canvas id="chartUp" width="420" height="110"></canvas></figure>
+    </div>
+    <h2>Network</h2>
+    <dl class="kv" id="netDetails"></dl>
+    <p class="muted" id="serverLine"></p>
+  </section>
+
+  <footer class="privacy" id="privacyLine">Tests send traffic only to the speed-test server and ping targets. Nothing else leaves this computer.</footer>
+</main>
+
+<section id="historyView" class="hidden">
+  <div class="card">
+    <div class="hist-head">
+      <h2>Test History</h2>
+      <div>
+        <button class="ghost" id="histCsv">Export CSV</button>
+        <button class="ghost" id="histClear">Clear</button>
+        <button class="primary small" id="histBack">Back</button>
+      </div>
+    </div>
+    <table class="tbl hover" id="histTable">
+      <thead><tr><th>Date</th><th>Connection</th><th>Download / Upload</th><th>Ping</th><th>Jitter</th><th>Loss</th><th>Quality</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="muted" id="histEmpty">No tests yet.</p>
+    <p class="muted small" id="histPath"></p>
+  </div>
+</section>
+
+<dialog id="aboutDlg">
+  <h2>About</h2>
+  <p>WiFi Speed + Ping Tester <span id="aboutVersion"></span> — a portable utility that measures download, upload, ping, jitter and packet loss.</p>
+  <h3>Privacy</h3>
+  <p>Testing is local except for the traffic needed to measure your connection:</p>
+  <ul id="aboutTraffic"></ul>
+  <p>The app does not read your files, browser history or passwords, and does not run in the background. History is stored only on this computer:</p>
+  <p class="mono small" id="aboutHistory"></p>
+  <h3>Accuracy</h3>
+  <p>Results depend on the test server, routing, Wi-Fi signal, other traffic, VPNs and this device. They show what was measured now, not a guaranteed ISP speed.</p>
+  <h3>Configuration</h3>
+  <p>Place <span class="mono" id="aboutCfgName"></span> next to the .exe to change test servers, ping targets, durations and quality thresholds.</p>
+  <p class="small" id="aboutCfg"></p>
+  <form method="dialog"><button class="primary small">Close</button></form>
+</dialog>
+
+<div class="toast hidden" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
