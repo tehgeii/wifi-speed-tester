@@ -7,9 +7,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 
 	"golang.org/x/sys/windows"
 
+	"github.com/tehgeii/wifi-speed-tester/internal/app"
 	"github.com/tehgeii/wifi-speed-tester/internal/ui"
 )
 
@@ -50,6 +52,12 @@ func prepareConsole() {
 }
 
 func runGUI(exeDir string) {
+	// The GUI has no console, so a crash would vanish without a trace.
+	// Record it next to the history instead.
+	if f, err := os.OpenFile(filepath.Join(app.DataDir(exeDir), "crash.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644); err == nil {
+		_ = debug.SetCrashOutput(f, debug.CrashOptions{})
+		f.Close()
+	}
 	logf := func(string, ...any) {}
 	if os.Getenv("WST_DEBUG") == "1" {
 		if f, err := os.Create(filepath.Join(exeDir, "WiFiSpeedTester-debug.log")); err == nil {
