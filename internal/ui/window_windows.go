@@ -65,6 +65,13 @@ func RunWindow(exeDir string, logf func(string, ...any)) error {
 			}
 			ch := make(chan res, 1)
 			w.Dispatch(func() {
+				// A panic here would close the whole window; report it as
+				// an export error instead.
+				defer func() {
+					if v := recover(); v != nil {
+						ch <- res{"", fmt.Errorf("save dialog failed: %v", v)}
+					}
+				}()
 				p, err := saveDialog(uintptr(w.Window()), name, filter, ext)
 				ch <- res{p, err}
 			})
@@ -129,10 +136,13 @@ const (
 
 // saveDialog shows the standard Save As dialog. Returns "" on cancel.
 func saveDialog(owner uintptr, defaultName, filterName, ext string) (string, error) {
-	filterStr := fmt.Sprintf("%s (*.%s)\x00*.%s\x00All files (*.*)\x00*.*\x00\x00", filterName, ext, ext)
-	filter := windows.StringToUTF16(filterStr) // keeps the embedded NULs
+	filter := dialogFilter(filterName, ext)
 	file := make([]uint16, windows.MAX_LONG_PATH)
-	copy(file, windows.StringToUTF16(defaultName))
+	name, err := windows.UTF16FromString(defaultName)
+	if err != nil {
+		return "", err
+	}
+	copy(file, name)
 	defExt, _ := windows.UTF16PtrFromString(ext)
 	title, _ := windows.UTF16PtrFromString("Save result")
 	var initial *uint16
