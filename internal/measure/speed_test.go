@@ -98,3 +98,20 @@ func TestUnreachableServer(t *testing.T) {
 		t.Fatal("expected an error for an unreachable server")
 	}
 }
+
+// Seen on a fast CI runner: the server rate-limited after a burst of
+// requests. The data already received must still produce a speed.
+func TestDownloadKeepsSpeedWhenRateLimited(t *testing.T) {
+	srv := testutil.NewSpeedServer(5_000_000)
+	srv.RateLimitAfter = 2
+	defer srv.Close()
+	o := measure.SpeedOptions{Duration: 6 * time.Second, Warmup: 3 * time.Second, Streams: 2}
+	res, err := measure.Download(context.Background(), measure.NewHTTPClient(2), srv.DownloadURL(), o)
+	var se *measure.HTTPStatusError
+	if !errors.As(err, &se) || se.StatusCode != 429 {
+		t.Fatalf("err = %v, want 429", err)
+	}
+	if res.Mbps < 40 || res.Bytes == 0 {
+		t.Fatalf("partial download lost: %.1f Mbps, %d bytes", res.Mbps, res.Bytes)
+	}
+}

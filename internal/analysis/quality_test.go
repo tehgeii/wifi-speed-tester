@@ -112,3 +112,15 @@ func TestFormat(t *testing.T) {
 		t.Fatal("pct format")
 	}
 }
+
+func TestTooFewMetricsIsUnknown(t *testing.T) {
+	// Seen on a CI runner: ICMP blocked, download rate-limited, only upload measured.
+	r := &model.TestResult{Download: &model.SpeedResult{Error: "limited"}, Upload: &model.SpeedResult{Mbps: 2577}}
+	q := Evaluate(r, "general", config.Default().Profile("general"))
+	if q.Level != model.QualityUnknown {
+		t.Fatalf("level = %s, want UNKNOWN", q.Level)
+	}
+	if !strings.Contains(strings.Join(q.Notes, " "), "Too few results") {
+		t.Fatalf("notes = %v", q.Notes)
+	}
+}

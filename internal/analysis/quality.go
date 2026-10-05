@@ -92,8 +92,12 @@ func Evaluate(r *model.TestResult, profileName string, p config.Profile) *model.
 	uses := func(m string) bool { return slices.Contains(p.Use, m) }
 	havePing := r.PingMs > 0
 
+	graded := 0
 	add := func(metric, value string, g model.QualityLevel, counts bool) {
 		q.Grades = append(q.Grades, model.MetricGrade{Metric: metric, Value: value, Grade: g})
+		if counts {
+			graded++
+		}
 		if counts && (q.Level == "" || rank(g) > rank(q.Level)) {
 			q.Level = g
 		}
@@ -127,10 +131,23 @@ func Evaluate(r *model.TestResult, profileName string, p config.Profile) *model.
 		q.Level = model.QualityUnstable
 		q.Notes = append(q.Notes, "Packet loss or large latency variation makes this connection unstable.")
 	}
+	// Rating from a minority of the profile's metrics would mislead (e.g.
+	// EXCELLENT from upload alone when ping is blocked and download failed).
+	if q.Level != model.QualityUnstable && graded*2 < len(p.Use) {
+		if graded > 0 {
+			q.Notes = append(q.Notes, "Too few results were measured to rate this connection reliably.")
+		}
+		q.Level = ""
+	}
 	if q.Level == "" {
 		q.Level = model.QualityUnknown
 	}
 
+	for _, ps := range r.Pings {
+		if ps.PrimaryTarget && ps.Method == "tcp" {
+			q.Notes = append(q.Notes, "This network blocks ICMP ping, so latency was measured with TCP connections to the test server. These values can read slightly higher than a normal ping.")
+		}
+	}
 	q.Notes = append(q.Notes, locationNotes(r)...)
 	q.Summary = summary(r, q)
 	return q

@@ -75,8 +75,11 @@ speed: 48.6 Mbps") and never presents it as your ISP plan speed.
 How it measures:
 
 - **Download**: 4 parallel HTTP/1.1 connections (one TCP connection each)
-  stream 25 MB requests for 10 s. The first 1.5 s of warm-up are excluded,
-  and the speed comes from bytes received.
+  stream data for 10 s. Requests start at 10 MB and grow up to 100 MB on fast
+  links, which keeps the request count low so servers don't rate-limit. The
+  first 1.5 s of warm-up are excluded, and the speed comes from bytes
+  received. If the server stops answering partway, the data already received
+  is still reported, marked as incomplete.
 - **Upload**: 4 parallel connections POST incompressible data. Only requests
   the server **acknowledged** are counted, each credited for the part that
   overlaps the measurement window, so data still sitting in local socket
@@ -84,6 +87,9 @@ How it measures:
 - **Ping**: probes are sent every 200 ms without waiting for earlier replies,
   as the `ping` command does. Jitter is the mean absolute difference between
   consecutive samples.
+- **ICMP blocked?** Some networks (corporate, cloud) drop ping entirely. If no
+  internet target answers, latency is measured from TCP connection setup to
+  the test server instead, and the result says so.
 
 ## Configuration
 
