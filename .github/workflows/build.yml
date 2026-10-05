@@ -1,0 +1,88 @@
+name: build
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        if: runner.os == 'Linux'
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+      - run: go vet ./...
+      - name: vet (windows target)
+        if: runner.os == 'Linux'
+        run: GOOS=windows go vet ./...
+      - name: test (race)
+        if: runner.os == 'Linux'
+        run: go test -race ./...
+      - name: test
+        if: runner.os == 'Windows'
+        run: go test ./...
+
+  package:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: build portable zips
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then V="${GITHUB_REF_NAME#v}"; else V="0.0.0-${GITHUB_SHA::7}"; fi
+          scripts/build.sh "$V"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WiFiSpeedTester-Portable
+          path: dist/*.zip
+
+  # Runs the real Windows code paths (adapter detection, ICMP, Cloudflare
+  # speed test) on a hosted runner. Hosted networks often block ICMP and may
+  # throttle, so this is informative rather than a gate.
+  smoke-windows:
+    needs: package
+    runs-on: windows-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: WiFiSpeedTester-Portable
+      - shell: pwsh
+        run: |
+          Expand-Archive (Get-ChildItem *win-x64.zip).FullName -DestinationPath app
+          $p = Start-Process app\WiFiSpeedTester.exe -ArgumentList '--cli','--json' -RedirectStandardOutput result.json -RedirectStandardError progress.txt -Wait -PassThru
+          Get-Content progress.txt
+          Get-Content result.json
+          exit $p.ExitCode
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: WiFiSpeedTester-Portable
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: "*.zip"
