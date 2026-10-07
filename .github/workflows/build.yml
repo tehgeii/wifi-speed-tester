@@ -94,7 +94,15 @@ jobs:
           $p = Start-Process app\WiFiSpeedTester.exe -ArgumentList '--cli','--json' -RedirectStandardOutput result.json -RedirectStandardError progress.txt -Wait -PassThru
           Get-Content progress.txt
           Get-Content result.json
-          exit $p.ExitCode
+          $code = $p.ExitCode
+          Write-Host "--- quick ping, Indonesian report ---"
+          $q = Start-Process app\WiFiSpeedTester.exe -ArgumentList '--cli','--quick','--lang','id' -RedirectStandardOutput quick.txt -RedirectStandardError quick-progress.txt -Wait -PassThru
+          Get-Content quick.txt
+          Write-Host "--- public LibreSpeed servers ---"
+          $l = Start-Process app\WiFiSpeedTester.exe -ArgumentList '--list-servers' -RedirectStandardOutput servers.txt -RedirectStandardError servers-progress.txt -Wait -PassThru
+          Get-Content servers-progress.txt
+          Get-Content servers.txt
+          exit ($code -bor $q.ExitCode -bor $l.ExitCode)
 
   release:
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'

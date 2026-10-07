@@ -82,6 +82,8 @@ func RunWindow(exeDir string, logf func(string, ...any)) error {
 			return r.path, os.WriteFile(r.path, data, 0o644)
 		},
 	}
+	host.CopyText = func(text string) error { return copyText(uintptr(w.Window()), text) }
+	host.OpenURL = func(url string) error { OpenURL(url); return nil }
 	a := app.New(exeDir, host, logf)
 	if err := w.Bind("wstCall", func(method string, params []json.RawMessage) (any, error) {
 		return a.Call(method, params)

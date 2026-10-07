@@ -8,23 +8,79 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 )
 
 // FileName is the optional config file looked up next to the executable.
 const FileName = "WiFiSpeedTester.config.json"
 
-// Server is an HTTP speed-test endpoint.
+// Server is an HTTP speed-test endpoint, in one of two forms:
 //
-// DownloadURL must contain "{bytes}", which is replaced with the requested
-// payload size. UploadURL must accept a POST body of arbitrary size and
-// discard it.
+//   - URL templates (Type ""): DownloadURL contains "{bytes}", replaced with
+//     the requested payload size; UploadURL accepts a POST of any size.
+//   - A LibreSpeed backend (Type "librespeed"): URL is the backend base
+//     address; downloads use garbage.php?ckSize=<MiB>, uploads and pings use
+//     empty.php (paths can be overridden).
 type Server struct {
 	Name        string `json:"name"`
-	DownloadURL string `json:"downloadUrl"`
-	UploadURL   string `json:"uploadUrl"`
+	Type        string `json:"type,omitempty"`
+	DownloadURL string `json:"downloadUrl,omitempty"`
+	UploadURL   string `json:"uploadUrl,omitempty"`
+
+	URL      string `json:"url,omitempty"`
+	DLPath   string `json:"dlPath,omitempty"`
+	ULPath   string `json:"ulPath,omitempty"`
+	PingPath string `json:"pingPath,omitempty"`
+	Sponsor  string `json:"sponsor,omitempty"`
+}
+
+// LibreSpeed is the Type of a LibreSpeed backend.
+const LibreSpeed = "librespeed"
+
+func (s Server) base() string {
+	if strings.HasSuffix(s.URL, "/") {
+		return s.URL
+	}
+	return s.URL + "/"
+}
+
+func orDefault(v, d string) string {
+	if v == "" {
+		return d
+	}
+	return v
+}
+
+// DownloadFor returns the URL that serves roughly n bytes.
+func (s Server) DownloadFor(n int) string {
+	if s.Type == LibreSpeed {
+		mib := (n + 1<<20 - 1) >> 20 // garbage.php counts whole MiB chunks
+		mib = min(max(mib, 1), 1024)
+		return s.base() + orDefault(s.DLPath, "garbage.php") + "?ckSize=" + strconv.Itoa(mib)
+	}
+	return strings.ReplaceAll(s.DownloadURL, "{bytes}", strconv.Itoa(n))
+}
+
+// Upload returns the URL that accepts upload POSTs.
+func (s Server) Upload() string {
+	if s.Type == LibreSpeed {
+		return s.base() + orDefault(s.ULPath, "empty.php")
+	}
+	return s.UploadURL
+}
+
+// Ping returns a URL answering a tiny GET, used for reachability and
+// latency checks.
+func (s Server) Ping() string {
+	if s.Type == LibreSpeed {
+		return s.base() + orDefault(s.PingPath, "empty.php")
+	}
+	return s.DownloadFor(0)
 }
 
 // PingTarget is a host to measure latency against. Host "gateway" means the
@@ -70,6 +126,7 @@ type Config struct {
 	Streams           int                `json:"streams"`
 	MeasureLoadedPing bool               `json:"measureLoadedPing"`
 	ConnectivityHost  string             `json:"connectivityHost"`
+	ServerListURL     string             `json:"serverListUrl"` // public LibreSpeed list, fetched only on request
 	HistoryLimit      int                `json:"historyLimit"`
 	Profiles          map[string]Profile `json:"profiles"`
 }
@@ -98,6 +155,7 @@ func Default() Config {
 		Streams:           4,
 		MeasureLoadedPing: true,
 		ConnectivityHost:  "speed.cloudflare.com",
+		ServerListURL:     "https://librespeed.org/backend-servers/servers.php",
 		HistoryLimit:      200,
 		Profiles: map[string]Profile{
 			"general": {
@@ -110,6 +168,18 @@ func Default() Config {
 				LoadedLatencyIncMs: Band{Excellent: 10, Good: 30, Fair: 100},
 				UnstableLossPct:    5,
 				UnstableJitterMs:   50,
+			},
+			// Quick Ping: latency only, judged like the gaming profile.
+			"quick": {
+				Use:                []string{"ping", "jitter", "packetLoss"},
+				PingMs:             Band{Excellent: 20, Good: 40, Fair: 70},
+				JitterMs:           Band{Excellent: 3, Good: 8, Fair: 20},
+				PacketLossPct:      Band{Excellent: 0, Good: 0, Fair: 1},
+				DownloadMbps:       Band{Excellent: 50, Good: 15, Fair: 5},
+				UploadMbps:         Band{Excellent: 10, Good: 3, Fair: 1},
+				LoadedLatencyIncMs: Band{Excellent: 10, Good: 30, Fair: 80},
+				UnstableLossPct:    2,
+				UnstableJitterMs:   30,
 			},
 			"gaming": {
 				Use:                []string{"ping", "jitter", "packetLoss", "loadedLatency"},
@@ -149,14 +219,39 @@ func (c Config) Profile(name string) Profile {
 	return c.Profiles["general"]
 }
 
+// Validate checks that a server has the fields its type needs, with http(s)
+// URLs.
+func (s Server) Validate() error {
+	check := func(field, v string) error {
+		u, err := url.Parse(v)
+		if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+			return fmt.Errorf("server %q: %s must be an http(s) URL", s.Name, field)
+		}
+		return nil
+	}
+	switch s.Type {
+	case LibreSpeed:
+		return check("url", s.URL)
+	case "":
+		if err := check("downloadUrl", s.DownloadURL); err != nil {
+			return err
+		}
+		if !strings.Contains(s.DownloadURL, "{bytes}") {
+			return fmt.Errorf("server %q: downloadUrl must contain {bytes}", s.Name)
+		}
+		return check("uploadUrl", s.UploadURL)
+	}
+	return fmt.Errorf("server %q: unknown type %q", s.Name, s.Type)
+}
+
 // Validate rejects settings that would make tests meaningless.
 func (c Config) Validate() error {
 	if len(c.Servers) == 0 {
 		return fmt.Errorf("at least one test server is required")
 	}
 	for _, s := range c.Servers {
-		if s.DownloadURL == "" || s.UploadURL == "" {
-			return fmt.Errorf("server %q needs both downloadUrl and uploadUrl", s.Name)
+		if err := s.Validate(); err != nil {
+			return err
 		}
 	}
 	if c.PingCount < 1 || c.PingCount > 1000 {

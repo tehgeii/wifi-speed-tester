@@ -42,7 +42,10 @@ type WiFiInfo struct {
 	PhyType       string  `json:"phyType"`
 	RxRateMbps    float64 `json:"rxRateMbps"`
 	TxRateMbps    float64 `json:"txRateMbps"`
-	Note          string  `json:"note,omitempty"`
+	// NoteKey names an i18n message ("wifi.hotspot", "wifi.ssidHidden",
+	// "wifi.unavailable"); Note holds its argument or raw detail.
+	NoteKey string `json:"noteKey,omitempty"`
+	Note    string `json:"note,omitempty"`
 }
 
 // CheckStatus is the state of one connectivity check step.
@@ -57,6 +60,7 @@ const (
 
 // CheckItem is one line in the "Internet Check" list.
 type CheckItem struct {
+	Key    string      `json:"key"` // adapter | gateway | dns | internet
 	Name   string      `json:"name"`
 	Status CheckStatus `json:"status"`
 	Detail string      `json:"detail"`
@@ -107,9 +111,17 @@ const (
 
 // MetricGrade is the grade of a single metric inside the quality summary.
 type MetricGrade struct {
+	Key    string       `json:"key"` // ping | jitter | packetLoss | download | upload | loadedLatency
 	Metric string       `json:"metric"`
 	Value  string       `json:"value"`
 	Grade  QualityLevel `json:"grade"`
+	// Counted is true when the metric affects the overall level in this
+	// profile. Limits are the excellent/good/fair thresholds in Unit;
+	// HigherBetter tells how to read them.
+	Counted      bool       `json:"counted"`
+	Limits       [3]float64 `json:"limits"`
+	Unit         string     `json:"unit"`
+	HigherBetter bool       `json:"higherBetter"`
 }
 
 // Quality is the deterministic classification produced by analysis.
@@ -117,8 +129,10 @@ type Quality struct {
 	Level   QualityLevel  `json:"level"`
 	Profile string        `json:"profile"`
 	Grades  []MetricGrade `json:"grades"`
-	Notes   []string      `json:"notes"`
+	Notes   []string      `json:"notes"` // what was observed
+	Tips    []string      `json:"tips"`  // what the user can do about it
 	Summary string        `json:"summary"`
+	Lang    string        `json:"lang"`
 }
 
 // TestResult is everything one run produced.
@@ -126,7 +140,7 @@ type TestResult struct {
 	ID         string       `json:"id"`
 	StartedAt  time.Time    `json:"startedAt"`
 	FinishedAt time.Time    `json:"finishedAt"`
-	Mode       string       `json:"mode"` // "general" or "gaming"
+	Mode       string       `json:"mode"` // "general", "gaming" or "quick"
 	Network    *NetworkInfo `json:"network,omitempty"`
 	Checks     []CheckItem  `json:"checks"`
 	Pings      []PingStats  `json:"pings"`

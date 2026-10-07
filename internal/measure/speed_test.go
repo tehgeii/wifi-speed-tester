@@ -21,7 +21,7 @@ func TestDownloadMeasuresThrottledRate(t *testing.T) {
 	var calls int
 	o := opts()
 	o.OnProgress = func(f, mbps float64) { calls++ }
-	res, err := measure.Download(context.Background(), measure.NewHTTPClient(2), srv.DownloadURL(), o)
+	res, err := measure.Download(context.Background(), measure.NewHTTPClient(2), srv.DownloadFor, o)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestSpeedHTTPErrorIsReported(t *testing.T) {
 	srv.Status = 503
 	defer srv.Close()
 	start := time.Now()
-	_, err := measure.Download(context.Background(), measure.NewHTTPClient(2), srv.DownloadURL(), opts())
+	_, err := measure.Download(context.Background(), measure.NewHTTPClient(2), srv.DownloadFor, opts())
 	var se *measure.HTTPStatusError
 	if !errors.As(err, &se) || se.StatusCode != 503 {
 		t.Fatalf("err = %v, want HTTP 503", err)
@@ -69,7 +69,7 @@ func TestSpeedCancellation(t *testing.T) {
 	defer srv.Close()
 	for name, run := range map[string]func(context.Context) error{
 		"download": func(ctx context.Context) error {
-			_, err := measure.Download(ctx, measure.NewHTTPClient(2), srv.DownloadURL(), measure.SpeedOptions{Duration: 20 * time.Second, Warmup: time.Second, Streams: 2})
+			_, err := measure.Download(ctx, measure.NewHTTPClient(2), srv.DownloadFor, measure.SpeedOptions{Duration: 20 * time.Second, Warmup: time.Second, Streams: 2})
 			return err
 		},
 		"upload": func(ctx context.Context) error {
@@ -93,7 +93,7 @@ func TestSpeedCancellation(t *testing.T) {
 func TestUnreachableServer(t *testing.T) {
 	o := opts()
 	o.Duration = 2 * time.Second
-	_, err := measure.Download(context.Background(), measure.NewHTTPClient(1), "http://127.0.0.1:1/down?bytes={bytes}", o)
+	_, err := measure.Download(context.Background(), measure.NewHTTPClient(1), func(int) string { return "http://127.0.0.1:1/down" }, o)
 	if err == nil {
 		t.Fatal("expected an error for an unreachable server")
 	}
@@ -106,7 +106,7 @@ func TestDownloadKeepsSpeedWhenRateLimited(t *testing.T) {
 	srv.RateLimitAfter = 2
 	defer srv.Close()
 	o := measure.SpeedOptions{Duration: 6 * time.Second, Warmup: 3 * time.Second, Streams: 2}
-	res, err := measure.Download(context.Background(), measure.NewHTTPClient(2), srv.DownloadURL(), o)
+	res, err := measure.Download(context.Background(), measure.NewHTTPClient(2), srv.DownloadFor, o)
 	var se *measure.HTTPStatusError
 	if !errors.As(err, &se) || se.StatusCode != 429 {
 		t.Fatalf("err = %v, want 429", err)
@@ -122,7 +122,7 @@ func TestDownloadAdaptsToServerSizeLimit(t *testing.T) {
 	srv := testutil.NewSpeedServer(0)
 	srv.MaxBytes = 30_000_000
 	defer srv.Close()
-	res, err := measure.Download(context.Background(), measure.NewHTTPClient(2), srv.DownloadURL(), opts())
+	res, err := measure.Download(context.Background(), measure.NewHTTPClient(2), srv.DownloadFor, opts())
 	if err != nil {
 		t.Fatalf("err = %v", err)
 	}

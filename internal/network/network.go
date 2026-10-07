@@ -21,10 +21,10 @@ func Detect(ctx context.Context) (*model.NetworkInfo, error) {
 		if wifi, err := wifiInfo(info); err == nil && wifi != nil {
 			info.WiFi = wifi
 			if hotspotGateway(info.Gateway) {
-				wifi.Note = "Gateway address is typical of a phone hotspot."
+				wifi.NoteKey = "wifi.hotspot"
 			}
 		} else if err != nil {
-			info.WiFi = &model.WiFiInfo{Note: "Wi-Fi details unavailable: " + err.Error()}
+			info.WiFi = &model.WiFiInfo{NoteKey: "wifi.unavailable", Note: err.Error()}
 		}
 	}
 	return info, nil

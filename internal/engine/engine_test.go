@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/tehgeii/wifi-speed-tester/internal/config"
+	"github.com/tehgeii/wifi-speed-tester/internal/i18n"
 	"github.com/tehgeii/wifi-speed-tester/internal/measure"
 	"github.com/tehgeii/wifi-speed-tester/internal/model"
 	"github.com/tehgeii/wifi-speed-tester/internal/testutil"
@@ -179,7 +180,7 @@ func TestFallbackToSecondServer(t *testing.T) {
 }
 
 func TestExplainProxyBlock(t *testing.T) {
-	f := Explain("x", errors.New(`Get "https://speed.cloudflare.com/__down?bytes=0": Forbidden`))
+	f := Explain(i18n.EN, "x", errors.New(`Get "https://speed.cloudflare.com/__down?bytes=0": Forbidden`))
 	if !strings.Contains(f.Reason, "proxy") {
 		t.Fatalf("reason = %q", f.Reason)
 	}
@@ -212,5 +213,67 @@ func TestTCPFallbackWhenICMPBlocked(t *testing.T) {
 	}
 	if !strings.Contains(strings.Join(res.Quality.Notes, " "), "blocks ICMP") {
 		t.Fatalf("notes = %v", res.Quality.Notes)
+	}
+}
+
+func TestQuickPingSkipsSpeed(t *testing.T) {
+	srv := testutil.NewSpeedServer(0)
+	defer srv.Close()
+	rec := &recorder{}
+	start := time.Now()
+	res := testEngine(srv, &testutil.Pinger{RTT: time.Millisecond}).Run(context.Background(), Options{Mode: "quick"}, rec.emit)
+	if res.Download != nil || res.Upload != nil || res.Mode != "quick" {
+		t.Fatalf("quick ping ran speed tests: %+v", res)
+	}
+	if got := strings.Join(rec.stages(), ","); got != "connection,ping" {
+		t.Fatalf("stages = %s", got)
+	}
+	if res.Quality == nil || res.Quality.Level == model.QualityUnknown {
+		t.Fatalf("quality = %+v", res.Quality)
+	}
+	if time.Since(start) > 3*time.Second {
+		t.Fatal("quick ping too slow")
+	}
+}
+
+func TestLibreSpeedServer(t *testing.T) {
+	srv := testutil.NewSpeedServer(1_000_000)
+	defer srv.Close()
+	e := testEngine(srv, &testutil.Pinger{RTT: time.Millisecond})
+	e.Config.Servers = []config.Server{{Name: "Libre", Type: config.LibreSpeed, URL: srv.LibreSpeedURL()}}
+	res := e.Run(context.Background(), Options{}, nil)
+	if res.Failure != nil {
+		t.Fatalf("failure: %+v", res.Failure)
+	}
+	if res.Download.Server != "Libre" || res.Download.Mbps < 8 || res.Upload.Mbps < 8 {
+		t.Fatalf("down %.1f up %.1f via %s", res.Download.Mbps, res.Upload.Mbps, res.Download.Server)
+	}
+}
+
+func TestServerOverrideIsTriedFirst(t *testing.T) {
+	srv := testutil.NewSpeedServer(1_000_000)
+	defer srv.Close()
+	e := testEngine(srv, &testutil.Pinger{RTT: time.Millisecond})
+	picked := &config.Server{Name: "Picked", Type: config.LibreSpeed, URL: srv.LibreSpeedURL()}
+	res := e.Run(context.Background(), Options{Server: picked}, nil)
+	if res.Download.Server != "Picked" {
+		t.Fatalf("server = %s", res.Download.Server)
+	}
+	if e.Config.Servers[0].Name != "Local" {
+		t.Fatal("override must not modify the engine's config")
+	}
+}
+
+func TestIndonesianChecksAndFailure(t *testing.T) {
+	srv := testutil.NewSpeedServer(0)
+	srv.Close()
+	res := testEngine(srv, &testutil.Pinger{RTT: time.Millisecond}).Run(context.Background(), Options{Lang: i18n.ID}, nil)
+	if res.Failure == nil || res.Failure.Title != "Internet Tidak Tersedia" {
+		t.Fatalf("failure = %+v", res.Failure)
+	}
+	for _, c := range res.Checks {
+		if c.Key == "adapter" && c.Name != "Adapter jaringan" {
+			t.Fatalf("check = %+v", c)
+		}
 	}
 }
