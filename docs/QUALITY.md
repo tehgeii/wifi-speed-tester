@@ -59,6 +59,35 @@ Gaming mode also sends twice as many pings for a steadier jitter figure.
 Ping is network latency, not frame rate. The gaming rating says nothing about
 FPS.
 
+### Quick Ping profile
+
+Uses ping, jitter and packet loss only, with the gaming thresholds (no
+download or upload is run).
+
+## Why this rating?
+
+The result card has a **Why this rating?** section. It lists every measured
+metric with its value, its grade, and the thresholds of the active profile.
+Metrics the profile does not count are shown greyed out and marked "not
+counted".
+
+## Tips the app adds
+
+Tips are concrete actions. Each rule fires only on a measured problem, so a
+healthy connection gets no tips.
+
+| Tip | When |
+|---|---|
+| Turn on SQM / Smart Queue / QoS | latency under load is above the profile's `good` value, or the bufferbloat note fired |
+| Move closer / reduce obstacles | Wi-Fi signal below 60 % |
+| Use the 5 GHz network | connected on 2.4 GHz |
+| Test once with a LAN cable | Wi-Fi with local delay/loss, jitter graded FAIR/POOR, or any packet loss |
+| Restart the router / change Wi-Fi channel | delay or loss already appears at the router |
+| VPN is active | the active adapter is a VPN |
+| Try a nearer server | ping graded FAIR/POOR while the router looks fine |
+| Pause other downloads/streaming | download or upload graded FAIR/POOR |
+| Contact your ISP with a report | problems appear beyond the router, or loss on a wired link |
+
 ## Notes the app adds
 
 - **Latency increases significantly under load** when the increase is above

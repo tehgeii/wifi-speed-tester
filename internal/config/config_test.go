@@ -49,3 +49,44 @@ func TestInvalidConfigFallsBack(t *testing.T) {
 		t.Fatal("expected parse error")
 	}
 }
+
+func TestLibreSpeedServer(t *testing.T) {
+	s := Server{Name: "L", Type: LibreSpeed, URL: "https://host/backend"}
+	if err := s.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.DownloadFor(25_000_000); got != "https://host/backend/garbage.php?ckSize=24" {
+		t.Fatalf("download = %s", got)
+	}
+	if got := s.DownloadFor(0); got != "https://host/backend/garbage.php?ckSize=1" {
+		t.Fatalf("download(0) = %s", got)
+	}
+	if got := s.DownloadFor(5 << 30); got != "https://host/backend/garbage.php?ckSize=1024" {
+		t.Fatalf("download cap = %s", got)
+	}
+	if s.Upload() != "https://host/backend/empty.php" || s.Ping() != "https://host/backend/empty.php" {
+		t.Fatal("upload/ping urls")
+	}
+	s.DLPath, s.ULPath = "dl.php", "ul.php"
+	if s.DownloadFor(1) != "https://host/backend/dl.php?ckSize=1" || s.Upload() != "https://host/backend/ul.php" {
+		t.Fatal("custom paths")
+	}
+}
+
+func TestServerValidate(t *testing.T) {
+	bad := []Server{
+		{Name: "a", Type: LibreSpeed},
+		{Name: "b", Type: LibreSpeed, URL: "ftp://x/"},
+		{Name: "c", DownloadURL: "https://x/d", UploadURL: "https://x/u"},
+		{Name: "d", DownloadURL: "https://x/d?b={bytes}"},
+		{Name: "e", Type: "other", URL: "https://x/"},
+	}
+	for _, s := range bad {
+		if s.Validate() == nil {
+			t.Errorf("%s should be invalid", s.Name)
+		}
+	}
+	if err := Default().Servers[0].Validate(); err != nil {
+		t.Fatal(err)
+	}
+}
