@@ -15,6 +15,18 @@ WiFiSpeedTester-Portable-<version>-win-x64.zip
 └── README.txt
 ```
 
+## Download
+
+Get the latest version from
+**[Releases](https://github.com/tehgeii/wifi-speed-tester/releases/latest)**:
+
+- **`…-win-x64.zip`**: most Windows 10/11 PCs (Intel / AMD).
+- **`…-win-arm64.zip`**: Windows on ARM (Snapdragon).
+
+Extract the zip and double-click `WiFiSpeedTester.exe`. The app is not
+code-signed yet, so Windows SmartScreen may show "Windows protected your PC";
+click **More info → Run anyway**.
+
 ## Features
 
 | Area | What you get |
@@ -148,7 +160,13 @@ go test ./...               # unit and end-to-end engine tests
 
 CI (`.github/workflows/build.yml`) runs `go vet` and the tests on Linux and
 Windows and builds both zips as artifacts. It also runs a real `--cli` smoke
-test on a Windows runner. Pushing a `v*` tag publishes a GitHub release.
+test on a Windows runner.
+
+To publish a release: **Actions → build → Run workflow**, choose `main`, and
+enter a version such as `1.0.1`. The workflow builds both zips and
+`SHA256SUMS.txt`, creates the tag `v1.0.1`, and publishes the release with
+the notes from `packaging/RELEASE_NOTES.md` plus the changes since the last
+release. Pushing a `v*` tag does the same.
 
 The icon, DPI manifest and version info come from
 `cmd/wifispeedtester/rsrc_windows_*.syso`. Regenerate them after changing
