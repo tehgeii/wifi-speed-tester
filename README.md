@@ -37,11 +37,17 @@ click **More info → Run anyway**.
 | Ping | Router, Cloudflare DNS and Google DNS by default (configurable): sent/received, min/avg/max, jitter, loss |
 | Download / Upload | Multi-connection HTTP test with warm-up excluded, live gauge, throughput chart, retry and fallback to backup servers |
 | Latency under load | Ping sampled during download and upload, with a cautious bufferbloat hint |
-| Rating | EXCELLENT / GOOD / FAIR / POOR / UNSTABLE from documented, configurable thresholds ([docs/QUALITY.md](docs/QUALITY.md)) |
+| Rating | EXCELLENT / GOOD / FAIR / POOR / UNSTABLE from documented, configurable thresholds ([docs/QUALITY.md](docs/QUALITY.md)). **Why this rating?** shows every metric's grade and thresholds |
+| Tips | Concrete next steps for what was measured (turn on SQM/QoS, use 5 GHz, try a cable, restart the router, VPN active, contact the ISP…) |
 | Gaming mode | Rates ping, jitter, loss and latency stability instead of bandwidth |
+| Quick Ping | About 5 seconds: connection check and ping only, for a quick check before gaming |
+| Test servers | Cloudflare by default; **Find nearby servers** ranks public LibreSpeed servers by latency, and the chosen one is used first, with Cloudflare as backup |
+| Language | English and Bahasa Indonesia (follows Windows on first run; switch in Settings ⚙) |
 | Units | Mbps (default) or MB/s (80 Mbps = 10 MB/s) |
 | Export | TXT, JSON, CSV and a PNG result card. SSID, BSSID and IPs are masked unless you choose to include them |
-| History | Stored locally as JSON next to the exe; view, reload, export to CSV, clear |
+| History | Stored locally as JSON next to the exe; speed and ping trend charts, averages per connection (Wi-Fi vs Ethernet…), 7/30-day filters, reload, export to CSV, clear |
+| Copy result | Short summary for WhatsApp, Discord or anywhere, without the Wi-Fi name or IPs |
+| Updates | Optional check for a newer release on startup (Settings ⚙), with a link to the download |
 | Errors | Reason and suggestion in plain language, with technical details in a collapsible section |
 | Cancel | Stops all network activity immediately (Esc also works) |
 
@@ -61,7 +67,11 @@ Testing is local except for the traffic needed to measure the connection:
 
 - speed-test data to the configured test server (default: Cloudflare, `speed.cloudflare.com`);
 - ICMP echo (ping) to your router and to the configured targets (default `1.1.1.1`, `8.8.8.8`);
-- a DNS lookup of the test server name.
+- a DNS lookup of the test server name;
+- only when you press **Find nearby servers**: the public server list from
+  `librespeed.org` and one small request to each listed server;
+- only if **Check for updates** is on (Settings ⚙, on by default): one
+  request to `api.github.com` for the latest release.
 
 The app does not read files, browser history or passwords, has no telemetry
 and does not run in the background. The About (`?`) dialog lists exactly
@@ -69,8 +79,9 @@ where traffic goes for the current configuration.
 
 Files it writes:
 
-- `WiFiSpeedTester-data\` next to the exe holds `history.json` and
-  `settings.json`. If that folder is read-only it falls back to
+- `WiFiSpeedTester-data\` next to the exe holds `history.json`,
+  `settings.json` (language, unit, mode, update check) and `server.json`
+  (the server picked in the app, if any). If that folder is read-only it falls back to
   `%APPDATA%\WiFiSpeedTester`.
 - `%LOCALAPPDATA%\WiFiSpeedTester\WebView2` is the browser-engine cache.
 
@@ -116,7 +127,9 @@ falls back to the defaults.
   "servers": [                       // tried in order; later ones are backups
     { "name": "Cloudflare",
       "downloadUrl": "https://speed.cloudflare.com/__down?bytes={bytes}",
-      "uploadUrl":   "https://speed.cloudflare.com/__up" }
+      "uploadUrl":   "https://speed.cloudflare.com/__up" },
+    { "name": "My LibreSpeed", "type": "librespeed",   // optional
+      "url": "https://speedtest.example.com/backend/" }
   ],
   "pingTargets": [                   // "gateway" = your router
     { "label": "Local Gateway",  "host": "gateway" },
@@ -128,14 +141,18 @@ falls back to the defaults.
   "streams": 4,
   "measureLoadedPing": true,
   "connectivityHost": "speed.cloudflare.com",
+  "serverListUrl": "https://librespeed.org/backend-servers/servers.php",
   "historyLimit": 200,
-  "profiles": { "general": { ... }, "gaming": { ... } }   // see docs/QUALITY.md
+  "profiles": { "general": { ... }, "gaming": { ... }, "quick": { ... } }   // see docs/QUALITY.md
 }
 ```
 
-A server must accept `GET <downloadUrl>` with `{bytes}` replaced by a byte
-count and return that many bytes. It must also accept a `POST` of arbitrary
-size to `uploadUrl`. Only use servers you are allowed to test against.
+A URL-template server must accept `GET <downloadUrl>` with `{bytes}` replaced
+by a byte count and return that many bytes. It must also accept a `POST` of
+arbitrary size to `uploadUrl`. A `librespeed` server needs only the backend
+`url`; the app uses `garbage.php` and `empty.php` there (override with
+`dlPath`, `ulPath`, `pingPath`). Only use servers you are allowed to test
+against.
 
 ## Command line
 
@@ -143,7 +160,10 @@ size to `uploadUrl`. Only use servers you are allowed to test against.
 WiFiSpeedTester.exe                 open the window
 WiFiSpeedTester.exe --cli           run a test in the terminal and print a report
 WiFiSpeedTester.exe --cli --gaming  gaming profile
+WiFiSpeedTester.exe --cli --quick   ping only (about 5 seconds)
+WiFiSpeedTester.exe --cli --lang id report in Bahasa Indonesia
 WiFiSpeedTester.exe --cli --json    full result as JSON (redirect with > file.json)
+WiFiSpeedTester.exe --list-servers  rank public LibreSpeed servers by latency
 WiFiSpeedTester.exe --print-config  print the default configuration
 WiFiSpeedTester.exe --write-config  write WiFiSpeedTester.config.json next to the exe
 ```
@@ -204,7 +224,10 @@ cmd/wifispeedtester   entry point: window, --cli, --serve
 internal/network      adapter detection (GetAdaptersAddresses), Wi-Fi info (wlanapi), DNS/internet checks
 internal/measure      ping (IcmpSendEcho), download/upload testers, jitter / packet-loss / unit math
 internal/engine       runs the full test, emits progress events, cancellation, user-facing errors
-internal/analysis     ConnectionQualityEngine: deterministic rating and notes
+internal/analysis     ConnectionQualityEngine: deterministic rating, notes and tips
+internal/i18n         English / Indonesian text for everything the Go side writes
+internal/servers      LibreSpeed server list and latency ranking
+internal/update       latest-release check on GitHub
 internal/export       TXT / JSON / CSV with masking of identifying fields
 internal/history      local JSON history
 internal/config       configuration and defaults

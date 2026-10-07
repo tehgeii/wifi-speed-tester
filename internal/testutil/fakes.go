@@ -95,6 +95,18 @@ func NewSpeedServer(bytesPerSec int64) *SpeedServer {
 			s.throttle(c)
 		}
 	})
+	// LibreSpeed backend: garbage.php?ckSize=<MiB> and empty.php.
+	mux.HandleFunc("/backend/garbage.php", func(w http.ResponseWriter, r *http.Request) {
+		mib, _ := strconv.Atoi(r.URL.Query().Get("ckSize"))
+		r2 := r.Clone(r.Context())
+		q := r2.URL.Query()
+		q.Set("bytes", strconv.Itoa(mib<<20))
+		r2.URL.RawQuery = q.Encode()
+		mux.ServeHTTP(w, withPath(r2, "/down"))
+	})
+	mux.HandleFunc("/backend/empty.php", func(w http.ResponseWriter, r *http.Request) {
+		mux.ServeHTTP(w, withPath(r, "/up"))
+	})
 	mux.HandleFunc("/up", func(w http.ResponseWriter, r *http.Request) {
 		if s.Status != 0 {
 			io.Copy(io.Discard, r.Body)
@@ -120,6 +132,18 @@ func (s *SpeedServer) throttle(n int) {
 		time.Sleep(time.Duration(int64(n) * int64(time.Second) / s.BytesPerSec))
 	}
 }
+
+func withPath(r *http.Request, path string) *http.Request {
+	r2 := r.Clone(r.Context())
+	r2.URL.Path = path
+	return r2
+}
+
+// DownloadFor serves n bytes (see config.Server.DownloadFor).
+func (s *SpeedServer) DownloadFor(n int) string { return s.URL + "/down?bytes=" + strconv.Itoa(n) }
+
+// LibreSpeedURL is the base of the fake LibreSpeed backend.
+func (s *SpeedServer) LibreSpeedURL() string { return s.URL + "/backend/" }
 
 // DownloadURL and UploadURL are the config templates for this server.
 func (s *SpeedServer) DownloadURL() string { return s.URL + "/down?bytes={bytes}" }

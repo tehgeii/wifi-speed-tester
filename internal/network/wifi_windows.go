@@ -167,7 +167,7 @@ func wifiInfo(net *model.NetworkInfo) (*model.WiFiInfo, error) {
 		TxRateMbps:    float64(a.TxRateKbps) / 1000,
 	}
 	if w.SSID == "" {
-		w.Note = "SSID hidden by Windows (Location permission may be required)."
+		w.NoteKey = "wifi.ssidHidden"
 	}
 
 	var chPtr unsafe.Pointer

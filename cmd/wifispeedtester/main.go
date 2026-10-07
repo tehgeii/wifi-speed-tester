@@ -4,6 +4,9 @@
 //
 //	--cli            run one test in the console and print a report
 //	--gaming         use the gaming profile (with --cli)
+//	--quick          ping only, no speed test (with --cli)
+//	--lang id|en     report language (with --cli)
+//	--list-servers   find public LibreSpeed servers and rank them by latency
 //	--json           print the result as JSON (with --cli)
 //	--serve [port]   serve the UI on http://127.0.0.1:port for development
 //	--print-config   print the default configuration (JSON)
@@ -15,6 +18,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -23,6 +27,8 @@ import (
 	"github.com/tehgeii/wifi-speed-tester/internal/config"
 	"github.com/tehgeii/wifi-speed-tester/internal/engine"
 	"github.com/tehgeii/wifi-speed-tester/internal/export"
+	"github.com/tehgeii/wifi-speed-tester/internal/i18n"
+	"github.com/tehgeii/wifi-speed-tester/internal/servers"
 	"github.com/tehgeii/wifi-speed-tester/internal/ui"
 )
 
@@ -30,6 +36,9 @@ func main() {
 	cli := flag.Bool("cli", false, "run a test in the console")
 	gaming := flag.Bool("gaming", false, "use the gaming profile (with --cli)")
 	asJSON := flag.Bool("json", false, "print JSON instead of text (with --cli)")
+	quick := flag.Bool("quick", false, "ping only, no download/upload (with --cli)")
+	lang := flag.String("lang", "en", "report language: en or id (with --cli)")
+	listServers := flag.Bool("list-servers", false, "find public LibreSpeed servers and rank them by latency")
 	serve := flag.Int("serve", 0, "serve the UI on 127.0.0.1:`port` (development)")
 	writeCfg := flag.Bool("write-config", false, "write "+config.FileName+" with the defaults next to the executable")
 	printCfg := flag.Bool("print-config", false, "print the default configuration as JSON")
@@ -52,8 +61,17 @@ func main() {
 			fatalf("%v", err)
 		}
 		fmt.Println("Wrote", p)
+	case *listServers:
+		os.Exit(runListServers(exeDir))
 	case *cli:
-		os.Exit(runCLI(exeDir, *gaming, *asJSON))
+		mode := "general"
+		if *gaming {
+			mode = "gaming"
+		}
+		if *quick {
+			mode = "quick"
+		}
+		os.Exit(runCLI(exeDir, mode, i18n.Parse(*lang), *asJSON))
 	case *serve > 0:
 		runServer(exeDir, *serve)
 	default:
@@ -77,7 +95,7 @@ func fatalf(format string, args ...any) {
 	os.Exit(1)
 }
 
-func runCLI(exeDir string, gaming, asJSON bool) int {
+func runCLI(exeDir, mode string, lang i18n.Lang, asJSON bool) int {
 	cfg, path, err := config.Load(exeDir)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "config:", err, "(using defaults)")
@@ -87,12 +105,8 @@ func runCLI(exeDir string, gaming, asJSON bool) int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	mode := "general"
-	if gaming {
-		mode = "gaming"
-	}
 	last := ""
-	res := engine.New(cfg).Run(ctx, engine.Options{Mode: mode}, func(ev engine.Event) {
+	res := engine.New(cfg).Run(ctx, engine.Options{Mode: mode, Lang: lang}, func(ev engine.Event) {
 		switch ev.Type {
 		case "check":
 			if ev.Check.Status != "pending" {
@@ -114,7 +128,7 @@ func runCLI(exeDir string, gaming, asJSON bool) int {
 			fmt.Fprintln(os.Stderr)
 		}
 	})
-	opts := export.Options{Unit: "Mbps", IncludeSensitive: true}
+	opts := export.Options{Unit: "Mbps", IncludeSensitive: true, Lang: lang}
 	if asJSON {
 		b, _ := export.JSON(res, opts)
 		fmt.Println(string(b))
@@ -123,6 +137,35 @@ func runCLI(exeDir string, gaming, asJSON bool) int {
 		os.Stdout.Write(export.TXT(res, opts))
 	}
 	if res.Failure != nil || res.Cancelled {
+		return 1
+	}
+	return 0
+}
+
+func runListServers(exeDir string) int {
+	cfg, _, _ := config.Load(exeDir)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	fmt.Fprintln(os.Stderr, "Fetching", cfg.ServerListURL)
+	list, err := servers.Fetch(ctx, &http.Client{Transport: &http.Transport{Proxy: http.ProxyFromEnvironment}}, cfg.ServerListURL)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		return 1
+	}
+	fmt.Fprintf(os.Stderr, "Measuring latency to %d servers...\n", len(list))
+	ranked := servers.Probe(ctx, list, 8, nil)
+	ok := 0
+	for _, c := range ranked {
+		if c.Error != "" {
+			continue
+		}
+		ok++
+		if ok <= 20 {
+			fmt.Printf("%7.1f ms  %-45s %s\n", c.LatencyMs, c.Server.Name, c.Server.URL)
+		}
+	}
+	fmt.Fprintf(os.Stderr, "%d of %d servers reachable\n", ok, len(ranked))
+	if ok == 0 {
 		return 1
 	}
 	return 0

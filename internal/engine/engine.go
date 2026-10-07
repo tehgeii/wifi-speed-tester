@@ -18,6 +18,7 @@ import (
 
 	"github.com/tehgeii/wifi-speed-tester/internal/analysis"
 	"github.com/tehgeii/wifi-speed-tester/internal/config"
+	"github.com/tehgeii/wifi-speed-tester/internal/i18n"
 	"github.com/tehgeii/wifi-speed-tester/internal/measure"
 	"github.com/tehgeii/wifi-speed-tester/internal/model"
 	"github.com/tehgeii/wifi-speed-tester/internal/network"
@@ -67,7 +68,11 @@ func New(cfg config.Config) *Engine {
 
 // Options selects what to run.
 type Options struct {
-	Mode string // "general" or "gaming"
+	Mode string    // "general", "gaming", or "quick" (connectivity + ping only)
+	Lang i18n.Lang // language of notes, tips, checks and errors
+	// Server, when set, is tried first; the configured servers remain as
+	// fallbacks.
+	Server *config.Server
 }
 
 type runner struct {
@@ -79,6 +84,7 @@ type runner struct {
 	primary net.IP // internet ping target used for latency under load
 	server  int    // index of the server that worked
 	errs    map[string]error
+	lang    i18n.Lang
 	// loadPinger creates the pinger used for latency under load: ICMP, or
 	// TCP when ICMP is blocked.
 	loadPinger func() (measure.Pinger, error)
@@ -92,10 +98,14 @@ func (e *Engine) Run(ctx context.Context, opts Options, emit func(Event)) *model
 		emit = func(Event) {}
 	}
 	mode := opts.Mode
-	if mode != "gaming" {
+	if mode != "gaming" && mode != "quick" {
 		mode = "general"
 	}
-	r := &runner{e: e, cfg: e.Config, emit: emit, errs: map[string]error{}, loadPinger: e.NewPinger, res: &model.TestResult{
+	cfg := e.Config
+	if opts.Server != nil {
+		cfg.Servers = append([]config.Server{*opts.Server}, cfg.Servers...)
+	}
+	r := &runner{e: e, cfg: cfg, emit: emit, errs: map[string]error{}, lang: opts.Lang, loadPinger: e.NewPinger, res: &model.TestResult{
 		ID:        newID(),
 		StartedAt: time.Now(),
 		Mode:      mode,
@@ -108,7 +118,7 @@ func (e *Engine) Run(ctx context.Context, opts Options, emit func(Event)) *model
 		}
 		measured := r.res.PingMs > 0 || r.res.Download != nil && r.res.Download.Mbps > 0 || r.res.Upload != nil && r.res.Upload.Mbps > 0
 		if !r.res.Cancelled && measured {
-			r.res.Quality = analysis.Evaluate(r.res, mode, r.cfg.Profile(mode))
+			r.res.Quality = analysis.Evaluate(r.res, mode, r.cfg.Profile(mode), r.lang)
 		}
 		emit(Event{Type: "result", Stage: StageDone, Progress: 1, Result: r.res})
 	}()
@@ -123,7 +133,7 @@ func (e *Engine) Run(ctx context.Context, opts Options, emit func(Event)) *model
 		return r.res
 	}
 	r.ping(ctx, mode)
-	if ctx.Err() != nil {
+	if ctx.Err() != nil || mode == "quick" {
 		return r.res
 	}
 	r.res.Download = r.speed(ctx, StageDownload)
@@ -135,7 +145,7 @@ func (e *Engine) Run(ctx context.Context, opts Options, emit func(Event)) *model
 		return r.res
 	}
 	if dErr, uErr := r.errs[StageDownload], r.errs[StageUpload]; dErr != nil && uErr != nil {
-		r.res.Failure = Explain("Speed Test Failed", dErr)
+		r.res.Failure = Explain(r.lang, r.t("fail.speed.title"), dErr)
 		r.res.Failure.Technical = "download: " + dErr.Error() + "; upload: " + uErr.Error()
 	}
 	return r.res
@@ -147,10 +157,14 @@ func newID() string {
 	return time.Now().Format("20060102-150405") + "-" + hex.EncodeToString(b)
 }
 
-func (r *runner) check(name string, st model.CheckStatus, detail string) {
-	item := model.CheckItem{Name: name, Status: st, Detail: detail}
+func (r *runner) t(key string, args ...any) string { return i18n.T(r.lang, key, args...) }
+
+// check records the state of one pre-flight step (key: adapter, gateway,
+// dns, internet).
+func (r *runner) check(key string, st model.CheckStatus, detail string) {
+	item := model.CheckItem{Key: key, Name: r.t("check." + key), Status: st, Detail: detail}
 	for i := range r.res.Checks {
-		if r.res.Checks[i].Name == name {
+		if r.res.Checks[i].Key == key {
 			r.res.Checks[i] = item
 			r.emit(Event{Type: "check", Stage: StageConnection, Check: &item})
 			return
@@ -172,24 +186,23 @@ func (r *runner) fail(title, reason, suggestion string, err error) bool {
 // cannot continue.
 func (r *runner) connectivity(ctx context.Context) bool {
 	r.emit(Event{Type: "stage", Stage: StageConnection})
-	for _, n := range []string{"Network adapter", "Gateway", "DNS", "Internet"} {
+	for _, n := range []string{"adapter", "gateway", "dns", "internet"} {
 		r.check(n, model.CheckPending, "")
 	}
 
 	info, err := r.e.Detect(ctx)
 	if err != nil {
-		r.check("Network adapter", model.CheckFail, err.Error())
-		return r.fail("No Network Connection", "No active network adapter was found.",
-			"Connect to Wi-Fi or plug in a network cable, then try again.", err)
+		r.check("adapter", model.CheckFail, err.Error())
+		return r.fail(r.t("fail.noNetwork.title"), r.t("fail.noNetwork.reason"), r.t("fail.noNetwork.suggestion"), err)
 	}
 	r.res.Network = info
 	r.emit(Event{Type: "network", Stage: StageConnection, Network: info})
-	r.check("Network adapter", model.CheckOK, string(info.Connection)+" — "+info.AdapterName)
+	r.check("adapter", model.CheckOK, string(info.Connection)+" — "+info.AdapterName)
 
 	if info.Gateway == "" {
-		r.check("Gateway", model.CheckWarn, "No default gateway reported")
+		r.check("gateway", model.CheckWarn, r.t("check.noGateway"))
 	} else if r.pinger == nil {
-		r.check("Gateway", model.CheckWarn, "Ping is not available on this system")
+		r.check("gateway", model.CheckWarn, r.t("check.noPing"))
 	} else {
 		ok := false
 		for i := 0; i < 3 && !ok && ctx.Err() == nil; i++ {
@@ -197,9 +210,9 @@ func (r *runner) connectivity(ctx context.Context) bool {
 			ok = err == nil
 		}
 		if ok {
-			r.check("Gateway", model.CheckOK, info.Gateway+" reachable")
+			r.check("gateway", model.CheckOK, r.t("check.gatewayOK", info.Gateway))
 		} else {
-			r.check("Gateway", model.CheckWarn, info.Gateway+" did not answer ping (many routers block it)")
+			r.check("gateway", model.CheckWarn, r.t("check.gatewayNoReply", info.Gateway))
 		}
 	}
 	if ctx.Err() != nil {
@@ -210,30 +223,28 @@ func (r *runner) connectivity(ctx context.Context) bool {
 		if ctx.Err() != nil {
 			return false
 		}
-		r.check("DNS", model.CheckFail, err.Error())
-		r.check("Internet", model.CheckFail, "Unavailable")
-		return r.fail("Internet Unavailable", "Names on the internet could not be looked up (DNS failed).",
-			"Speed test cannot continue. Check your internet connection or DNS settings, then try again.", err)
+		r.check("dns", model.CheckFail, err.Error())
+		r.check("internet", model.CheckFail, r.t("check.unavailable"))
+		return r.fail(r.t("fail.offline.title"), r.t("fail.dns.reason"), r.t("fail.dns.suggestion"), err)
 	} else {
-		r.check("DNS", model.CheckOK, "Resolved in "+analysis.FormatMs(float64(d)/float64(time.Millisecond)))
+		r.check("dns", model.CheckOK, r.t("check.dnsOK", analysis.FormatMs(float64(d)/float64(time.Millisecond))))
 	}
 
 	var lastErr error
 	for i, s := range r.cfg.Servers {
-		endpoint := strings.ReplaceAll(s.DownloadURL, "{bytes}", "0")
-		if lastErr = network.CheckInternet(ctx, r.e.Client, endpoint); lastErr == nil {
+		if lastErr = network.CheckInternet(ctx, r.e.Client, s.Ping()); lastErr == nil {
 			r.server = i
-			r.check("Internet", model.CheckOK, "Reached test server "+s.Name)
+			r.check("internet", model.CheckOK, r.t("check.internetOK", s.Name))
 			return true
 		}
 		if ctx.Err() != nil {
 			return false
 		}
 	}
-	r.check("Internet", model.CheckFail, "Unavailable")
-	f := Explain("Internet Unavailable", lastErr)
-	f.Reason = "The internet could not be reached. " + f.Reason
-	f.Suggestion = "Speed test cannot continue. " + f.Suggestion
+	r.check("internet", model.CheckFail, r.t("check.unavailable"))
+	f := Explain(r.lang, r.t("fail.offline.title"), lastErr)
+	f.Reason = r.t("fail.offline.reasonPrefix") + f.Reason
+	f.Suggestion = r.t("fail.offline.suggPrefix") + f.Suggestion
 	r.res.Failure = f
 	return false
 }
@@ -334,7 +345,7 @@ func (r *runner) ping(ctx context.Context, mode string) {
 // tcpFallback measures latency with TCP connections to the test server
 // when no ICMP target answered (common on corporate and cloud networks).
 func (r *runner) tcpFallback(ctx context.Context, mode string) {
-	u, err := url.Parse(r.cfg.Servers[r.server].DownloadURL)
+	u, err := url.Parse(r.cfg.Servers[r.server].Ping())
 	if err != nil || u.Hostname() == "" {
 		return
 	}
@@ -378,9 +389,15 @@ func (r *runner) tcpFallback(ctx context.Context, mode string) {
 // when one fails before transferring data.
 func (r *runner) speed(ctx context.Context, stage string) *model.SpeedResult {
 	r.emit(Event{Type: "stage", Stage: stage})
-	dur, run := r.cfg.DownloadDuration(), measure.Download
+	dur := r.cfg.DownloadDuration()
+	run := func(ctx context.Context, s config.Server, o measure.SpeedOptions) (model.SpeedResult, error) {
+		return measure.Download(ctx, r.e.Client, s.DownloadFor, o)
+	}
 	if stage == StageUpload {
-		dur, run = r.cfg.UploadDuration(), measure.Upload
+		dur = r.cfg.UploadDuration()
+		run = func(ctx context.Context, s config.Server, o measure.SpeedOptions) (model.SpeedResult, error) {
+			return measure.Upload(ctx, r.e.Client, s.Upload(), o)
+		}
 	}
 	opts := measure.SpeedOptions{
 		Duration: dur, Warmup: r.cfg.Warmup(), Streams: r.cfg.Streams,
@@ -395,10 +412,6 @@ func (r *runner) speed(ctx context.Context, stage string) *model.SpeedResult {
 	for k := 0; k < n; k++ {
 		i := (r.server + k) % n
 		s := r.cfg.Servers[i]
-		endpoint := s.DownloadURL
-		if stage == StageUpload {
-			endpoint = s.UploadURL
-		}
 
 		var loaded []float64
 		loadCtx, stopLoad := context.WithCancel(ctx)
@@ -418,7 +431,7 @@ func (r *runner) speed(ctx context.Context, stage string) *model.SpeedResult {
 				}()
 			}
 		}
-		res, err = run(ctx, r.e.Client, endpoint, opts)
+		res, err = run(ctx, s, opts)
 		stopLoad()
 		lw.Wait()
 
@@ -437,7 +450,7 @@ func (r *runner) speed(ctx context.Context, stage string) *model.SpeedResult {
 	}
 	if err != nil && ctx.Err() == nil {
 		r.errs[stage] = err
-		res.Error = Explain("", err).Reason
+		res.Error = Explain(r.lang, "", err).Reason
 	}
 	out := res
 	r.emit(Event{Type: "speed", Stage: stage, Progress: 1, Speed: &out})
