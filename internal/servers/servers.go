@@ -83,7 +83,7 @@ func Fetch(ctx context.Context, client *http.Client, listURL string) ([]config.S
 // Candidate is a server with its measured latency.
 type Candidate struct {
 	Server    config.Server `json:"server"`
-	LatencyMs float64       `json:"latencyMs"` // 0 when unreachable
+	LatencyMs float64       `json:"latencyMs"` // meaningful only when Error is ""
 	Error     string        `json:"error,omitempty"`
 }
 

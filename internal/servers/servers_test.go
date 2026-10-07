@@ -66,7 +66,9 @@ func TestFetchAndProbe(t *testing.T) {
 	if ranked[0].Server.Name != "Fast" || ranked[1].Server.Name != "Slow" || ranked[2].Server.Name != "Down" {
 		t.Fatalf("order = %s, %s, %s", ranked[0].Server.Name, ranked[1].Server.Name, ranked[2].Server.Name)
 	}
-	if ranked[2].Error == "" || ranked[0].LatencyMs <= 0 || ranked[1].LatencyMs < 40 {
+	// A local server can measure 0 ms where the clock is coarse (Windows),
+	// so reachability is judged by Error, not by a positive latency.
+	if ranked[2].Error == "" || ranked[0].Error != "" || ranked[0].LatencyMs < 0 || ranked[1].LatencyMs < 40 {
 		t.Fatalf("ranked = %+v", ranked)
 	}
 }
