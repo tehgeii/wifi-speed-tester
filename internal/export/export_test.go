@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tehgeii/wifi-speed-tester/internal/i18n"
 	"github.com/tehgeii/wifi-speed-tester/internal/model"
 )
 
@@ -73,5 +74,29 @@ func TestCSV(t *testing.T) {
 	}
 	if !strings.Contains(lines[1], "48.60") || !strings.Contains(lines[1], "GOOD") || strings.Contains(lines[1], "Home_5G") {
 		t.Fatalf("row = %q", lines[1])
+	}
+}
+
+func TestShare(t *testing.T) {
+	s := Share(sample(), "Mbps", i18n.EN)
+	for _, want := range []string{"WiFi Speed + Ping Test (General)", "↓ 48.6 Mbps   ↑ 11.2 Mbps", "Ping 18 ms · Jitter 3.0 ms · Loss 0%", "Quality: GOOD · Wi-Fi 5 GHz"} {
+		if !strings.Contains(s, want) {
+			t.Errorf("share missing %q:\n%s", want, s)
+		}
+	}
+	if strings.Contains(s, "Home_5G") || strings.Contains(s, "192.168") {
+		t.Fatalf("share leaks identifiers:\n%s", s)
+	}
+	if id := Share(sample(), "MB/s", i18n.ID); !strings.Contains(id, "Kualitas: BAGUS") || !strings.Contains(id, "6.08 MB/s") {
+		t.Fatalf("id share:\n%s", id)
+	}
+}
+
+func TestTXTIndonesian(t *testing.T) {
+	txt := string(TXT(sample(), Options{Unit: "Mbps", Lang: i18n.ID}))
+	for _, want := range []string{"Tanggal:", "04-10-2026", "Koneksi:", "Kualitas:", "Bukan jaminan"} {
+		if !strings.Contains(txt, want) {
+			t.Errorf("TXT (id) missing %q\n%s", want, txt)
+		}
 	}
 }

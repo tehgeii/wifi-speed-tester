@@ -9,8 +9,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -147,9 +145,9 @@ func fatal(err error) bool {
 	return errors.As(err, &dnsErr)
 }
 
-// Download measures receive throughput from server URL template downloadURL
-// (containing "{bytes}").
-func Download(ctx context.Context, client *http.Client, downloadURL string, opts SpeedOptions) (model.SpeedResult, error) {
+// Download measures receive throughput. urlFor returns the URL that serves
+// about n bytes (see config.Server.DownloadFor).
+func Download(ctx context.Context, client *http.Client, urlFor func(n int) string, opts SpeedOptions) (model.SpeedResult, error) {
 	res := model.SpeedResult{Streams: opts.Streams}
 	runCtx, cancel := context.WithTimeout(ctx, opts.Duration)
 	defer cancel()
@@ -164,7 +162,7 @@ func Download(ctx context.Context, client *http.Client, downloadURL string, opts
 			buf := make([]byte, 64<<10)
 			chunk, maxChunk, lastGood := downloadMinChunk, downloadMaxChunk, 0
 			for runCtx.Err() == nil {
-				url := strings.ReplaceAll(downloadURL, "{bytes}", strconv.Itoa(chunk))
+				url := urlFor(chunk)
 				t0 := time.Now()
 				err := downloadOnce(runCtx, client, url, buf, &total)
 				if err == nil {

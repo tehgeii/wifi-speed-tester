@@ -9,6 +9,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -28,6 +29,17 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("fake speed server on http://%s (download: /down?bytes={bytes}, upload: /up)", ln.Addr())
-	log.Fatal(http.Serve(ln, s.Config.Handler))
+	base := "http://" + ln.Addr().String()
+	mux := http.NewServeMux()
+	mux.Handle("/", s.Config.Handler)
+	// A LibreSpeed-style server list naming this server's /backend/ plus one
+	// unreachable entry, for trying the server picker
+	// (set "serverListUrl": "<base>/servers.php" in the config).
+	mux.HandleFunc("/servers.php", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `[{"id":1,"name":"Local LibreSpeed (fake)","server":"%s/backend/","dlURL":"garbage.php","ulURL":"empty.php","pingURL":"empty.php","sponsorName":"localhost"},`+
+			`{"id":2,"name":"Unreachable example","server":"http://127.0.0.1:1/","dlURL":"garbage.php","ulURL":"empty.php","pingURL":"empty.php"}]`, base)
+	})
+	log.Printf("fake speed server on %s (download: /down?bytes={bytes}, upload: /up, LibreSpeed: /backend/, list: /servers.php)", base)
+	log.Fatal(http.Serve(ln, mux))
 }

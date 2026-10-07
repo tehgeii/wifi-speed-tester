@@ -22,6 +22,9 @@ PRIVACY
   Testing is local except for the traffic needed to measure your connection:
   speed-test data to the test server (default: Cloudflare,
   speed.cloudflare.com) and ping to your router, 1.1.1.1 and 8.8.8.8.
+  Only when you ask for it: the public server list from librespeed.org
+  (Server -> Find nearby servers). If "Check for updates" is on (Settings,
+  on by default): one request to api.github.com for the latest version.
   The app does not read your files, browser history or passwords.
 
 FILES IT CREATES
@@ -39,7 +42,10 @@ CONFIGURATION (optional)
 COMMAND LINE
   WiFiSpeedTester.exe --cli            run a test in the terminal
   WiFiSpeedTester.exe --cli --gaming   use the gaming profile
+  WiFiSpeedTester.exe --cli --quick    ping only (about 5 seconds)
+  WiFiSpeedTester.exe --cli --lang id  report in Bahasa Indonesia
   WiFiSpeedTester.exe --cli --json     print the full result as JSON
+  WiFiSpeedTester.exe --list-servers   rank public LibreSpeed servers
 
 ACCURACY
   Results depend on the test server, routing, your ISP, Wi-Fi signal, other

@@ -9,18 +9,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/tehgeii/wifi-speed-tester/internal/analysis"
 	"github.com/tehgeii/wifi-speed-tester/internal/config"
 	"github.com/tehgeii/wifi-speed-tester/internal/engine"
 	"github.com/tehgeii/wifi-speed-tester/internal/export"
 	"github.com/tehgeii/wifi-speed-tester/internal/history"
+	"github.com/tehgeii/wifi-speed-tester/internal/i18n"
 	"github.com/tehgeii/wifi-speed-tester/internal/model"
 	"github.com/tehgeii/wifi-speed-tester/internal/network"
+	"github.com/tehgeii/wifi-speed-tester/internal/servers"
+	"github.com/tehgeii/wifi-speed-tester/internal/update"
 )
 
 // Version is set at build time with -ldflags "-X .../internal/app.Version=...".
@@ -33,6 +38,11 @@ type Host struct {
 	// SaveFile asks where to save data and writes it. It returns the chosen
 	// path, or "" when the user cancelled.
 	SaveFile func(defaultName, filterName, ext string, data []byte) (string, error)
+	// CopyText puts text on the clipboard. Optional: without it the page
+	// copies the returned text itself.
+	CopyText func(text string) error
+	// OpenURL opens a web page in the default browser. Optional.
+	OpenURL func(url string) error
 }
 
 // App holds the state of one window.
@@ -117,7 +127,42 @@ func (a *App) Call(method string, params []json.RawMessage) (any, error) {
 		if err := arg(0, &id); err != nil {
 			return nil, err
 		}
-		return a.hist.Get(id)
+		r, err := a.hist.Get(id)
+		if r != nil && r.Quality != nil {
+			// Notes and tips are text; rebuild them in the current language.
+			// The rating itself is deterministic, so it does not change.
+			r.Quality = analysis.Evaluate(r, r.Mode, a.cfg.Profile(r.Mode), a.lang())
+		}
+		return r, err
+	case "copyResult":
+		var req struct {
+			ID   string `json:"id"`
+			Unit string `json:"unit"`
+		}
+		if err := arg(0, &req); err != nil {
+			return nil, err
+		}
+		return a.copyResult(req.ID, req.Unit)
+	case "findServers":
+		go a.findServers()
+		return nil, nil
+	case "getServer":
+		return a.selectedServer(), nil
+	case "setServer":
+		var srv *config.Server
+		if err := arg(0, &srv); err != nil {
+			return nil, err
+		}
+		return nil, a.setServer(srv)
+	case "checkUpdate":
+		go a.checkUpdate()
+		return nil, nil
+	case "openUrl":
+		var u string
+		if err := arg(0, &u); err != nil {
+			return nil, err
+		}
+		return nil, a.openURL(u)
 	case "clearHistory":
 		return nil, a.hist.Clear()
 	case "export":
@@ -182,6 +227,8 @@ func (a *App) info() map[string]any {
 		"servers":     servers,
 		"pingTargets": targets,
 		"historyPath": a.hist.Path(),
+		"releasesUrl": update.ReleasesPage,
+		"canOpenUrl":  a.host.OpenURL != nil,
 		"downloadSec": a.cfg.DownloadSeconds,
 		"uploadSec":   a.cfg.UploadSeconds,
 		"profiles":    a.cfg.Profiles,
@@ -208,13 +255,14 @@ func (a *App) StartTest(mode string) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.running {
-		return errors.New("a test is already running")
+		return errors.New(i18n.T(a.lang(), "app.busy"))
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	a.cancel, a.running = cancel, true
 	go func() {
 		defer cancel()
-		res := a.eng.Run(ctx, engine.Options{Mode: mode}, func(ev engine.Event) {
+		opts := engine.Options{Mode: mode, Lang: a.lang(), Server: a.selectedServer()}
+		res := a.eng.Run(ctx, opts, func(ev engine.Event) {
 			if ev.Type == "result" {
 				return // sent below, after it is stored
 			}
@@ -293,14 +341,14 @@ type ExportRequest struct {
 
 // Export renders a result and asks the host where to save it.
 func (a *App) Export(req ExportRequest) (string, error) {
-	opts := export.Options{Unit: req.Unit, IncludeSensitive: req.IncludeSensitive}
+	opts := export.Options{Unit: req.Unit, IncludeSensitive: req.IncludeSensitive, Lang: a.lang()}
 	if req.Format == "history-csv" {
 		all, err := a.hist.List()
 		if err != nil {
 			return "", err
 		}
 		if len(all) == 0 {
-			return "", errors.New("history is empty")
+			return "", errors.New(i18n.T(a.lang(), "app.historyEmpty"))
 		}
 		return a.save("WiFiSpeedTest-history.csv", "CSV file", "csv", export.CSV(all, opts))
 	}
@@ -315,7 +363,7 @@ func (a *App) Export(req ExportRequest) (string, error) {
 		}
 	}
 	if r == nil {
-		return "", errors.New("run a test first")
+		return "", errors.New(i18n.T(a.lang(), "app.runFirst"))
 	}
 	name := "WiFiSpeedTest-" + r.StartedAt.Format("2006-01-02-150405")
 	switch req.Format {
@@ -369,7 +417,7 @@ func (a *App) prefs() map[string]string {
 }
 
 func (a *App) savePrefs(p map[string]string) error {
-	allowed := map[string]bool{"unit": true, "mode": true}
+	allowed := map[string]bool{"unit": true, "mode": true, "lang": true, "updateCheck": true}
 	clean := map[string]string{}
 	for k, v := range p {
 		if allowed[k] && len(v) < 32 {
@@ -381,6 +429,118 @@ func (a *App) savePrefs(p map[string]string) error {
 		return err
 	}
 	return os.WriteFile(filepath.Join(a.dataDir, "settings.json"), b, 0o644)
+}
+
+// lang is the UI language chosen in the page (saved in settings.json).
+func (a *App) lang() i18n.Lang { return i18n.Parse(a.prefs()["lang"]) }
+
+// result returns history entry id, or the latest result.
+func (a *App) result(id string) (*model.TestResult, error) {
+	if id != "" {
+		if r, err := a.hist.Get(id); r != nil || err != nil {
+			return r, err
+		}
+		// Not in history (e.g. a cancelled run): fall back to the latest.
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.last, nil
+}
+
+func (a *App) copyResult(id, unit string) (map[string]any, error) {
+	r, err := a.result(id)
+	if err != nil {
+		return nil, err
+	}
+	if r == nil {
+		return nil, errors.New(i18n.T(a.lang(), "app.runFirst"))
+	}
+	text := export.Share(r, unit, a.lang())
+	copied := false
+	if a.host.CopyText != nil {
+		if err := a.host.CopyText(text); err != nil {
+			return nil, err
+		}
+		copied = true
+	}
+	return map[string]any{"text": text, "copied": copied}, nil
+}
+
+// serverFile keeps the server picked in the UI (tried before the
+// configured ones).
+func (a *App) serverFile() string { return filepath.Join(a.dataDir, "server.json") }
+
+func (a *App) selectedServer() *config.Server {
+	b, err := os.ReadFile(a.serverFile())
+	if err != nil {
+		return nil
+	}
+	var s config.Server
+	if json.Unmarshal(b, &s) != nil || s.Validate() != nil {
+		return nil
+	}
+	return &s
+}
+
+// setServer saves the chosen server; nil goes back to the configured list.
+func (a *App) setServer(s *config.Server) error {
+	if s == nil {
+		err := os.Remove(a.serverFile())
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	if err := s.Validate(); err != nil {
+		return err
+	}
+	b, _ := json.MarshalIndent(s, "", "  ")
+	if err := os.MkdirAll(a.dataDir, 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(a.serverFile(), b, 0o644)
+}
+
+// findServers fetches the public LibreSpeed list and ranks it by latency,
+// reporting progress as "servers" events.
+func (a *App) findServers() {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	a.emit("servers", map[string]any{"stage": "fetch"})
+	list, err := servers.Fetch(ctx, a.httpClient(), a.cfg.ServerListURL)
+	if err != nil {
+		a.emit("servers", map[string]any{"error": err.Error()})
+		return
+	}
+	ranked := servers.Probe(ctx, list, 8, func(done, total int) {
+		a.emit("servers", map[string]any{"stage": "probe", "done": done, "total": total})
+	})
+	a.emit("servers", map[string]any{"stage": "done", "list": ranked})
+}
+
+func (a *App) httpClient() *http.Client {
+	return &http.Client{Transport: &http.Transport{Proxy: http.ProxyFromEnvironment}}
+}
+
+func (a *App) checkUpdate() {
+	info, err := update.Check(context.Background(), a.httpClient(), "https://api.github.com", Version)
+	if err != nil {
+		a.emit("update", map[string]any{"error": err.Error()})
+		return
+	}
+	a.emit("update", map[string]any{"info": info})
+}
+
+// openURL only opens this project's GitHub pages, so the page cannot be
+// used to launch arbitrary programs or sites.
+func (a *App) openURL(u string) error {
+	if !strings.HasPrefix(u, "https://github.com/"+update.Repo+"/") {
+		return errors.New("refusing to open " + u)
+	}
+	if a.host.OpenURL == nil {
+		return errors.New("not supported")
+	}
+	return a.host.OpenURL(u)
 }
 
 // ExportsDir is the fallback folder used when no save dialog is available.
