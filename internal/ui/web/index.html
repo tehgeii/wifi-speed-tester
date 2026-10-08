@@ -115,18 +115,26 @@
     </details>
     <ul class="notes" id="notes"></ul>
     <div class="actions">
-      <div class="left-actions">
-        <button class="ghost" id="detailsBtn" data-i18n="details">Details</button>
-        <button class="ghost" id="copyBtn" data-i18n="copy">Copy result</button>
+      <button class="ghost small" id="detailsBtn" data-i18n="details">Details</button>
+      <div class="out-groups">
+        <!-- Sharing never carries the Wi-Fi name or IP addresses. -->
+        <div class="out-group" role="group" aria-labelledby="shareLabel">
+          <span class="out-label" id="shareLabel" data-i18n="out.share">Share</span>
+          <button class="ghost small" id="copyBtn" data-i18n="copy">Copy result</button>
+          <button class="ghost small" data-export="png" data-i18n="export.png">PNG card</button>
+        </div>
+        <!-- Report files can carry them, see the privacy row below. -->
+        <div class="out-group" role="group" aria-labelledby="saveLabel">
+          <span class="out-label" id="saveLabel" data-i18n="out.save">Save as file</span>
+          <button class="ghost small" data-export="txt">TXT</button>
+          <button class="ghost small" data-export="json">JSON</button>
+          <button class="ghost small" data-export="csv">CSV</button>
+        </div>
       </div>
-      <div class="export">
-        <span data-i18n="export">Export:</span>
-        <button data-export="txt">TXT</button>
-        <button data-export="json">JSON</button>
-        <button data-export="csv">CSV</button>
-        <button data-export="png" data-i18n="export.png">PNG card</button>
-        <label class="chk" data-i18n-title="export.sensitiveHint"><input type="checkbox" id="includeSensitive"> <span data-i18n="export.sensitive">Include network identifiers</span></label>
-      </div>
+    </div>
+    <div class="privacy-row">
+      <label class="chk big"><input type="checkbox" id="includeSensitive"> <span data-i18n="export.sensitive">Include network identifiers in TXT, JSON and CSV</span></label>
+      <p class="small muted" id="sensitiveHint" aria-live="polite"></p>
     </div>
   </section>
 
@@ -165,7 +173,10 @@
       <h2 data-i18n="history.title">Test History</h2>
       <div>
         <button class="ghost" id="histReport" data-i18n-title="history.reportHint" data-i18n="history.report">ISP report</button>
-        <button class="ghost" id="histCsv" data-i18n="history.csv">Export CSV</button>
+        <span class="csv-group">
+          <button class="ghost" id="histCsv" data-i18n="history.csv">Export CSV</button>
+          <label class="chk" data-i18n-title="history.csvNamesHint"><input type="checkbox" id="histSensitive"> <span data-i18n="history.csvNames">with Wi-Fi names</span></label>
+        </span>
         <button class="ghost" id="histClear" data-i18n="history.clear">Clear</button>
         <button class="primary small" id="histBack" data-i18n="back">Back</button>
       </div>
