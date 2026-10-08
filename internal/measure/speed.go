@@ -27,6 +27,10 @@ func (e *HTTPStatusError) Error() string { return "server responded " + e.Status
 // ErrNoData means the test finished without transferring anything measurable.
 var ErrNoData = errors.New("no data was transferred")
 
+// ErrEstimated means the link was so slow that no upload request finished in
+// time; the result is an estimate from the data handed to the network.
+var ErrEstimated = errors.New("upload too slow to finish a request; value is an estimate")
+
 // SpeedOptions controls a download or upload run.
 type SpeedOptions struct {
 	Duration time.Duration // measured duration, including warm-up
@@ -324,7 +328,7 @@ type completed struct {
 }
 
 const (
-	uploadMinChunk = 128 << 10
+	uploadMinChunk = 16 << 10 // small enough to finish on a ~0.1 Mbps uplink
 	uploadMaxChunk = 64 << 20
 	uploadGrace    = 4 * time.Second
 )
@@ -365,9 +369,12 @@ func Upload(ctx context.Context, client *http.Client, uploadURL string, opts Spe
 					done = append(done, completed{t0, t1, chunk})
 					mu.Unlock()
 					// Aim for roughly one second per request so the window
-					// boundaries cut few requests.
+					// boundaries cut few requests. Requests that finish very
+					// fast grow up to 8x at once, so the small first chunk
+					// costs fast links only a few extra round trips.
 					if d := t1 - t0; d < 500*time.Millisecond && chunk < uploadMaxChunk {
-						chunk *= 2
+						grow := min(8, max(2, int64(500*time.Millisecond/max(d, time.Millisecond))))
+						chunk = min(chunk*grow, uploadMaxChunk)
 					} else if d > 2*time.Second && chunk > uploadMinChunk {
 						chunk /= 2
 					}
@@ -415,6 +422,15 @@ func Upload(ctx context.Context, client *http.Client, uploadURL string, opts Spe
 	if acked == 0 || res.Mbps == 0 {
 		if errs.first != nil {
 			return res, errs.first
+		}
+		// Data was leaving but no request completed: a very slow uplink,
+		// not a broken one. Estimate from bytes sent after the warm-up; it
+		// can read high because of local socket buffers, so it is flagged.
+		wStart, wBytes := smp.at(window[0])
+		if total := sent.Load(); total > wBytes && end > wStart {
+			res.DurationSec = (end - wStart).Seconds()
+			res.Mbps = BytesToMbps(total-wBytes, res.DurationSec)
+			return res, ErrEstimated
 		}
 		return res, ErrNoData
 	}

@@ -22,10 +22,8 @@ over time. The warning goes away gradually, not always on day one.
 
 ## Prerequisite: a license
 
-The repository has **no license file yet**. Open-source signing programs (and
-most contributors) need one. MIT is the common choice for a small utility like
-this, but the choice is the owner's: add `LICENSE` through GitHub's **Add file
-→ Create new file → `LICENSE` → Choose a license template**.
+The project is MIT-licensed (`LICENSE`). That is an OSI-approved license, so
+it meets the usual requirement of open-source signing programs.
 
 ## How it would plug into the release workflow
 

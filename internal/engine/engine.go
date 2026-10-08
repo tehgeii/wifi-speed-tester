@@ -73,6 +73,11 @@ type Options struct {
 	// Server, when set, is tried first; the configured servers remain as
 	// fallbacks.
 	Server *config.Server
+	// ExtraTargets are ping targets the user added in the app; they are
+	// measured after the configured ones.
+	ExtraTargets []config.PingTarget
+	// Plan is the user's ISP plan; results are compared with it.
+	Plan *model.Plan
 }
 
 type runner struct {
@@ -105,11 +110,19 @@ func (e *Engine) Run(ctx context.Context, opts Options, emit func(Event)) *model
 	if opts.Server != nil {
 		cfg.Servers = append([]config.Server{*opts.Server}, cfg.Servers...)
 	}
+	if len(opts.ExtraTargets) > 0 {
+		cfg.PingTargets = append(append([]config.PingTarget(nil), cfg.PingTargets...), opts.ExtraTargets...)
+	}
 	r := &runner{e: e, cfg: cfg, emit: emit, errs: map[string]error{}, lang: opts.Lang, loadPinger: e.NewPinger, res: &model.TestResult{
 		ID:        newID(),
 		StartedAt: time.Now(),
 		Mode:      mode,
 	}}
+	if opts.Plan != nil && (opts.Plan.DownMbps > 0 || opts.Plan.UpMbps > 0) {
+		pl := *opts.Plan
+		pl.LowPct = cfg.PlanLowPct
+		r.res.Plan = &pl
+	}
 	defer func() {
 		r.res.FinishedAt = time.Now()
 		if errors.Is(ctx.Err(), context.Canceled) {
@@ -277,7 +290,7 @@ func (r *runner) ping(ctx context.Context, mode string) {
 		}
 		ip, err := measure.ResolveIP(ctx, host)
 		if err != nil {
-			r.res.Pings = append(r.res.Pings, model.PingStats{Label: t.Label, Target: host, IsGateway: gw, Error: err.Error()})
+			r.res.Pings = append(r.res.Pings, model.PingStats{Label: r.targetLabel(t), Target: host, IsGateway: gw, Error: err.Error()})
 			continue
 		}
 		jobs = append(jobs, job{t, host, ip, gw})
@@ -298,7 +311,7 @@ func (r *runner) ping(ctx context.Context, mode string) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			st, _ := measure.RunPing(ctx, r.pinger, j.target.Label, j.host, j.ip, measure.PingOptions{
+			st, _ := measure.RunPing(ctx, r.pinger, r.targetLabel(j.target), j.host, j.ip, measure.PingOptions{
 				Count: count, Interval: interval, Timeout: r.cfg.PingTimeout(),
 				OnReply: func(_ int, rtt float64, ok bool) {
 					mu.Lock()
@@ -342,6 +355,15 @@ func (r *runner) ping(ctx context.Context, mode string) {
 	}
 }
 
+// targetLabel translates the built-in router label; labels the user typed
+// are shown as written.
+func (r *runner) targetLabel(t config.PingTarget) string {
+	if strings.EqualFold(t.Host, "gateway") && (t.Label == "" || t.Label == "Local Gateway") {
+		return r.t("target.gateway")
+	}
+	return t.Label
+}
+
 // tcpFallback measures latency with TCP connections to the test server
 // when no ICMP target answered (common on corporate and cloud networks).
 func (r *runner) tcpFallback(ctx context.Context, mode string) {
@@ -364,7 +386,7 @@ func (r *runner) tcpFallback(ctx context.Context, mode string) {
 		count *= 2
 	}
 	tp := measure.TCPPinger{Port: port}
-	st, _ := measure.RunPing(ctx, tp, "Test server (TCP connect)", u.Hostname(), ip, measure.PingOptions{
+	st, _ := measure.RunPing(ctx, tp, r.t("target.tcp"), u.Hostname(), ip, measure.PingOptions{
 		Count: count, Interval: r.cfg.PingInterval(), Timeout: r.cfg.PingTimeout(),
 		OnReply: func(n int, rtt float64, ok bool) {
 			ev := Event{Type: "progress", Stage: StagePing, Progress: float64(n+1) / float64(count)}

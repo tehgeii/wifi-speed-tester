@@ -113,3 +113,9 @@ func BandFromChannel(ch int) string {
 	}
 	return ""
 }
+
+// ScanWiFi lists nearby Wi-Fi access points (only what the OS already
+// reports; nothing is joined or probed). rescan asks for a fresh scan.
+func ScanWiFi(ctx context.Context, rescan bool) ([]model.WiFiNetwork, error) {
+	return scanWiFi(ctx, rescan)
+}
