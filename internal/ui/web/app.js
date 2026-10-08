@@ -1123,8 +1123,8 @@ $('#targetSave').onclick = async () => {
     .filter(x => x.host);
   try {
     await bridge.call('setTargets', list);
-    $('#targetStatus').textContent = t('targets.saved');
     renderTargetRows(await bridge.call('getTargets') || []);
+    $('#targetStatus').textContent = t('targets.saved');
     loadMonitorTargets();
   } catch (e) { $('#targetStatus').textContent = e.message; }
 };
