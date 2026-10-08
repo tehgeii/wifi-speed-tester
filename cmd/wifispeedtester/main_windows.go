@@ -65,6 +65,11 @@ func runGUI(exeDir string) {
 			logf = l.Printf
 		}
 	}
+	release, ok := ui.SingleInstance(app.DataDir(exeDir))
+	if !ok {
+		return // the open window was brought to the front
+	}
+	defer release()
 	err := ui.RunWindow(exeDir, logf)
 	if errors.Is(err, ui.ErrNoWebView2) {
 		const mbYesNo, mbIconWarning, idYes = 0x4, 0x30, 6

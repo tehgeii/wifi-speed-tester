@@ -42,8 +42,31 @@ jobs:
         if: runner.os == 'Windows'
         run: go test ./...
 
+  # Drives the embedded UI in Chromium against the real Go API and a local
+  # fake speed-test server: every view, both languages, light and dark.
+  ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: install Playwright
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - run: scripts/ui-test.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-screenshots
+          path: ui-tests/screenshots
+
   package:
-    needs: test
+    needs: [test, ui]
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -102,7 +125,14 @@ jobs:
           $l = Start-Process app\WiFiSpeedTester.exe -ArgumentList '--list-servers' -RedirectStandardOutput servers.txt -RedirectStandardError servers-progress.txt -Wait -PassThru
           Get-Content servers-progress.txt
           Get-Content servers.txt
-          exit ($code -bor $q.ExitCode -bor $l.ExitCode)
+          Write-Host "--- DNS test ---"
+          $d = Start-Process app\WiFiSpeedTester.exe -ArgumentList '--dns' -RedirectStandardOutput dns.txt -RedirectStandardError dns-progress.txt -Wait -PassThru
+          Get-Content dns.txt
+          Write-Host "--- Wi-Fi scan (runners have no Wi-Fi adapter, so an error message is expected) ---"
+          $w = Start-Process app\WiFiSpeedTester.exe -ArgumentList '--wifi-scan' -RedirectStandardOutput scan.txt -RedirectStandardError scan-err.txt -Wait -PassThru
+          Get-Content scan.txt
+          Get-Content scan-err.txt
+          exit ($code -bor $q.ExitCode -bor $l.ExitCode -bor $d.ExitCode)
 
   release:
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
