@@ -72,7 +72,7 @@ func Run(ctx context.Context, p measure.Pinger, ip net.IP, gwPinger measure.Ping
 			}
 			s.OK = err == nil
 			if s.OK {
-				s.RttMs = float64(rtt) / float64(time.Millisecond)
+				s.RttMs = measure.RTTMs(rtt)
 			}
 			mu.Lock()
 			samples = append(samples, s)

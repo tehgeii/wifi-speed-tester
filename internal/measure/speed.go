@@ -472,7 +472,7 @@ func SampleLatency(ctx context.Context, p Pinger, ip net.IP, interval, timeout t
 			return out
 		}
 		if err == nil {
-			out = append(out, float64(rtt)/float64(time.Millisecond))
+			out = append(out, RTTMs(rtt))
 		}
 		select {
 		case <-ctx.Done():
