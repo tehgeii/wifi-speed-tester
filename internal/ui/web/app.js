@@ -54,9 +54,14 @@ const TEXT = {
     'why.notCounted': 'shown only, not counted in this profile',
     'why.lower': 'Excellent ≤ {0} · Good ≤ {1} · Fair ≤ {2} {3}',
     'why.higher': 'Excellent ≥ {0} · Good ≥ {1} · Fair ≥ {2} {3}',
-    details: 'Details', copy: 'Copy result', export: 'Export:', 'export.png': 'PNG card',
-    'export.sensitive': 'Include network identifiers',
-    'export.sensitiveHint': 'Wi-Fi name, BSSID and IP addresses are hidden unless this is ticked.',
+    details: 'Details', copy: 'Copy result', 'export.png': 'PNG card',
+    'out.share': 'Share', 'out.save': 'Save as file',
+    'export.sensitive': 'Include network identifiers in TXT, JSON and CSV',
+    'privacy.hidden': 'Hidden in the files: {0}. Copy result and the PNG card never contain them.',
+    'privacy.shown': 'The files will contain your full {0}. Share them only with people you trust, such as your ISP. Copy result and the PNG card still never contain them.',
+    'privacy.ssid': 'Wi-Fi name', 'privacy.ip': 'IP addresses', 'privacy.bssid': 'the router\'s hardware address (BSSID)',
+    and: 'and',
+    'history.csvNames': 'with Wi-Fi names', 'history.csvNamesHint': 'Adds each test\'s Wi-Fi name to the CSV. The CSV never contains IP addresses.',
     'details.ping': 'Ping Details', 'col.target': 'Target', 'col.sent': 'Sent', 'col.received': 'Received', 'col.avg': 'Average',
     'details.loaded': 'Latency Under Load', 'details.idle': 'Idle Ping', 'details.duringDown': 'During Download', 'details.duringUp': 'During Upload',
     'details.throughput': 'Throughput', 'details.network': 'Network',
@@ -170,9 +175,14 @@ const TEXT = {
     'why.notCounted': 'hanya ditampilkan, tidak dihitung di profil ini',
     'why.lower': 'Sangat bagus ≤ {0} · Bagus ≤ {1} · Cukup ≤ {2} {3}',
     'why.higher': 'Sangat bagus ≥ {0} · Bagus ≥ {1} · Cukup ≥ {2} {3}',
-    details: 'Detail', copy: 'Salin hasil', export: 'Export:', 'export.png': 'Kartu PNG',
-    'export.sensitive': 'Sertakan identitas jaringan',
-    'export.sensitiveHint': 'Nama Wi-Fi, BSSID dan alamat IP disembunyikan kecuali dicentang.',
+    details: 'Detail', copy: 'Salin hasil', 'export.png': 'Kartu PNG',
+    'out.share': 'Bagikan', 'out.save': 'Simpan sebagai file',
+    'export.sensitive': 'Sertakan identitas jaringan di TXT, JSON dan CSV',
+    'privacy.hidden': 'Disembunyikan di file: {0}. Salin hasil dan kartu PNG tidak pernah memuat data ini.',
+    'privacy.shown': 'File akan memuat {0} secara lengkap. Bagikan hanya ke pihak yang kamu percaya, misalnya ISP. Salin hasil dan kartu PNG tetap tidak memuat data ini.',
+    'privacy.ssid': 'nama Wi-Fi', 'privacy.ip': 'alamat IP', 'privacy.bssid': 'alamat hardware router (BSSID)',
+    and: 'dan',
+    'history.csvNames': 'dengan nama Wi-Fi', 'history.csvNamesHint': 'Menambahkan nama Wi-Fi tiap tes ke CSV. CSV tidak pernah memuat alamat IP.',
     'details.ping': 'Detail Ping', 'col.target': 'Target', 'col.sent': 'Terkirim', 'col.received': 'Diterima', 'col.avg': 'Rata-rata',
     'details.loaded': 'Ping Saat Sibuk', 'details.idle': 'Ping Normal', 'details.duringDown': 'Saat Download', 'details.duringUp': 'Saat Upload',
     'details.throughput': 'Throughput', 'details.network': 'Jaringan',
@@ -478,6 +488,29 @@ function speedSub(s) {
   return s.loadedSamples ? t('underLoad', ms(s.loadedPingMs)) : '';
 }
 
+// Same masking as the Go exporter (internal/export): Home_5G -> Ho*****,
+// 192.168.1.23 -> 192.168.1.x.
+const maskText = s => { const r = [...s]; return r.length <= 2 ? '*'.repeat(r.length) : r.slice(0, 2).join('') + '*'.repeat(r.length - 2); };
+const maskIPv4 = s => s.split('.').slice(0, 3).join('.') + '.x';
+const maskIPv6 = s => s.split(':').slice(0, 2).join(':') + ':x:x:x:x:x:x';
+
+// Explains under the export buttons exactly what the checkbox changes, with
+// this result's own values, so the effect is visible before saving.
+function renderPrivacyHint() {
+  const shown = $('#includeSensitive').checked;
+  const n = (state.result && state.result.network) || state.network;
+  const w = (n && n.wifi) || {};
+  const ip = n && ((n.ipv4 || [])[0] ? maskIPv4(n.ipv4[0]) : (n.ipv6 || [])[0] ? maskIPv6(n.ipv6[0]) : '');
+  // Only what this result really has; with no network info, everything.
+  const parts = [];
+  if (!n || w.ssid) parts.push(t('privacy.ssid') + (shown || !w.ssid ? '' : ` (${maskText(w.ssid)})`));
+  if (!n || ip) parts.push(t('privacy.ip') + (shown || !ip ? '' : ` (${ip})`));
+  if (!n || w.bssid) parts.push(t('privacy.bssid'));
+  const list = parts.length > 1 ? parts.slice(0, -1).join(', ') + ' ' + t('and') + ' ' + parts[parts.length - 1] : parts[0] || '';
+  $('#sensitiveHint').textContent = list ? t(shown ? 'privacy.shown' : 'privacy.hidden', list) : '';
+}
+$('#includeSensitive').onchange = renderPrivacyHint;
+
 // "62% of plan · ping under load 31 ms" when the user entered their plan.
 function withPlan(sub, s, plan) {
   if (!(plan > 0) || !s || !(s.mbps > 0)) return sub;
@@ -546,6 +579,7 @@ function renderResult(r, fromHistory) {
     $('#tips').innerHTML = tips.map(n => `<li>${esc(n)}</li>`).join('');
     renderWhy(q);
     renderGaming(r);
+    renderPrivacyHint();
   }
   renderDetails(r);
 }
@@ -1005,9 +1039,10 @@ $('#histClear').onclick = async () => {
   try { await bridge.call('clearHistory'); showHistory(); } catch (e) { toast(e.message); }
 };
 $('#histReport').onclick = () => bridge.call('ispReport', {
-  days: state.histRange, connection: state.histConn === 'all' ? '' : state.histConn, unit: state.unit, includeSensitive: $('#includeSensitive').checked,
+  // The ISP report holds no network identifiers, so it needs no option.
+  days: state.histRange, connection: state.histConn === 'all' ? '' : state.histConn, unit: state.unit,
 }).catch(e => toast(e.message));
-$('#histCsv').onclick = () => bridge.call('export', { format: 'history-csv', unit: state.unit, includeSensitive: $('#includeSensitive').checked }).catch(e => toast(e.message));
+$('#histCsv').onclick = () => bridge.call('export', { format: 'history-csv', unit: state.unit, includeSensitive: $('#histSensitive').checked }).catch(e => toast(e.message));
 window.addEventListener('resize', () => {
   if (!$('#historyView').classList.contains('hidden')) renderTrend(filteredHistory());
   if (!$('#toolsView').classList.contains('hidden') && mon.samples.length) drawMonitor();
@@ -1242,7 +1277,8 @@ $('#monStop').onclick = () => {
   $('#monStop').textContent = t('mon.stopping');
   bridge.call('stopMonitor').catch(() => {});
 };
-$('#monExport').onclick = () => bridge.call('exportMonitor', $('#includeSensitive').checked).catch(e => toast(e.message));
+// The report names the target; a LAN address in it is masked (192.168.1.x).
+$('#monExport').onclick = () => bridge.call('exportMonitor', false).catch(e => toast(e.message));
 
 const clock = sec => { sec = Math.max(0, Math.round(sec)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); };
 
@@ -1438,6 +1474,7 @@ function renderStatic() {
   renderServerName();
   if (!state.result && !state.running) setGauge(t('gauge.ready'), '—', '', 0);
   if (state.network) renderNetwork(state.network);
+  renderPrivacyHint();
   if (state.update && state.update.newer) $('#updateText').textContent = t('update.available', state.update.latest, state.update.current);
 }
 
