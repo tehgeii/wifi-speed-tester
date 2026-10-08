@@ -68,6 +68,18 @@ async function noHorizontalScroll(page, where) {
 
 const visible = (page, sel) => page.isVisible(sel);
 
+// Polls fn until it returns true or the timeout passes. Some updates land
+// after an awaited bridge call, so a single read can race them.
+async function eventually(fn, timeout = 5000) {
+  const end = Date.now() + timeout;
+  for (;;) {
+    if (await fn()) return true;
+    if (Date.now() > end) return false;
+    await new Promise(r => setTimeout(r, 100));
+  }
+}
+const textMatches = (page, sel, re) => eventually(async () => re.test(await page.textContent(sel)));
+
 async function main() {
   if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
   const browser = await chromium.launch();
@@ -109,8 +121,10 @@ async function main() {
   check(await page.locator('#targetRows .target-row').count() === 5, 'at most 5 targets can be added');
   await shot(page, 'settings');
   await page.keyboard.press('Escape');
-  const prefs = await page.evaluate(() => bridge.call('getPrefs'));
-  check(prefs.planDown === '50' && prefs.planUp === '10', 'plan saved in settings');
+  check(await eventually(async () => {
+    const p = await page.evaluate(() => bridge.call('getPrefs'));
+    return p.planDown === '50' && p.planUp === '10';
+  }), 'plan saved in settings');
 
   console.log('quick ping');
   await page.click('#quickBtn');
@@ -207,7 +221,8 @@ async function main() {
   const wrong = await page.evaluate(() => [...document.querySelectorAll('[data-i18n]:not(#netConn):not(#gaugeLabel)')]
     .filter(el => el.textContent !== TEXT.id[el.dataset.i18n]).map(el => el.dataset.i18n));
   check(wrong.length === 0, 'every label switched to Indonesian ' + wrong.join(' '));
-  check(/% dari paket/.test(await page.textContent('#m-download .sub')), 'plan share in Indonesian');
+  // The result is re-rendered after it is reloaded in the new language.
+  check(await textMatches(page, '#m-download .sub', /% dari paket/), 'plan share in Indonesian');
   // Engine texts follow the language of the run.
   await page.click('#quickBtn');
   await page.waitForSelector('#startBtn:not(.hidden)', { timeout: 30000 });
