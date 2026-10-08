@@ -87,6 +87,7 @@ healthy connection gets no tips.
 | Try a nearer server | ping graded FAIR/POOR while the router looks fine |
 | Pause other downloads/streaming | download or upload graded FAIR/POOR |
 | Contact your ISP with a report | problems appear beyond the router, or loss on a wired link |
+| Speed is well below your plan (test with a cable, then use the ISP report) | a plan is set in Settings and download or upload is below `planLowPct` (default 50 %) of it |
 
 ## Notes the app adds
 
@@ -104,6 +105,11 @@ healthy connection gets no tips.
     a fault.
 - **Weak Wi-Fi signal** when signal quality is below 40 %.
 - A reminder that **Wi-Fi link speed is not internet speed**.
+- **Share of your plan** ("Download is 62% of your 100 Mbps plan") when a
+  plan is set in Settings, and a note when the Wi-Fi link speed itself is
+  below the plan, so the plan cannot be reached over this Wi-Fi.
+
+The plan only adds notes and a tip; it never changes the rating.
 
 ## Ping, jitter and packet loss definitions
 

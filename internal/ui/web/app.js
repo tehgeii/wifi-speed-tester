@@ -88,6 +88,9 @@ const TEXT = {
     'about.configText': 'Place this file next to the .exe to change test servers, ping targets, durations and quality thresholds:',
     'about.trafficSpeed': 'Speed test data to: {0}', 'about.trafficPing': 'Ping (ICMP, or TCP if ICMP is blocked) to: {0}',
     'about.trafficDNS': 'A DNS lookup of the test server name', 'about.trafficUpdate': 'If enabled in Settings: an update check to api.github.com',
+    'about.trafficDNSTest': 'Only when you run the DNS test: lookups of popular site names to your DNS and {0}',
+    'about.trafficMonitor': 'Only while the stability monitor runs: one ping per second to the chosen target and your router',
+    'about.trafficScan': 'The Wi-Fi channel check sends nothing; it reads the networks Windows already sees',
     'about.cfgError': 'Config error (defaults in use): {0}', 'about.cfgLoaded': 'Loaded: {0}', 'about.cfgNone': 'No config file found — using built-in defaults.',
     privacy: 'Tests send traffic only to the speed-test server ({0}) and the ping targets. Nothing else leaves this computer.',
     live: 'live', measuring: 'measuring…', failed: 'failed', incomplete: 'incomplete', notAvailable: 'not available',
@@ -110,6 +113,33 @@ const TEXT = {
     'wifi.unavailable': 'Wi-Fi details unavailable: {0}',
     'conn.Wi-Fi': 'Wi-Fi', 'conn.Ethernet': 'Ethernet', 'conn.Hotspot / Tethering': 'Hotspot / Tethering', 'conn.Cellular': 'Cellular',
     'conn.VPN / Virtual': 'VPN / Virtual', 'conn.Unknown': 'Unknown',
+    tools: 'Tools', 'tools.title': 'Tools',
+    'history.report': 'ISP report', 'history.reportHint': 'A plain-text report of the selected tests that you can send to your ISP',
+    'col.plan': '% of plan', 'plan.of': '{0}% of plan',
+    'plan.title': 'Your internet plan', 'plan.intro': 'Optional. Results then show what share of your plan you actually get.',
+    'plan.saved': 'Plan saved.',
+    'targets.title': 'Extra ping targets', 'targets.intro': 'For example a game server. Each test also pings these (up to 5), and the stability monitor can watch them.',
+    'targets.add': 'Add target', 'targets.save': 'Save targets', 'targets.saved': 'Saved.', 'targets.label': 'Name', 'targets.host': 'IP address or host name',
+    'targets.remove': 'Remove', 'targets.max': 'Up to {0} targets.',
+    'settings.other': 'Other',
+    'mon.title': 'Stability monitor',
+    'mon.intro': 'Pings every second while this window is open, to catch short drops and lag spikes that a single test misses. It stops when you press Stop or close the app; nothing runs in the background.',
+    'mon.duration': 'Duration', 'mon.target': 'Target', 'mon.start': 'Start monitor', 'mon.stop': 'Stop', 'mon.stopping': 'Stopping…',
+    'mon.elapsed': 'Time', 'mon.routerLost': 'Router lost', 'mon.lostKey': 'no reply', 'mon.export': 'Export report (TXT)',
+    'mon.lost': 'lost', 'mon.tcpNote': 'ICMP ping is blocked here, so the monitor times TCP connections to the test server instead.',
+    'mon.error': 'The monitor could not start: {0}', 'mon.busy': 'The stability monitor is running. Stop it first to run a speed test.',
+    'mon.noRouter': 'not measured', 'min': 'min',
+    'dns.title': 'DNS test',
+    'dns.intro': 'DNS turns website names into addresses. A slow DNS makes every site start loading late. This compares your current DNS with public ones.',
+    'dns.start': 'Test DNS', 'dns.server': 'DNS server', 'dns.median': 'Typical answer time', 'dns.ok': 'Answered',
+    'dns.running': 'Testing… {0}/{1}', 'dns.noAnswer': 'no answer',
+    'scan.title': 'Wi-Fi channel check',
+    'scan.intro': 'Lists the Wi-Fi networks Windows can see around you (read-only) and checks whether your channel is crowded.',
+    'scan.start': 'Scan Wi-Fi', 'scan.scanning': 'Scanning… (about 5 seconds)', 'scan.found': '{0} networks found.',
+    'scan.error': 'Scan failed: {0}', 'scan.channels': 'Channels', 'scan.networks': 'Networks', 'scan.busy': 'Crowding',
+    'scan.nearby': 'Nearby networks', 'scan.name': 'Name', 'scan.hidden': '(hidden network)',
+    'scan.yours': 'your channel', 'scan.suggested': 'suggested', 'scan.connected': 'connected',
+    'busy.low': 'low', 'busy.medium': 'medium', 'busy.high': 'high',
   },
   id: {
     tagline: 'Cek kecepatan. Ukur ping. Pahami koneksimu.',
@@ -174,6 +204,9 @@ const TEXT = {
     'about.configText': 'Taruh file ini di samping .exe untuk mengubah server tes, target ping, durasi dan batas rating:',
     'about.trafficSpeed': 'Data speed test ke: {0}', 'about.trafficPing': 'Ping (ICMP, atau TCP kalau ICMP diblokir) ke: {0}',
     'about.trafficDNS': 'Pencarian DNS untuk nama server tes', 'about.trafficUpdate': 'Kalau diaktifkan di Pengaturan: cek update ke api.github.com',
+    'about.trafficDNSTest': 'Hanya saat kamu menjalankan tes DNS: pencarian nama situs populer ke DNS kamu dan {0}',
+    'about.trafficMonitor': 'Hanya selama monitor stabilitas berjalan: satu ping per detik ke target yang dipilih dan router kamu',
+    'about.trafficScan': 'Cek channel Wi-Fi tidak mengirim apa pun; hanya membaca jaringan yang sudah terlihat oleh Windows',
     'about.cfgError': 'Konfigurasi bermasalah (memakai bawaan): {0}', 'about.cfgLoaded': 'Dimuat: {0}', 'about.cfgNone': 'File konfigurasi tidak ditemukan — memakai pengaturan bawaan.',
     privacy: 'Tes hanya mengirim data ke server speed test ({0}) dan target ping. Tidak ada data lain yang keluar dari komputer ini.',
     live: 'langsung', measuring: 'mengukur…', failed: 'gagal', incomplete: 'tidak lengkap', notAvailable: 'tidak tersedia',
@@ -196,6 +229,33 @@ const TEXT = {
     'wifi.unavailable': 'Detail Wi-Fi tidak tersedia: {0}',
     'conn.Wi-Fi': 'Wi-Fi', 'conn.Ethernet': 'Ethernet (kabel)', 'conn.Hotspot / Tethering': 'Hotspot / Tethering', 'conn.Cellular': 'Seluler',
     'conn.VPN / Virtual': 'VPN / Virtual', 'conn.Unknown': 'Tidak diketahui',
+    tools: 'Alat', 'tools.title': 'Alat',
+    'history.report': 'Laporan ISP', 'history.reportHint': 'Laporan teks dari tes yang dipilih, bisa dikirim ke ISP kamu',
+    'col.plan': '% paket', 'plan.of': '{0}% dari paket',
+    'plan.title': 'Paket internet kamu', 'plan.intro': 'Opsional. Hasil tes lalu menunjukkan berapa persen dari paket yang benar-benar kamu dapat.',
+    'plan.saved': 'Paket disimpan.',
+    'targets.title': 'Target ping tambahan', 'targets.intro': 'Misalnya server game. Setiap tes juga ikut nge-ping target ini (maks. 5), dan monitor stabilitas bisa memantaunya.',
+    'targets.add': 'Tambah target', 'targets.save': 'Simpan target', 'targets.saved': 'Tersimpan.', 'targets.label': 'Nama', 'targets.host': 'Alamat IP atau nama host',
+    'targets.remove': 'Hapus', 'targets.max': 'Maksimal {0} target.',
+    'settings.other': 'Lainnya',
+    'mon.title': 'Monitor stabilitas',
+    'mon.intro': 'Nge-ping setiap detik selama jendela ini terbuka, untuk menangkap putus sesaat dan lonjakan lag yang tidak terlihat di satu kali tes. Berhenti saat kamu menekan Stop atau menutup aplikasi; tidak ada yang berjalan di latar belakang.',
+    'mon.duration': 'Durasi', 'mon.target': 'Target', 'mon.start': 'Mulai monitor', 'mon.stop': 'Stop', 'mon.stopping': 'Menghentikan…',
+    'mon.elapsed': 'Waktu', 'mon.routerLost': 'Router hilang', 'mon.lostKey': 'tidak dibalas', 'mon.export': 'Export laporan (TXT)',
+    'mon.lost': 'hilang', 'mon.tcpNote': 'Ping ICMP diblokir di sini, jadi monitor mengukur waktu koneksi TCP ke server tes sebagai gantinya.',
+    'mon.error': 'Monitor tidak bisa dimulai: {0}', 'mon.busy': 'Monitor stabilitas sedang berjalan. Hentikan dulu untuk menjalankan speed test.',
+    'mon.noRouter': 'tidak diukur', 'min': 'mnt',
+    'dns.title': 'Tes DNS',
+    'dns.intro': 'DNS mengubah nama website menjadi alamat. DNS yang lambat membuat setiap website telat mulai terbuka. Tes ini membandingkan DNS kamu sekarang dengan DNS publik.',
+    'dns.start': 'Tes DNS', 'dns.server': 'Server DNS', 'dns.median': 'Waktu jawab biasanya', 'dns.ok': 'Dijawab',
+    'dns.running': 'Mengetes… {0}/{1}', 'dns.noAnswer': 'tidak menjawab',
+    'scan.title': 'Cek channel Wi-Fi',
+    'scan.intro': 'Menampilkan jaringan Wi-Fi di sekitarmu yang terlihat oleh Windows (hanya membaca) dan mengecek apakah channel kamu ramai.',
+    'scan.start': 'Scan Wi-Fi', 'scan.scanning': 'Memindai… (sekitar 5 detik)', 'scan.found': '{0} jaringan ditemukan.',
+    'scan.error': 'Scan gagal: {0}', 'scan.channels': 'Channel', 'scan.networks': 'Jaringan', 'scan.busy': 'Keramaian',
+    'scan.nearby': 'Jaringan di sekitar', 'scan.name': 'Nama', 'scan.hidden': '(jaringan tersembunyi)',
+    'scan.yours': 'channel kamu', 'scan.suggested': 'disarankan', 'scan.connected': 'terhubung',
+    'busy.low': 'sepi', 'busy.medium': 'sedang', 'busy.high': 'ramai',
   },
 };
 
@@ -363,6 +423,7 @@ function setRunning(on) {
   $('#cancelBtn').disabled = false;
   $$('#modeSeg button').forEach(b => { b.disabled = on; });
   $('#historyBtn').disabled = on;
+  $('#toolsBtn').disabled = on;
   $('#settingsBtn').disabled = on;
   if (!on) activeMetric('');
 }
@@ -417,6 +478,13 @@ function speedSub(s) {
   return s.loadedSamples ? t('underLoad', ms(s.loadedPingMs)) : '';
 }
 
+// "62% of plan · ping under load 31 ms" when the user entered their plan.
+function withPlan(sub, s, plan) {
+  if (!(plan > 0) || !s || !(s.mbps > 0)) return sub;
+  const p = t('plan.of', Math.round(s.mbps / plan * 100));
+  return sub ? p + ' · ' + sub : p;
+}
+
 function renderResult(r, fromHistory) {
   state.result = r;
   if (r.network) renderNetwork(r.network);
@@ -425,8 +493,9 @@ function renderResult(r, fromHistory) {
 
   const dl = r.download, ul = r.upload;
   const sp = s => (s && s.mbps > 0 ? speed(s.mbps) : '—');
-  setMetric('download', sp(dl), quick ? t('notInQuick') : speedSub(dl));
-  setMetric('upload', sp(ul), quick ? t('notInQuick') : speedSub(ul));
+  const pl = r.plan || {};
+  setMetric('download', sp(dl), quick ? t('notInQuick') : withPlan(speedSub(dl), dl, pl.downMbps));
+  setMetric('upload', sp(ul), quick ? t('notInQuick') : withPlan(speedSub(ul), ul, pl.upMbps));
   if (r.pingMs > 0) {
     const primary = (r.pings || []).find(p => p.primaryTarget);
     setMetric('ping', ms(r.pingMs), primary ? t('minmax', ms(primary.minMs), ms(primary.maxMs)) : '');
@@ -705,6 +774,7 @@ $('#detailsBtn').onclick = () => {
 // ---- history --------------------------------------------------------------
 async function showHistory() {
   $('#dashboard').classList.add('hidden');
+  $('#toolsView').classList.add('hidden');
   $('#historyView').classList.remove('hidden');
   try { state.history = await bridge.call('history') || []; } catch (e) { toast(e.message); state.history = []; }
   renderHistory();
@@ -735,6 +805,8 @@ function renderHistory() {
   const empty = all.length === 0;
   $('#histEmpty').classList.toggle('hidden', !empty);
   ['#histTable', '#histFilters', '#trendBox', '#compareTable'].forEach(s => $(s).classList.toggle('hidden', empty));
+  // The plan column only appears once a test was run with a plan set.
+  $('#histTable').classList.toggle('no-plan', !all.some(h => h.planPct > 0));
   $$('#historyView .sub-head').forEach(el => el.classList.toggle('hidden', empty));
 
   $('#histTable tbody').innerHTML = list.map(h => `
@@ -745,6 +817,7 @@ function renderHistory() {
       <td>${h.ping ? ms(h.ping) + ' ms' : '—'}</td>
       <td>${h.ping ? ms(h.jitter) + ' ms' : '—'}</td>
       <td>${h.ping ? pct(h.loss) + '%' : '—'}</td>
+      <td class="plan-col">${h.planPct > 0 ? Math.round(h.planPct) + '%' : '—'}</td>
       <td class="q-${esc(h.quality || 'UNKNOWN')}">${esc(h.quality ? t('level.' + h.quality) : '—')}</td>
     </tr>`).join('');
   $$('#histTable tbody tr').forEach(tr => {
@@ -799,6 +872,10 @@ function plot(box, pts, series, fmt) {
   const canvas = box.querySelector('canvas');
   const tip = box.querySelector('.tip');
   tip.classList.add('hidden');
+  // x follows the test time, so a gap of days looks like a gap.
+  const times = pts.map(h => new Date(h.date).getTime());
+  const span = times.length > 1 ? times[times.length - 1] - times[0] : 0;
+  const frac = times.map((v, i) => (span > 0 ? (v - times[0]) / span : i / Math.max(1, times.length - 1)));
   const draw = hover => {
     const { ctx, W, H } = setupCanvas(canvas);
     const muted = cssVar('--muted');
@@ -806,7 +883,7 @@ function plot(box, pts, series, fmt) {
     const vals = pts.flatMap(h => series.map(s => s.get(h))).filter(v => v != null);
     const max = niceMax(Math.max(...vals));
     const L = 52, R = 56, T = 10, B = 22;
-    const x = i => L + (i / (pts.length - 1)) * (W - L - R);
+    const x = i => L + frac[i] * (W - L - R);
     const y = v => T + (1 - v / max) * (H - T - B);
     // Recessive grid with three ticks.
     ctx.strokeStyle = cssVar('--line'); ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.textAlign = 'right';
@@ -816,8 +893,11 @@ function plot(box, pts, series, fmt) {
       ctx.fillText(axisNum(max * f), L - 6, yy + 4);
     }
     ctx.textAlign = 'left';
-    const d0 = new Date(pts[0].date).toLocaleDateString(locale(), { day: 'numeric', month: 'short' });
-    const d1 = new Date(pts[pts.length - 1].date).toLocaleDateString(locale(), { day: 'numeric', month: 'short' });
+    // Same day at both ends: show the times instead of two equal dates.
+    const sameDay = new Date(times[0]).toDateString() === new Date(times[times.length - 1]).toDateString();
+    const fmtX = v => (sameDay ? new Date(v).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })
+      : new Date(v).toLocaleDateString(locale(), { day: 'numeric', month: 'short' }));
+    const d0 = fmtX(times[0]), d1 = fmtX(times[times.length - 1]);
     ctx.fillText(d0, L, H - 6);
     ctx.textAlign = 'right'; ctx.fillText(d1, W - R, H - 6); ctx.textAlign = 'left';
     if (hover != null) {
@@ -884,7 +964,9 @@ function plot(box, pts, series, fmt) {
   box.onpointermove = e => {
     const r = canvas.getBoundingClientRect();
     const f = (e.clientX - r.left - geo.L) / (geo.W - geo.L - geo.R);
-    show(Math.max(0, Math.min(pts.length - 1, Math.round(f * (pts.length - 1)))));
+    let best = 0;
+    frac.forEach((v, i) => { if (Math.abs(v - f) < Math.abs(frac[best] - f)) best = i; });
+    show(best);
   };
   box.onpointerleave = hide;
   box.onblur = hide;
@@ -922,8 +1004,14 @@ $('#histClear').onclick = async () => {
   if (!confirm(t('history.confirmClear'))) return;
   try { await bridge.call('clearHistory'); showHistory(); } catch (e) { toast(e.message); }
 };
+$('#histReport').onclick = () => bridge.call('ispReport', {
+  days: state.histRange, connection: state.histConn === 'all' ? '' : state.histConn, unit: state.unit, includeSensitive: $('#includeSensitive').checked,
+}).catch(e => toast(e.message));
 $('#histCsv').onclick = () => bridge.call('export', { format: 'history-csv', unit: state.unit, includeSensitive: $('#includeSensitive').checked }).catch(e => toast(e.message));
-window.addEventListener('resize', () => { if (!$('#historyView').classList.contains('hidden')) renderTrend(filteredHistory()); });
+window.addEventListener('resize', () => {
+  if (!$('#historyView').classList.contains('hidden')) renderTrend(filteredHistory());
+  if (!$('#toolsView').classList.contains('hidden') && mon.samples.length) drawMonitor();
+});
 
 // ---- server picker ----------------------------------------------------------
 function defaultServerName() { return (state.info && state.info.servers && state.info.servers[0]) || 'Cloudflare'; }
@@ -984,11 +1072,61 @@ function onServers(p) {
 }
 
 // ---- settings & updates -----------------------------------------------------
-$('#settingsBtn').onclick = () => {
+$('#settingsBtn').onclick = async () => {
   $('#langSelect').value = lang;
   $('#updateToggle').checked = prefs.updateCheck !== 'off';
   $('#updateStatus').textContent = '';
+  $('#targetStatus').textContent = '';
+  $('#planDown').value = prefs.planDown || '';
+  $('#planUp').value = prefs.planUp || '';
+  let ts = [];
+  try { ts = await bridge.call('getTargets') || []; } catch { /* none */ }
+  renderTargetRows(ts);
   $('#settingsDlg').showModal();
+};
+for (const id of ['planDown', 'planUp']) {
+  $('#' + id).onchange = () => {
+    const v = $('#' + id).value.trim();
+    store.set(id, v && +v > 0 ? v : '');
+  };
+}
+const MAX_TARGETS = 5;
+function renderTargetRows(list) {
+  const box = $('#targetRows');
+  box.innerHTML = '';
+  for (const tg of list) addTargetRow(tg);
+  $('#targetAdd').disabled = list.length >= MAX_TARGETS;
+}
+function addTargetRow(tg = { label: '', host: '' }) {
+  const box = $('#targetRows');
+  if (box.children.length >= MAX_TARGETS) return;
+  const row = document.createElement('div');
+  row.className = 'target-row';
+  const label = document.createElement('input');
+  label.maxLength = 40; label.value = tg.label; label.placeholder = t('targets.label'); label.className = 't-label';
+  label.setAttribute('aria-label', t('targets.label'));
+  const host = document.createElement('input');
+  host.value = tg.host; host.placeholder = t('targets.host'); host.className = 't-host mono'; host.spellcheck = false;
+  host.setAttribute('aria-label', t('targets.host'));
+  const del = document.createElement('button');
+  del.className = 'ghost small'; del.textContent = '✕'; del.title = t('targets.remove'); del.setAttribute('aria-label', t('targets.remove'));
+  del.onclick = () => { row.remove(); $('#targetAdd').disabled = false; };
+  row.append(label, host, del);
+  box.appendChild(row);
+  $('#targetAdd').disabled = box.children.length >= MAX_TARGETS;
+  return host;
+}
+$('#targetAdd').onclick = () => { const h = addTargetRow(); if (h) h.previousSibling.focus(); };
+$('#targetSave').onclick = async () => {
+  const list = $$('#targetRows .target-row')
+    .map(r => ({ label: r.querySelector('.t-label').value.trim(), host: r.querySelector('.t-host').value.trim() }))
+    .filter(x => x.host);
+  try {
+    await bridge.call('setTargets', list);
+    $('#targetStatus').textContent = t('targets.saved');
+    renderTargetRows(await bridge.call('getTargets') || []);
+    loadMonitorTargets();
+  } catch (e) { $('#targetStatus').textContent = e.message; }
 };
 $('#langSelect').onchange = async () => {
   lang = $('#langSelect').value;
@@ -1002,6 +1140,7 @@ $('#langSelect').onchange = async () => {
     renderResult(r, true);
   }
   if (!$('#historyView').classList.contains('hidden')) renderHistory();
+  renderTools();
 };
 $('#updateToggle').onchange = () => store.set('updateCheck', $('#updateToggle').checked ? 'on' : 'off');
 $('#checkNow').onclick = () => {
@@ -1029,8 +1168,251 @@ $('#updateOpen').onclick = () => {
 };
 $('#updateClose').onclick = () => $('#updateBanner').classList.add('hidden');
 
+// ---- tools: stability monitor, DNS test, Wi-Fi scan ---------------------------
+// Each tool runs only while the user waits for it. The monitor in particular
+// stops when the window closes; there is no background mode.
+const mon = { running: false, samples: [], seconds: 0, label: '', method: '', summary: null };
+const tools = { dns: null, scan: null };
+
+function showTools() {
+  $('#dashboard').classList.add('hidden');
+  $('#historyView').classList.add('hidden');
+  $('#toolsView').classList.remove('hidden');
+  loadMonitorTargets();
+  if (mon.samples.length) drawMonitor();
+}
+function hideTools() {
+  $('#toolsView').classList.add('hidden');
+  $('#dashboard').classList.remove('hidden');
+}
+$('#toolsBtn').onclick = showTools;
+$('#toolsBack').onclick = hideTools;
+
+async function loadMonitorTargets() {
+  let list = [];
+  try { list = await bridge.call('monitorTargets') || []; } catch (e) { toast(e.message); }
+  const sel = $('#monTarget');
+  const cur = sel.value;
+  sel.innerHTML = '';
+  for (const tg of list) {
+    const o = document.createElement('option');
+    o.value = tg.host;
+    o.textContent = tg.label && tg.label !== tg.host ? `${tg.label} (${tg.host})` : tg.host;
+    sel.appendChild(o);
+  }
+  if (list.some(x => x.host === cur)) sel.value = cur;
+}
+
+function setMonRunning(on) {
+  mon.running = on;
+  $('#monStart').classList.toggle('hidden', on);
+  $('#monStop').classList.toggle('hidden', !on);
+  $('#monStop').disabled = false;
+  $('#monStop').textContent = t('mon.stop');
+  $('#monMinutes').disabled = on;
+  $('#monTarget').disabled = on;
+  // A Wi-Fi scan takes the radio off-channel and a speed test saturates the
+  // link; either would distort what the monitor records.
+  $('#scanStart').disabled = on || tools.scanning;
+  for (const id of ['startBtn', 'quickBtn']) {
+    $('#' + id).disabled = on;
+    $('#' + id).title = on ? t('mon.busy') : (id === 'quickBtn' ? t('quick.hint') : '');
+  }
+}
+
+$('#monStart').onclick = async () => {
+  const minutes = +$('#monMinutes').value;
+  Object.assign(mon, { samples: [], seconds: minutes * 60, label: '', method: '', summary: null });
+  $('#monResult').classList.add('hidden');
+  $('#monLive').classList.remove('hidden');
+  $('#monTargetName').textContent = $('#monTarget').selectedOptions[0]?.textContent || '';
+  renderMonStats();
+  drawMonitor();
+  setMonRunning(true);
+  try {
+    await bridge.call('startMonitor', { minutes, host: $('#monTarget').value });
+  } catch (e) {
+    setMonRunning(false);
+    $('#monLive').classList.add('hidden');
+    toast(e.message);
+  }
+};
+$('#monStop').onclick = () => {
+  $('#monStop').disabled = true;
+  $('#monStop').textContent = t('mon.stopping');
+  bridge.call('stopMonitor').catch(() => {});
+};
+$('#monExport').onclick = () => bridge.call('exportMonitor', $('#includeSensitive').checked).catch(e => toast(e.message));
+
+const clock = sec => { sec = Math.max(0, Math.round(sec)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); };
+
+function onMonitor(p) {
+  if (p.error) {
+    setMonRunning(false);
+    if (!mon.samples.length) $('#monLive').classList.add('hidden');
+    toast(t('mon.error', p.error), 6000);
+    return;
+  }
+  if (p.started) {
+    Object.assign(mon, { seconds: p.seconds, label: p.target, method: p.method });
+    $('#monTargetName').textContent = p.method === 'tcp' ? `${p.target} (TCP)` : p.target;
+    if (p.method === 'tcp') toast(t('mon.tcpNote'), 6000);
+    renderMonStats();
+    return;
+  }
+  if (p.sample) {
+    mon.samples.push(p.sample);
+    renderMonStats();
+    if (!$('#toolsView').classList.contains('hidden')) drawMonitor();
+    return;
+  }
+  if (p.summary) {
+    setMonRunning(false);
+    if (p.samples) mon.samples = p.samples;
+    mon.summary = p.summary;
+    renderMonStats();
+    drawMonitor();
+    renderMonSummary();
+    // Finished while the user looked at another view.
+    if ($('#toolsView').classList.contains('hidden')) toast(p.summary.verdict, 8000);
+  }
+}
+
+function renderMonStats() {
+  const xs = mon.samples;
+  const last = xs[xs.length - 1];
+  const ok = xs.filter(s => s.ok);
+  $('#monElapsed').textContent = `${clock(last ? last.t + 1 : 0)} / ${clock(mon.seconds)}`;
+  $('#monNow').textContent = !last ? '—' : last.ok ? ms(last.rttMs) + ' ms' : t('mon.lost');
+  $('#monAvg').textContent = ok.length ? ms(ok.reduce((a, s) => a + s.rttMs, 0) / ok.length) + ' ms' : '—';
+  $('#monLoss').textContent = xs.length ? pct(+((xs.length - ok.length) / xs.length * 100).toFixed(1)) + '%' : '—';
+  const gw = xs.filter(s => s.gwOk != null);
+  $('#monGw').textContent = gw.length ? `${gw.filter(s => !s.gwOk).length} / ${gw.length}` : t('mon.noRouter');
+}
+
+function renderMonSummary() {
+  const s = mon.summary;
+  if (!s) return;
+  $('#monResult').classList.remove('hidden');
+  $('#monVerdict').textContent = s.verdict || '';
+  $('#monNotes').innerHTML = (s.notes || []).map(n => `<li>${esc(n)}</li>`).join('');
+}
+
+// Live ping chart: one series; lost probes are marked in the status color at
+// the bottom, so a drop reads as a red stripe rather than a missing line.
+function drawMonitor() {
+  const canvas = $('#plotMon canvas');
+  const { ctx, W, H } = setupCanvas(canvas);
+  const xs = mon.samples;
+  const muted = cssVar('--muted');
+  const L = 44, R = 12, T = 10, B = 22;
+  const total = Math.max(mon.seconds, xs.length ? xs[xs.length - 1].t + 1 : 1);
+  const x = sec => L + (sec / total) * (W - L - R);
+  const okVals = xs.filter(s => s.ok).map(s => s.rttMs);
+  const max = niceMax(okVals.length ? Math.max(...okVals) : 50);
+  const y = v => T + (1 - v / max) * (H - T - B);
+  ctx.strokeStyle = cssVar('--line'); ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.textAlign = 'right';
+  for (const f of [0, 0.5, 1]) {
+    const yy = Math.round(y(max * f)) + 0.5;
+    ctx.beginPath(); ctx.moveTo(L, yy); ctx.lineTo(W - R, yy); ctx.stroke();
+    ctx.fillText(axisNum(max * f), L - 6, yy + 4);
+  }
+  ctx.textAlign = 'left'; ctx.fillText('0:00', L, H - 6);
+  ctx.textAlign = 'right'; ctx.fillText(clock(total), W - R, H - 6); ctx.textAlign = 'left';
+  // Lost probes: a stripe across the plot so drops are seen at a glance.
+  ctx.fillStyle = cssVar('--bad');
+  const bw = Math.max(2, (W - L - R) / total);
+  for (const s of xs) if (!s.ok) { ctx.globalAlpha = 0.18; ctx.fillRect(x(s.t), T, bw, H - T - B); ctx.globalAlpha = 1; ctx.fillRect(x(s.t), H - B - 4, bw, 4); }
+  ctx.strokeStyle = cssVar('--series-1'); ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.beginPath();
+  let started = false;
+  for (const s of xs) {
+    if (!s.ok) { started = false; continue; }
+    if (!started) { ctx.moveTo(x(s.t), y(s.rttMs)); started = true; } else ctx.lineTo(x(s.t), y(s.rttMs));
+  }
+  ctx.stroke();
+}
+
+$('#dnsStart').onclick = () => {
+  $('#dnsStart').disabled = true;
+  $('#dnsStatus').textContent = t('dns.running', 0, '…');
+  bridge.call('dnsTest').catch(e => { $('#dnsStart').disabled = false; $('#dnsStatus').textContent = e.message; });
+};
+function onDNS(p) {
+  if (!p.results) { $('#dnsStatus').textContent = t('dns.running', p.done, p.total); return; }
+  $('#dnsStart').disabled = false;
+  $('#dnsStatus').textContent = '';
+  tools.dns = p;
+  renderDNS();
+}
+function renderDNS() {
+  const p = tools.dns;
+  if (!p) return;
+  const rows = p.results || [];
+  $('#dnsTable').classList.toggle('hidden', rows.length === 0);
+  $('#dnsTable tbody').innerHTML = rows.map((r, i) => {
+    const name = r.label.includes(r.server) ? esc(r.label) : `${esc(r.label)} <span class="muted">${esc(r.server)}</span>`;
+    const time = r.ok ? `${ms(r.medianMs)} ms${i === 0 ? ' ★' : ''}` : `<span class="muted">${esc(t('dns.noAnswer'))}</span>`;
+    return `<tr class="${r.system ? 'mine' : ''}"><td>${name}</td><td>${time}</td><td>${r.ok} / ${r.ok + r.failed}</td></tr>`;
+  }).join('');
+  $('#dnsAdvice').innerHTML = (p.advice || []).map(a => `<li>${esc(a)}</li>`).join('');
+}
+
+$('#scanStart').onclick = () => {
+  tools.scanning = true;
+  $('#scanStart').disabled = true;
+  $('#scanStatus').textContent = t('scan.scanning');
+  bridge.call('wifiScan', true).catch(e => onScan({ error: e.message }));
+};
+function onScan(p) {
+  tools.scanning = false;
+  $('#scanStart').disabled = mon.running;
+  if (p.error) {
+    $('#scanStatus').textContent = t('scan.error', p.error);
+    return;
+  }
+  tools.scan = p.report;
+  renderScan();
+}
+const busyLevel = score => t(score < 1 ? 'busy.low' : score < 3 ? 'busy.medium' : 'busy.high');
+function renderScan() {
+  const r = tools.scan;
+  if (!r) return;
+  const nets = r.networks || [];
+  $('#scanStatus').textContent = t('scan.found', nets.length);
+  $('#scanAdvice').innerHTML = (r.advice || []).map(a => `<li>${esc(a)}</li>`).join('');
+  $('#scanResult').classList.toggle('hidden', nets.length === 0);
+  // Empty 5 GHz channels add nothing; 1/6/11 stay so a free one shows.
+  const chans = (r.channels || []).filter(c => c.networks > 0 || c.current || c.recommended || (c.band === '2.4 GHz' && [1, 6, 11].includes(c.channel)));
+  const maxScore = Math.max(1, ...chans.map(c => c.score));
+  $('#chanTable tbody').innerHTML = chans.map(c => {
+    const tags = [c.current ? t('scan.yours') : '', c.recommended ? t('scan.suggested') : ''].filter(Boolean);
+    return `<tr class="${c.current ? 'mine' : ''}${c.recommended ? ' suggested' : ''}">
+      <td>${esc(c.band)}</td><td><b>${c.channel}</b>${tags.length ? ` <span class="tag">${esc(tags.join(' · '))}</span>` : ''}</td>
+      <td>${c.networks}</td>
+      <td><span class="busy"><i style="width:${Math.round(c.score / maxScore * 100)}%"></i></span> ${esc(busyLevel(c.score))}</td></tr>`;
+  }).join('');
+  $('#netTable tbody').innerHTML = nets.slice(0, 30).map(n => `
+    <tr class="${n.connected ? 'mine' : ''}">
+      <td>${n.ssid ? esc(n.ssid) : `<span class="muted">${esc(t('scan.hidden'))}</span>`}${n.connected ? ` <span class="tag">${esc(t('scan.connected'))}</span>` : ''}</td>
+      <td>${n.channel || '—'} <span class="muted">${esc(n.band)}</span></td>
+      <td>${n.signalPercent ? n.signalPercent + '%' : '—'}${n.rssi ? ` <span class="muted">${n.rssi} dBm</span>` : ''}</td>
+    </tr>`).join('');
+}
+
+// Texts from Go stay in the language they were produced in; the next run
+// uses the new one. Static labels and table headers switch right away.
+function renderTools() {
+  renderMonStats();
+  if (mon.running) $('#monStop').textContent = t('mon.stop');
+  for (const o of $$('#monMinutes option')) o.textContent = `${o.value} ${t('min')}`;
+  if (tools.scan) renderScan();
+  if (tools.dns) renderDNS();
+}
+
 // ---- about ------------------------------------------------------------------
-$('#aboutBtn').onclick = () => {
+$('#aboutBtn').onclick = async () => {
+  // Refresh: ping targets may have changed in Settings since startup.
+  try { state.info = await bridge.call('info'); } catch { /* keep the old one */ }
   const i = state.info || {};
   $('#aboutVersion').textContent = i.version ? 'v' + i.version : '';
   const servers = [state.server ? state.server.name : null, ...(i.servers || [])].filter(Boolean);
@@ -1038,6 +1420,9 @@ $('#aboutBtn').onclick = () => {
     t('about.trafficSpeed', servers.join(', ')),
     t('about.trafficPing', (i.pingTargets || []).join(', ')),
     t('about.trafficDNS'),
+    t('about.trafficDNSTest', (i.dnsServers || []).join(', ')),
+    t('about.trafficMonitor'),
+    t('about.trafficScan'),
     t('about.trafficUpdate'),
   ].map(s => `<li>${esc(s)}</li>`).join('');
   $('#aboutHistory').textContent = i.historyPath || '';
@@ -1067,6 +1452,9 @@ bridge.listen((name, payload) => {
     else if (payload.path) toast(t('toast.saved', payload.path), 6000);
   } else if (name === 'servers') onServers(payload);
   else if (name === 'update') onUpdate(payload);
+  else if (name === 'monitor') onMonitor(payload);
+  else if (name === 'dns') onDNS(payload);
+  else if (name === 'wifiscan') onScan(payload);
 });
 
 // ---- init ---------------------------------------------------------------------
@@ -1078,6 +1466,7 @@ bridge.listen((name, payload) => {
   lang = prefs.lang === 'id' || prefs.lang === 'en' ? prefs.lang : ((navigator.language || '').toLowerCase().startsWith('id') ? 'id' : 'en');
   if (prefs.lang !== lang) store.set('lang', lang);
   applyText();
+  renderTools();
   $$('#modeSeg button').forEach(x => x.classList.toggle('on', x.dataset.mode === state.mode));
   $$('#unitSeg button').forEach(x => x.classList.toggle('on', x.dataset.unit === state.unit));
   unitLabels();

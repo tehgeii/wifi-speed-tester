@@ -130,3 +130,18 @@ func TestDownloadAdaptsToServerSizeLimit(t *testing.T) {
 		t.Fatal("no speed measured")
 	}
 }
+
+// Seen in review: on a ~0.13 Mbps uplink no 128 KB request finished in time
+// and the test reported "no data was transferred". It must report a speed.
+func TestUploadVerySlowLink(t *testing.T) {
+	srv := testutil.NewSpeedServer(4_000) // ~32 kbit/s per connection
+	defer srv.Close()
+	res, err := measure.Upload(context.Background(), measure.NewHTTPClient(4), srv.UploadURL(),
+		measure.SpeedOptions{Duration: 6 * time.Second, Warmup: time.Second, Streams: 4})
+	if err != nil && !errors.Is(err, measure.ErrEstimated) {
+		t.Fatalf("err = %v", err)
+	}
+	if res.Mbps <= 0 || res.Mbps > 0.5 {
+		t.Fatalf("upload = %.3f Mbps, want about 0.13", res.Mbps)
+	}
+}

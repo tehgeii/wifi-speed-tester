@@ -160,7 +160,12 @@ func Evaluate(r *model.TestResult, profileName string, p config.Profile, lang i1
 	}
 	loc := locate(r)
 	q.Notes = append(q.Notes, locationNotes(r, loc, T)...)
+	planNotes, belowPlan := planNotes(r, T)
+	q.Notes = append(q.Notes, planNotes...)
 	q.Tips = tips(r, q, p, loc, bloat || (haveLoaded && inc > p.LoadedLatencyIncMs.Good), T)
+	if belowPlan {
+		q.Tips = append([]string{T("tip.belowPlan")}, q.Tips...)
+	}
 	q.Summary = summary(r, q, T)
 	return q
 }
@@ -216,6 +221,35 @@ func locationNotes(r *model.TestResult, loc where, T func(string, ...any) string
 		}
 	}
 	return notes
+}
+
+// planNotes compares the measured speeds with the user's ISP plan. The
+// second result tells whether a speed fell below plan.LowPct.
+func planNotes(r *model.TestResult, T func(string, ...any) string) ([]string, bool) {
+	pl := r.Plan
+	if pl == nil {
+		return nil, false
+	}
+	var notes []string
+	low := false
+	check := func(s *model.SpeedResult, plan float64, key string) {
+		if !speedOK(s) || plan <= 0 {
+			return
+		}
+		pct := model.PlanPercent(s.Mbps, plan)
+		notes = append(notes, T(key, pct, FormatSpeed(plan, "Mbps")))
+		if pl.LowPct > 0 && pct < pl.LowPct {
+			low = true
+		}
+	}
+	check(r.Download, pl.DownMbps, "plan.down")
+	check(r.Upload, pl.UpMbps, "plan.up")
+	if w := wifiOf(r); w != nil && pl.DownMbps > 0 {
+		if link := math.Max(w.RxRateMbps, w.TxRateMbps); link > 0 && link < pl.DownMbps {
+			notes = append(notes, T("plan.wifiLimit", link))
+		}
+	}
+	return notes, low
 }
 
 func gradeOf(q *model.Quality, key string) model.QualityLevel {
