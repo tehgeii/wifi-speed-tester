@@ -46,7 +46,7 @@ click **More info → Run anyway**.
 | Test servers | Cloudflare by default; **Find nearby servers** ranks public LibreSpeed servers by latency, and the chosen one is used first, with Cloudflare as backup |
 | Language | English and Bahasa Indonesia (follows Windows on first run; switch in Settings ⚙) |
 | Units | Mbps (default) or MB/s (80 Mbps = 10 MB/s) |
-| Export | TXT, JSON, CSV and a PNG result card. SSID, BSSID and IPs are masked unless you choose to include them |
+| Export | **Share**: Copy result and a PNG result card, which never contain the Wi-Fi name or IP addresses. **Save as file**: TXT, JSON and CSV, which mask them (`Ho*****`, `192.168.1.x`) unless you tick *Include network identifiers*; a note under the buttons shows exactly what will be hidden. TXT has the Wi-Fi name and IPs, JSON also the BSSID, CSV only the Wi-Fi name |
 | History | Stored locally as JSON next to the exe; speed and ping trend charts over time, averages per connection (Wi-Fi vs Ethernet…), % of plan, 7/30-day filters, reload, export to CSV, clear |
 | ISP report | History → **ISP report** writes a plain-text summary for your ISP: averages, % of plan, results by time of day, slowest tests and stability-monitor runs |
 | Stability monitor | Tools → pings a target and your router every second for 5–30 minutes to catch short drops and lag spikes, with a live chart, a verdict (stable / spikes / drops; router or beyond) and a TXT report. It runs only while the window is open and stops on Stop or close |
