@@ -150,6 +150,28 @@ async function main() {
   const copied = await toastAfter(page, () => page.click('#copyBtn'), /copied/);
   check(/copied/.test(copied), 'copy result');
 
+  console.log('network identifiers in exports');
+  const savedText = async () => {
+    const msg = await toastAfter(page, () => page.click('[data-export="txt"]'), /^Saved to /);
+    const p = msg.replace(/^Saved to /, '').trim();
+    return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '';
+  };
+  const ip = await page.evaluate(() => ((state.result.network || {}).ipv4 || [])[0] || '');
+  if (ip) {
+    const masked = ip.split('.').slice(0, 3).join('.') + '.x';
+    check((await page.textContent('#sensitiveHint')).includes(masked), 'the hint shows how the IP will appear');
+    let txt = await savedText();
+    check(txt.includes(masked) && !txt.includes(ip), 'TXT hides the IP address by default');
+    await page.check('#includeSensitive');
+    check(/only with people you trust/.test(await page.textContent('#sensitiveHint')), 'the hint warns when identifiers are included');
+    txt = await savedText();
+    check(txt.includes(ip), 'TXT contains the IP address when ticked');
+    await page.uncheck('#includeSensitive');
+    check((await page.textContent('#sensitiveHint')).includes(masked), 'unticking restores the masked hint');
+  } else {
+    console.log('  (no IPv4 address on this machine; masking checks skipped)');
+  }
+
   console.log('history');
   await page.click('#historyBtn');
   await page.waitForSelector('#histTable tbody tr');
@@ -246,6 +268,11 @@ async function main() {
   await dp.waitForSelector('#histTable tbody tr');
   await noHorizontalScroll(dp, 'history');
   await shot(dp, 'history-dark');
+  await dp.click('#histTable tbody tr:first-child');
+  await dp.waitForSelector('#summaryCard:not(.hidden)');
+  await noHorizontalScroll(dp, 'result and export actions');
+  await shot(dp, 'result-dark');
+  await dp.click('#historyBtn');
   await dp.click('#histBack');
   await dp.click('#toolsBtn');
   await dp.click('#scanStart');

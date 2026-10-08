@@ -13,6 +13,17 @@ import (
 // ErrTimeout is returned by a Pinger when no echo reply arrived in time.
 var ErrTimeout = errors.New("request timed out")
 
+// MinRTTMs stands in for a reply faster than the clock can resolve: ICMP
+// reports whole milliseconds and Windows' monotonic clock is coarse, so a
+// LAN or loopback reply can read as 0. An answered probe must never look
+// unmeasured, since a latency of 0 means "not measured" everywhere else.
+const MinRTTMs = 0.01
+
+// RTTMs converts the round-trip time of an answered probe to milliseconds.
+func RTTMs(d time.Duration) float64 {
+	return max(float64(d)/float64(time.Millisecond), MinRTTMs)
+}
+
 // Pinger sends a single ICMP echo request and returns the round-trip time.
 // Implementations are platform specific (IcmpSendEcho on Windows, unprivileged
 // ICMP sockets elsewhere).
@@ -94,7 +105,10 @@ loop:
 			if ctx.Err() != nil {
 				return // interrupted, neither received nor lost
 			}
-			ms := float64(rtt) / float64(time.Millisecond)
+			ms := 0.0
+			if err == nil {
+				ms = RTTMs(rtt)
+			}
 			mu.Lock()
 			replies[i] = reply{rtt: ms, ok: err == nil, done: true}
 			if err != nil {
