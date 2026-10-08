@@ -60,6 +60,10 @@ type App struct {
 	running bool
 	last    *model.TestResult
 	logf    func(format string, args ...any)
+
+	monCancel   context.CancelFunc // set while the stability monitor runs
+	lastMonitor *model.MonitorSummary
+	monitorUnit time.Duration // one "minute" of monitoring; shortened in tests
 }
 
 // New loads configuration from exeDir and prepares the data directory.
@@ -71,7 +75,7 @@ func New(exeDir string, host Host, logf func(string, ...any)) *App {
 	if err != nil {
 		logf("config: %v (using defaults)", err)
 	}
-	a := &App{host: host, cfg: cfg, cfgPath: path, cfgErr: err, logf: logf}
+	a := &App{host: host, cfg: cfg, cfgPath: path, cfgErr: err, logf: logf, monitorUnit: time.Minute}
 	a.dataDir = DataDir(exeDir)
 	a.hist = history.Open(filepath.Join(a.dataDir, "history.json"), cfg.HistoryLimit)
 	a.eng = engine.New(cfg)
@@ -157,6 +161,49 @@ func (a *App) Call(method string, params []json.RawMessage) (any, error) {
 	case "checkUpdate":
 		go a.checkUpdate()
 		return nil, nil
+	case "getTargets":
+		return a.customTargets(), nil
+	case "setTargets":
+		var ts []config.PingTarget
+		if err := arg(0, &ts); err != nil {
+			return nil, err
+		}
+		return nil, a.setTargets(ts)
+	case "monitorTargets":
+		return a.monitorTargets(), nil
+	case "dnsTest":
+		go a.dnsTest()
+		return nil, nil
+	case "wifiScan":
+		var rescan bool
+		if err := arg(0, &rescan); err != nil {
+			return nil, err
+		}
+		go a.wifiScan(rescan)
+		return nil, nil
+	case "startMonitor":
+		var req MonitorRequest
+		if err := arg(0, &req); err != nil {
+			return nil, err
+		}
+		return nil, a.startMonitor(req)
+	case "stopMonitor":
+		a.stopMonitor()
+		return nil, nil
+	case "exportMonitor":
+		var sensitive bool
+		if err := arg(0, &sensitive); err != nil {
+			return nil, err
+		}
+		go a.reportSave(func() (string, error) { return a.exportMonitor(sensitive) })
+		return nil, nil
+	case "ispReport":
+		var req ReportRequest
+		if err := arg(0, &req); err != nil {
+			return nil, err
+		}
+		go a.reportSave(func() (string, error) { return a.ispReport(req) })
+		return nil, nil
 	case "openUrl":
 		var u string
 		if err := arg(0, &u); err != nil {
@@ -216,9 +263,13 @@ func (a *App) info() map[string]any {
 	for i, s := range a.cfg.Servers {
 		servers[i] = s.Name
 	}
-	targets := make([]string, len(a.cfg.PingTargets))
-	for i, t := range a.cfg.PingTargets {
-		targets[i] = t.Label + " (" + t.Host + ")"
+	targets := make([]string, 0, len(a.cfg.PingTargets))
+	for _, t := range append(append([]config.PingTarget(nil), a.cfg.PingTargets...), a.customTargets()...) {
+		targets = append(targets, t.Label+" ("+t.Host+")")
+	}
+	dns := make([]string, len(a.cfg.DNSServers))
+	for i, t := range a.cfg.DNSServers {
+		dns[i] = t.Host
 	}
 	m := map[string]any{
 		"version":     Version,
@@ -226,6 +277,7 @@ func (a *App) info() map[string]any {
 		"configFile":  config.FileName,
 		"servers":     servers,
 		"pingTargets": targets,
+		"dnsServers":  dns,
 		"historyPath": a.hist.Path(),
 		"releasesUrl": update.ReleasesPage,
 		"canOpenUrl":  a.host.OpenURL != nil,
@@ -252,16 +304,14 @@ func (a *App) detectNetwork() {
 
 // StartTest begins a run in the background. Only one run at a time.
 func (a *App) StartTest(mode string) error {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	if a.running {
-		return errors.New(i18n.T(a.lang(), "app.busy"))
-	}
 	ctx, cancel := context.WithCancel(context.Background())
-	a.cancel, a.running = cancel, true
+	if err := a.claim("test", cancel); err != nil {
+		cancel()
+		return err
+	}
 	go func() {
 		defer cancel()
-		opts := engine.Options{Mode: mode, Lang: a.lang(), Server: a.selectedServer()}
+		opts := engine.Options{Mode: mode, Lang: a.lang(), Server: a.selectedServer(), ExtraTargets: a.customTargets(), Plan: a.plan()}
 		res := a.eng.Run(ctx, opts, func(ev engine.Event) {
 			if ev.Type == "result" {
 				return // sent below, after it is stored
@@ -304,6 +354,7 @@ type HistoryEntry struct {
 	Jitter     float64   `json:"jitter"`
 	Loss       float64   `json:"loss"`
 	Quality    string    `json:"quality"`
+	PlanPct    float64   `json:"planPct"` // download as % of the plan at test time, 0 = no plan
 }
 
 func (a *App) historyList() ([]HistoryEntry, error) {
@@ -325,6 +376,9 @@ func (a *App) historyList() ([]HistoryEntry, error) {
 		}
 		if r.Quality != nil {
 			e.Quality = string(r.Quality.Level)
+		}
+		if r.Plan != nil {
+			e.PlanPct = model.PlanPercent(e.Download, r.Plan.DownMbps)
 		}
 		out = append(out, e)
 	}
@@ -353,14 +407,9 @@ func (a *App) Export(req ExportRequest) (string, error) {
 		return a.save("WiFiSpeedTest-history.csv", "CSV file", "csv", export.CSV(all, opts))
 	}
 
-	a.mu.Lock()
-	r := a.last
-	a.mu.Unlock()
-	if req.ID != "" {
-		var err error
-		if r, err = a.hist.Get(req.ID); err != nil {
-			return "", err
-		}
+	r, err := a.result(req.ID)
+	if err != nil {
+		return "", err
 	}
 	if r == nil {
 		return "", errors.New(i18n.T(a.lang(), "app.runFirst"))
@@ -417,7 +466,7 @@ func (a *App) prefs() map[string]string {
 }
 
 func (a *App) savePrefs(p map[string]string) error {
-	allowed := map[string]bool{"unit": true, "mode": true, "lang": true, "updateCheck": true}
+	allowed := map[string]bool{"unit": true, "mode": true, "lang": true, "updateCheck": true, "planDown": true, "planUp": true}
 	clean := map[string]string{}
 	for k, v := range p {
 		if allowed[k] && len(v) < 32 {

@@ -48,6 +48,8 @@ func Explain(lang i18n.Lang, title string, err error) *model.Failure {
 		set("refused")
 	case errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &netErr) && netErr.Timeout()):
 		set("timeout")
+	case errors.Is(err, measure.ErrEstimated):
+		set("estimated")
 	case errors.Is(err, measure.ErrNoData):
 		set("nodata")
 	case strings.Contains(msg, "network is unreachable") || strings.Contains(msg, "no route"):

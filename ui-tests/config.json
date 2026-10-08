@@ -1,0 +1,12 @@
+{
+  "servers": [
+    { "name": "Local test server", "downloadUrl": "http://127.0.0.1:18099/down?bytes={bytes}", "uploadUrl": "http://127.0.0.1:18099/up" }
+  ],
+  "connectivityHost": "localhost",
+  "serverListUrl": "http://127.0.0.1:18099/servers.php",
+  "pingTargets": [
+    { "label": "Local Gateway", "host": "gateway" },
+    { "label": "Loopback", "host": "127.0.0.1" }
+  ],
+  "downloadSeconds": 3, "uploadSeconds": 3, "warmupSeconds": 0.5
+}

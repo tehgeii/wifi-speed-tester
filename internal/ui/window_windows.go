@@ -33,7 +33,7 @@ func RunWindow(exeDir string, logf func(string, ...any)) error {
 		AutoFocus: true,
 		DataPath:  dataPath,
 		WindowOptions: webview2.WindowOptions{
-			Title:  "WiFi Speed + Ping Tester",
+			Title:  windowTitle,
 			Width:  1060,
 			Height: 820,
 			IconId: 1, // from the embedded .syso resource

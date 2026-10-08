@@ -8,9 +8,11 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -127,6 +129,8 @@ type Config struct {
 	MeasureLoadedPing bool               `json:"measureLoadedPing"`
 	ConnectivityHost  string             `json:"connectivityHost"`
 	ServerListURL     string             `json:"serverListUrl"` // public LibreSpeed list, fetched only on request
+	DNSServers        []PingTarget       `json:"dnsServers"`    // public resolvers compared in the DNS test
+	PlanLowPct        float64            `json:"planLowPct"`    // below this % of the ISP plan a tip suggests action
 	HistoryLimit      int                `json:"historyLimit"`
 	Profiles          map[string]Profile `json:"profiles"`
 }
@@ -156,7 +160,13 @@ func Default() Config {
 		MeasureLoadedPing: true,
 		ConnectivityHost:  "speed.cloudflare.com",
 		ServerListURL:     "https://librespeed.org/backend-servers/servers.php",
-		HistoryLimit:      200,
+		DNSServers: []PingTarget{
+			{Label: "Cloudflare", Host: "1.1.1.1"},
+			{Label: "Google", Host: "8.8.8.8"},
+			{Label: "Quad9", Host: "9.9.9.9"},
+		},
+		PlanLowPct:   50,
+		HistoryLimit: 200,
 		Profiles: map[string]Profile{
 			"general": {
 				Use:                []string{"ping", "jitter", "packetLoss", "download", "upload"},
@@ -269,6 +279,14 @@ func (c Config) Validate() error {
 	if c.Streams < 1 || c.Streams > 16 {
 		return fmt.Errorf("streams must be between 1 and 16")
 	}
+	for _, d := range c.DNSServers {
+		if net.ParseIP(d.Host) == nil {
+			return fmt.Errorf("dnsServers: %q must be an IP address", d.Host)
+		}
+	}
+	if c.PlanLowPct < 0 || c.PlanLowPct > 100 {
+		return fmt.Errorf("planLowPct must be between 0 and 100")
+	}
 	if _, ok := c.Profiles["general"]; !ok {
 		return fmt.Errorf(`a "general" profile is required`)
 	}
@@ -319,4 +337,15 @@ func Parse(data []byte, cfg *Config) error {
 func ExampleJSON() []byte {
 	b, _ := json.MarshalIndent(Default(), "", "  ")
 	return append(b, '\n')
+}
+
+var hostRe = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]{0,62}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,62}[A-Za-z0-9])?)*$`)
+
+// ValidTargetHost reports whether h is usable as a ping target: an IP
+// address or a DNS name (the special "gateway" is handled separately).
+func ValidTargetHost(h string) bool {
+	if net.ParseIP(h) != nil {
+		return true
+	}
+	return len(h) <= 253 && hostRe.MatchString(h) && !strings.EqualFold(h, "gateway")
 }

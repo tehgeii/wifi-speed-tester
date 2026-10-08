@@ -2,3 +2,5 @@
 WiFiSpeedTester-data/
 WiFiSpeedTester-debug.log
 *.exe
+/ui-tests/screenshots/
+node_modules/

@@ -1,0 +1,10 @@
+[
+ {"ssid":"RumahKu","bssid":"aa:bb:cc:00:00:01","rssi":-52,"signalPercent":96,"channel":6,"band":"2.4 GHz","frequencyMHz":2437,"connected":true},
+ {"ssid":"RumahKu-5G","bssid":"aa:bb:cc:00:00:02","rssi":-60,"signalPercent":80,"channel":44,"band":"5 GHz","frequencyMHz":5220},
+ {"ssid":"Tetangga","bssid":"aa:bb:cc:00:00:03","rssi":-55,"signalPercent":90,"channel":6,"band":"2.4 GHz","frequencyMHz":2437},
+ {"ssid":"IndiHome-77","bssid":"aa:bb:cc:00:00:04","rssi":-58,"signalPercent":84,"channel":7,"band":"2.4 GHz","frequencyMHz":2442},
+ {"ssid":"","bssid":"aa:bb:cc:00:00:05","rssi":-70,"signalPercent":60,"channel":6,"band":"2.4 GHz","frequencyMHz":2437},
+ {"ssid":"Warkop WiFi","bssid":"aa:bb:cc:00:00:06","rssi":-75,"signalPercent":50,"channel":1,"band":"2.4 GHz","frequencyMHz":2412},
+ {"ssid":"Kos Putri","bssid":"aa:bb:cc:00:00:07","rssi":-80,"signalPercent":40,"channel":11,"band":"2.4 GHz","frequencyMHz":2462},
+ {"ssid":"Biznet-X","bssid":"aa:bb:cc:00:00:08","rssi":-65,"signalPercent":70,"channel":36,"band":"5 GHz","frequencyMHz":5180}
+]

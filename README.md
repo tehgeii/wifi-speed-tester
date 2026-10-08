@@ -12,7 +12,8 @@ installer, no background service and no startup entry: extract the zip and run
 WiFiSpeedTester-Portable-<version>-win-x64.zip
 ├── WiFiSpeedTester.exe
 ├── WiFiSpeedTester.config.example.json
-└── README.txt
+├── README.txt
+└── LICENSE.txt
 ```
 
 ## Download
@@ -34,22 +35,28 @@ click **More info → Run anyway**.
 | Network detection | Active adapter, type (Wi-Fi / Ethernet / hotspot-tethering / cellular / VPN), IPv4, IPv6, gateway, DNS |
 | Wi-Fi details | SSID, BSSID, signal %, RSSI, band, channel, frequency, Wi-Fi standard, link speed (labelled as *not* internet speed) |
 | Internet check | Adapter ✓ → Gateway ✓ → DNS ✓ → Internet ✓; stops with a clear message if the internet is unreachable |
-| Ping | Router, Cloudflare DNS and Google DNS by default (configurable): sent/received, min/avg/max, jitter, loss |
+| Ping | Router, Cloudflare DNS and Google DNS by default, plus up to 5 targets of your own (e.g. a game server, Settings ⚙): sent/received, min/avg/max, jitter, loss |
 | Download / Upload | Multi-connection HTTP test with warm-up excluded, live gauge, throughput chart, retry and fallback to backup servers |
 | Latency under load | Ping sampled during download and upload, with a cautious bufferbloat hint |
 | Rating | EXCELLENT / GOOD / FAIR / POOR / UNSTABLE from documented, configurable thresholds ([docs/QUALITY.md](docs/QUALITY.md)). **Why this rating?** shows every metric's grade and thresholds |
 | Tips | Concrete next steps for what was measured (turn on SQM/QoS, use 5 GHz, try a cable, restart the router, VPN active, contact the ISP…) |
+| Your ISP plan | Enter the plan speed once (Settings ⚙); results then show "62% of plan", and a tip appears when speed is well below it |
 | Gaming mode | Rates ping, jitter, loss and latency stability instead of bandwidth |
 | Quick Ping | About 5 seconds: connection check and ping only, for a quick check before gaming |
 | Test servers | Cloudflare by default; **Find nearby servers** ranks public LibreSpeed servers by latency, and the chosen one is used first, with Cloudflare as backup |
 | Language | English and Bahasa Indonesia (follows Windows on first run; switch in Settings ⚙) |
 | Units | Mbps (default) or MB/s (80 Mbps = 10 MB/s) |
 | Export | TXT, JSON, CSV and a PNG result card. SSID, BSSID and IPs are masked unless you choose to include them |
-| History | Stored locally as JSON next to the exe; speed and ping trend charts, averages per connection (Wi-Fi vs Ethernet…), 7/30-day filters, reload, export to CSV, clear |
+| History | Stored locally as JSON next to the exe; speed and ping trend charts over time, averages per connection (Wi-Fi vs Ethernet…), % of plan, 7/30-day filters, reload, export to CSV, clear |
+| ISP report | History → **ISP report** writes a plain-text summary for your ISP: averages, % of plan, results by time of day, slowest tests and stability-monitor runs |
+| Stability monitor | Tools → pings a target and your router every second for 5–30 minutes to catch short drops and lag spikes, with a live chart, a verdict (stable / spikes / drops; router or beyond) and a TXT report. It runs only while the window is open and stops on Stop or close |
+| DNS test | Tools → compares how fast your current DNS and Cloudflare, Google and Quad9 answer, and says whether switching is worth it |
+| Wi-Fi channel check | Tools → lists nearby networks (read-only, from Windows) and shows how crowded each channel is, with a suggested channel to set in your router |
 | Copy result | Short summary for WhatsApp, Discord or anywhere, without the Wi-Fi name or IPs |
 | Updates | Optional check for a newer release on startup (Settings ⚙), with a link to the download |
 | Errors | Reason and suggestion in plain language, with technical details in a collapsible section |
 | Cancel | Stops all network activity immediately (Esc also works) |
+| One window | Starting the exe again brings the open window to the front instead of running a second copy |
 
 ## Requirements
 
@@ -66,22 +73,30 @@ click **More info → Run anyway**.
 Testing is local except for the traffic needed to measure the connection:
 
 - speed-test data to the configured test server (default: Cloudflare, `speed.cloudflare.com`);
-- ICMP echo (ping) to your router and to the configured targets (default `1.1.1.1`, `8.8.8.8`);
+- ICMP echo (ping) to your router, to the configured targets (default `1.1.1.1`, `8.8.8.8`) and to any targets you added;
 - a DNS lookup of the test server name;
+- only when you run the **DNS test**: DNS lookups of popular site names
+  (google.com, youtube.com…) to your current DNS and to `1.1.1.1`, `8.8.8.8`
+  and `9.9.9.9`;
+- only while the **stability monitor** runs: one ping per second to the
+  chosen target and to your router;
 - only when you press **Find nearby servers**: the public server list from
   `librespeed.org` and one small request to each listed server;
 - only if **Check for updates** is on (Settings ⚙, on by default): one
   request to `api.github.com` for the latest release.
 
-The app does not read files, browser history or passwords, has no telemetry
-and does not run in the background. The About (`?`) dialog lists exactly
+The **Wi-Fi channel check** sends nothing: it asks Windows for the list of
+networks it can already see. The app does not read files, browser history or
+passwords, has no telemetry and does not run in the background. The About (`?`) dialog lists exactly
 where traffic goes for the current configuration.
 
 Files it writes:
 
 - `WiFiSpeedTester-data\` next to the exe holds `history.json`,
-  `settings.json` (language, unit, mode, update check) and `server.json`
-  (the server picked in the app, if any). If that folder is read-only it falls back to
+  `settings.json` (language, unit, mode, update check, plan speed),
+  `server.json` (the server picked in the app, if any), `targets.json` (your
+  extra ping targets) and `monitors.json` (the last 20 stability-monitor
+  summaries). If that folder is read-only it falls back to
   `%APPDATA%\WiFiSpeedTester`.
 - `%LOCALAPPDATA%\WiFiSpeedTester\WebView2` is the browser-engine cache.
 
@@ -113,7 +128,20 @@ How it measures:
   consecutive samples.
 - **ICMP blocked?** Some networks (corporate, cloud) drop ping entirely. If no
   internet target answers, latency is measured from TCP connection setup to
-  the test server instead, and the result says so.
+  the test server instead, and the result says so. The stability monitor
+  does the same.
+- **Very slow upload**: if not even one upload request finishes in time
+  (below roughly 0.1 Mbps), the upload is estimated from the data sent and
+  marked as incomplete instead of failing.
+- **Stability monitor**: one probe per second. A *drop* is 3 or more lost
+  probes in a row; a *spike* is a reply far above the typical ping (more
+  than twice the median and at least 50 ms above it).
+- **DNS test**: 2 rounds of 10 popular names per server over plain UDP, so
+  the Windows DNS cache is not involved. The typical (median) answer time is
+  compared. A server that has not answered after 3 tries is skipped.
+- **Wi-Fi channel check**: neighbours are weighted by signal strength; on
+  2.4 GHz, overlapping channels count partly. Only 1, 6 and 11 are suggested
+  on 2.4 GHz. Networks with your own network's name are not counted.
 
 ## Configuration
 
@@ -142,6 +170,12 @@ falls back to the defaults.
   "measureLoadedPing": true,
   "connectivityHost": "speed.cloudflare.com",
   "serverListUrl": "https://librespeed.org/backend-servers/servers.php",
+  "dnsServers": [                    // public DNS compared in the DNS test (IP addresses)
+    { "label": "Cloudflare", "host": "1.1.1.1" },
+    { "label": "Google",     "host": "8.8.8.8" },
+    { "label": "Quad9",      "host": "9.9.9.9" }
+  ],
+  "planLowPct": 50,                  // below this % of your plan, a tip suggests what to do
   "historyLimit": 200,
   "profiles": { "general": { ... }, "gaming": { ... }, "quick": { ... } }   // see docs/QUALITY.md
 }
@@ -164,6 +198,8 @@ WiFiSpeedTester.exe --cli --quick   ping only (about 5 seconds)
 WiFiSpeedTester.exe --cli --lang id report in Bahasa Indonesia
 WiFiSpeedTester.exe --cli --json    full result as JSON (redirect with > file.json)
 WiFiSpeedTester.exe --list-servers  rank public LibreSpeed servers by latency
+WiFiSpeedTester.exe --dns           compare DNS servers
+WiFiSpeedTester.exe --wifi-scan     list nearby Wi-Fi networks and suggest a channel
 WiFiSpeedTester.exe --print-config  print the default configuration
 WiFiSpeedTester.exe --write-config  write WiFiSpeedTester.config.json next to the exe
 ```
@@ -175,12 +211,14 @@ Requires Go 1.24+. No C compiler is needed: the Windows build is pure Go
 
 ```sh
 scripts/build.sh 1.0.0      # -> dist/WiFiSpeedTester-Portable-1.0.0-win-x64.zip (+ win-arm64)
-go test ./...               # unit and end-to-end engine tests
+go test ./...               # unit, engine and app-layer tests
+scripts/ui-test.sh          # UI end-to-end test (needs Node and Playwright, see below)
 ```
 
 CI (`.github/workflows/build.yml`) runs `go vet` and the tests on Linux and
-Windows and builds both zips as artifacts. It also runs a real `--cli` smoke
-test on a Windows runner.
+Windows, runs the UI test in Chromium, and builds both zips as artifacts. It
+also runs real `--cli`, `--dns` and `--wifi-scan` smoke tests on a Windows
+runner.
 
 To publish a release: **Actions → build → Run workflow**, choose `main`, and
 enter a version such as `1.0.1`. The workflow builds both zips and
@@ -207,6 +245,15 @@ go run ./cmd/fakespeedserver &          # local speed-test server, bandwidth-cap
 go run ./cmd/wifispeedtester --serve 8088   # then open http://127.0.0.1:8088
 ```
 
+Set `WST_FAKE_WIFI_SCAN` to a JSON file of networks (see
+`ui-tests/wifi-scan.json`) to try the Wi-Fi channel check without Wi-Fi.
+
+`scripts/ui-test.sh` does all of this automatically and drives the page with
+Playwright (`ui-tests/run.cjs`): settings, quick and full tests, exports,
+history and the ISP report, every tool, both languages, light and dark
+themes, and a narrow window. Install Playwright once with
+`npm install --no-save playwright && npx playwright install chromium`.
+
 ## Architecture
 
 Measurement logic never lives in the UI:
@@ -221,14 +268,16 @@ Network test (engine, measure, network)
 
 ```
 cmd/wifispeedtester   entry point: window, --cli, --serve
-internal/network      adapter detection (GetAdaptersAddresses), Wi-Fi info (wlanapi), DNS/internet checks
+internal/network      adapter detection (GetAdaptersAddresses), Wi-Fi info and scan (wlanapi), DNS/internet checks
 internal/measure      ping (IcmpSendEcho), download/upload testers, jitter / packet-loss / unit math
 internal/engine       runs the full test, emits progress events, cancellation, user-facing errors
-internal/analysis     ConnectionQualityEngine: deterministic rating, notes and tips
+internal/monitor      stability monitor: 1 s probes, drops and spikes
+internal/dnsbench     DNS server comparison over UDP
+internal/analysis     ConnectionQualityEngine: deterministic rating, notes and tips; DNS, Wi-Fi channel and monitor verdicts
 internal/i18n         English / Indonesian text for everything the Go side writes
 internal/servers      LibreSpeed server list and latency ranking
 internal/update       latest-release check on GitHub
-internal/export       TXT / JSON / CSV with masking of identifying fields
+internal/export       TXT / JSON / CSV, ISP and monitor reports, with masking of identifying fields
 internal/history      local JSON history
 internal/config       configuration and defaults
 internal/app          view-model: the API the UI calls; long work runs off the UI thread
@@ -239,7 +288,13 @@ internal/ui           WebView2 host, Save dialog, dev server, embedded web asset
 
 This is a simple connection-testing utility. It is not a monitoring
 platform, packet analyzer, router admin tool, Wi-Fi hacking tool or
-vulnerability scanner, and it is not meant to become one.
+vulnerability scanner, and it is not meant to become one. The stability
+monitor is a timed check you start and watch; there is no background or
+tray mode. The Wi-Fi channel check only reads what Windows already shows.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
 
 ## Credits
 

@@ -7,6 +7,8 @@
 //	--quick          ping only, no speed test (with --cli)
 //	--lang id|en     report language (with --cli)
 //	--list-servers   find public LibreSpeed servers and rank them by latency
+//	--dns            compare DNS servers
+//	--wifi-scan      list nearby Wi-Fi networks and recommend a channel
 //	--json           print the result as JSON (with --cli)
 //	--serve [port]   serve the UI on http://127.0.0.1:port for development
 //	--print-config   print the default configuration (JSON)
@@ -23,11 +25,14 @@ import (
 	"os/signal"
 	"path/filepath"
 
+	"github.com/tehgeii/wifi-speed-tester/internal/analysis"
 	"github.com/tehgeii/wifi-speed-tester/internal/app"
 	"github.com/tehgeii/wifi-speed-tester/internal/config"
+	"github.com/tehgeii/wifi-speed-tester/internal/dnsbench"
 	"github.com/tehgeii/wifi-speed-tester/internal/engine"
 	"github.com/tehgeii/wifi-speed-tester/internal/export"
 	"github.com/tehgeii/wifi-speed-tester/internal/i18n"
+	"github.com/tehgeii/wifi-speed-tester/internal/network"
 	"github.com/tehgeii/wifi-speed-tester/internal/servers"
 	"github.com/tehgeii/wifi-speed-tester/internal/ui"
 )
@@ -39,6 +44,8 @@ func main() {
 	quick := flag.Bool("quick", false, "ping only, no download/upload (with --cli)")
 	lang := flag.String("lang", "en", "report language: en or id (with --cli)")
 	listServers := flag.Bool("list-servers", false, "find public LibreSpeed servers and rank them by latency")
+	dnsTest := flag.Bool("dns", false, "compare how fast DNS servers answer")
+	wifiScan := flag.Bool("wifi-scan", false, "list nearby Wi-Fi networks and recommend a channel")
 	serve := flag.Int("serve", 0, "serve the UI on 127.0.0.1:`port` (development)")
 	writeCfg := flag.Bool("write-config", false, "write "+config.FileName+" with the defaults next to the executable")
 	printCfg := flag.Bool("print-config", false, "print the default configuration as JSON")
@@ -63,6 +70,10 @@ func main() {
 		fmt.Println("Wrote", p)
 	case *listServers:
 		os.Exit(runListServers(exeDir))
+	case *dnsTest:
+		os.Exit(runDNS(exeDir, i18n.Parse(*lang)))
+	case *wifiScan:
+		os.Exit(runWiFiScan(i18n.Parse(*lang)))
 	case *cli:
 		mode := "general"
 		if *gaming {
@@ -167,6 +178,60 @@ func runListServers(exeDir string) int {
 	fmt.Fprintf(os.Stderr, "%d of %d servers reachable\n", ok, len(ranked))
 	if ok == 0 {
 		return 1
+	}
+	return 0
+}
+
+func runDNS(exeDir string, lang i18n.Lang) int {
+	cfg, _, _ := config.Load(exeDir)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	var system []string
+	if info, err := network.Detect(ctx); err == nil {
+		system = info.DNS
+	}
+	list := dnsbench.Servers(system, cfg.DNSServers, lang)
+	res := dnsbench.Run(ctx, list, dnsbench.Domains, dnsbench.Options{})
+	ok := 0
+	for _, r := range res {
+		if r.OK > 0 {
+			ok++
+			fmt.Printf("%7.1f ms  %-36s %d/%d\n", r.MedianMs, r.Label, r.OK, r.OK+r.Failed)
+		} else {
+			fmt.Printf("     fail  %-36s %s\n", r.Label, r.Error)
+		}
+	}
+	for _, a := range analysis.DNSAdvice(res, lang) {
+		fmt.Println("-", a)
+	}
+	if ok == 0 {
+		return 1
+	}
+	return 0
+}
+
+func runWiFiScan(lang i18n.Lang) int {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	nets, err := network.ScanWiFi(ctx, true)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		return 1
+	}
+	rep := analysis.AnalyzeScan(nets, lang)
+	for _, n := range rep.Networks {
+		mark := " "
+		if n.Connected {
+			mark = "*"
+		}
+		name := n.SSID
+		if name == "" {
+			name = "(hidden)"
+		}
+		fmt.Printf("%s %-32s ch %-3d %-7s %4d dBm\n", mark, name, n.Channel, n.Band, n.RSSI)
+	}
+	for _, a := range rep.Advice {
+		fmt.Println("-", a)
 	}
 	return 0
 }

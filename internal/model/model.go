@@ -152,6 +152,80 @@ type TestResult struct {
 	Quality    *Quality     `json:"quality,omitempty"`
 	Cancelled  bool         `json:"cancelled"`
 	Failure    *Failure     `json:"failure,omitempty"`
+	Plan       *Plan        `json:"plan,omitempty"` // the user's ISP plan at test time
+}
+
+// Plan is the internet package speed the user pays for, in Mbps (0 = not set).
+type Plan struct {
+	DownMbps float64 `json:"downMbps"`
+	UpMbps   float64 `json:"upMbps"`
+	LowPct   float64 `json:"lowPct"` // below this % a tip suggests action (config planLowPct)
+}
+
+// PlanPercent returns measured/plan in percent, or 0 when either is unknown.
+func PlanPercent(measured, plan float64) float64 {
+	if measured <= 0 || plan <= 0 {
+		return 0
+	}
+	return measured / plan * 100
+}
+
+// WiFiNetwork is one access point seen in a Wi-Fi scan.
+type WiFiNetwork struct {
+	SSID          string `json:"ssid"` // "" for hidden networks
+	BSSID         string `json:"bssid"`
+	RSSI          int    `json:"rssi"`          // dBm
+	SignalPercent int    `json:"signalPercent"` // 0..100
+	Channel       int    `json:"channel"`
+	Band          string `json:"band"`
+	FrequencyMHz  int    `json:"frequencyMHz"`
+	Connected     bool   `json:"connected"` // the access point this device uses
+}
+
+// DNSResult is the lookup speed of one DNS server.
+type DNSResult struct {
+	Label    string  `json:"label"`
+	Server   string  `json:"server"`
+	System   bool    `json:"system"` // configured on this computer
+	MedianMs float64 `json:"medianMs"`
+	MinMs    float64 `json:"minMs"`
+	OK       int     `json:"ok"`
+	Failed   int     `json:"failed"`
+	Error    string  `json:"error,omitempty"`
+}
+
+// MonitorSample is one probe of the stability monitor.
+type MonitorSample struct {
+	T     float64 `json:"t"`     // seconds since start
+	RttMs float64 `json:"rttMs"` // 0 when lost
+	OK    bool    `json:"ok"`
+	GwOK  *bool   `json:"gwOk,omitempty"` // router answered (nil when not probed)
+}
+
+// MonitorSummary describes a finished stability monitor run.
+type MonitorSummary struct {
+	StartedAt     time.Time    `json:"startedAt"`
+	DurationSec   float64      `json:"durationSec"`
+	Target        string       `json:"target"`
+	TargetLabel   string       `json:"targetLabel"`
+	Method        string       `json:"method"` // icmp | tcp
+	Sent          int          `json:"sent"`
+	Received      int          `json:"received"`
+	LossPct       float64      `json:"lossPct"`
+	AvgMs         float64      `json:"avgMs"`
+	MinMs         float64      `json:"minMs"`
+	MaxMs         float64      `json:"maxMs"`
+	P95Ms         float64      `json:"p95Ms"`
+	JitterMs      float64      `json:"jitterMs"`
+	Spikes        int          `json:"spikes"`  // probes far above the median
+	Outages       int          `json:"outages"` // runs of >= 3 lost probes
+	LongestOutage float64      `json:"longestOutageSec"`
+	GatewaySent   int          `json:"gatewaySent"`
+	GatewayLost   int          `json:"gatewayLost"`
+	Cancelled     bool         `json:"cancelled"`
+	Verdict       string       `json:"verdict"` // localized one-line conclusion
+	Notes         []string     `json:"notes"`
+	Network       *NetworkInfo `json:"network,omitempty"`
 }
 
 // Failure is a user-facing explanation of why a run could not complete.
