@@ -277,3 +277,18 @@ func TestIndonesianChecksAndFailure(t *testing.T) {
 		}
 	}
 }
+
+// Replies faster than the clock can resolve (ICMP reports whole
+// milliseconds; Windows' monotonic clock is coarse) still count as measured
+// latency, not as "ping not available".
+func TestSubResolutionRepliesCountAsMeasured(t *testing.T) {
+	srv := testutil.NewSpeedServer(0)
+	defer srv.Close()
+	res := testEngine(srv, &testutil.Pinger{RTT: 0}).Run(context.Background(), Options{Mode: "quick"}, nil)
+	if res.PingMs <= 0 {
+		t.Fatalf("ping = %v, want > 0 for answered probes; pings = %+v", res.PingMs, res.Pings)
+	}
+	if res.Quality == nil || res.Quality.Level == model.QualityUnknown {
+		t.Fatalf("quality = %+v, want a rating", res.Quality)
+	}
+}
