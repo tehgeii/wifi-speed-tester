@@ -237,8 +237,8 @@ artifact. CI juga menjalankan smoke test sungguhan untuk `--cli`, `--dns` dan
 Untuk menerbitkan rilis: buka **Actions → build → Run workflow**, pilih
 `main`, lalu isi versinya, misalnya `1.0.1`. Workflow akan membuat kedua zip
 dan `SHA256SUMS.txt`, membuat tag `v1.0.1`, lalu menerbitkan rilis dengan
-catatan dari `packaging/RELEASE_NOTES.md` (perbarui dulu bagian "What's
-new"-nya). Push tag `v*` juga menghasilkan hal yang sama.
+catatan dari `packaging/RELEASE_NOTES.md` (perbarui dulu bagian "Yang baru di …"-nya).
+Push tag `v*` juga menghasilkan hal yang sama.
 
 Ikon, manifest DPI dan info versi exe berasal dari
 `cmd/wifispeedtester/rsrc_windows_*.syso`. Buat ulang file itu setelah
