@@ -65,6 +65,12 @@ COMMAND LINE
   WiFiSpeedTester.exe --dns            compare DNS servers
   WiFiSpeedTester.exe --wifi-scan      list nearby Wi-Fi networks
 
+LICENSE
+  Copyright (c) 2026-present tehgeii. All rights reserved. You may run the
+  app for personal use and share the official, unmodified files for free.
+  Full terms (English and Bahasa Indonesia): LICENSE.txt. Components from
+  other authors and their licenses: THIRD_PARTY_NOTICES.txt.
+
 ACCURACY
   Results depend on the test server, routing, your ISP, Wi-Fi signal, other
   traffic, VPNs and this device. They show what was measured at that moment,

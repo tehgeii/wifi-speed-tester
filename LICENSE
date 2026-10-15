@@ -1,21 +1,103 @@
-MIT License
+WiFi Speed + Ping Tester
+Copyright (c) 2026-present tehgeii (https://github.com/tehgeii). All rights reserved.
 
-Copyright (c) 2026 tehgeii
+This software, its source code and its documentation (the "Software") belong
+to tehgeii. You may use it only as this license allows.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+YOU MAY, WITHOUT ASKING
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+  1. View the source code on GitHub.
+  2. Download the official release files from
+     https://github.com/tehgeii/wifi-speed-tester/releases and run the app for
+     your own personal use.
+  3. Share the Releases link, or the official release files exactly as
+     published (unmodified), with others, free of charge.
+
+YOU MAY NOT, WITHOUT WRITTEN PERMISSION FROM TEHGEII
+
+  1. Copy or reuse the source code, or any part of it, in another project.
+  2. Modify the source code or the app, or distribute a modified version.
+  3. Re-upload, sell, rent or otherwise commercialize the app or the Software.
+  4. Remove or change this copyright notice or this license.
+
+To ask for permission, contact tehgeii through https://github.com/tehgeii.
+Any use outside this license ends your permission to use the Software.
+
+THIRD-PARTY COMPONENTS
+
+The app includes components from other authors under their own licenses,
+listed in THIRD_PARTY_NOTICES.txt. This license does not limit your rights
+under those licenses.
+
+EARLIER VERSIONS
+
+Versions 1.2.1 and earlier were published under the MIT License. Copies of
+those versions keep that license. This license applies to later versions.
+
+NO WARRANTY
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
+
+This license is written in English and Indonesian. If the two versions
+differ, the Indonesian version prevails.
+
+-------------------------------------------------------------------------------
+
+LISENSI (BAHASA INDONESIA)
+
+WiFi Speed + Ping Tester
+Hak cipta (c) 2026-sekarang tehgeii (https://github.com/tehgeii).
+Seluruh hak dilindungi.
+
+Perangkat lunak ini, kode sumbernya, dan dokumentasinya ("Perangkat Lunak")
+adalah milik tehgeii. Kamu hanya boleh memakainya sesuai lisensi ini.
+
+BOLEH, TANPA PERLU IZIN
+
+  1. Melihat kode sumber di GitHub.
+  2. Mengunduh file rilis resmi dari
+     https://github.com/tehgeii/wifi-speed-tester/releases dan menjalankan
+     aplikasinya untuk pemakaian pribadi.
+  3. Membagikan link Releases, atau file rilis resmi persis seperti yang
+     diterbitkan (tanpa diubah), kepada orang lain secara gratis.
+
+TIDAK BOLEH, TANPA IZIN TERTULIS DARI TEHGEII
+
+  1. Menyalin atau memakai ulang kode sumber, atau bagian mana pun darinya,
+     di proyek lain.
+  2. Mengubah kode sumber atau aplikasinya, atau menyebarkan versi yang sudah
+     diubah.
+  3. Mengunggah ulang, menjual, menyewakan, atau mengomersialkan aplikasi
+     atau Perangkat Lunak ini dengan cara apa pun.
+  4. Menghapus atau mengubah pemberitahuan hak cipta ini atau lisensi ini.
+
+Untuk meminta izin, hubungi tehgeii melalui https://github.com/tehgeii.
+Pemakaian di luar lisensi ini mengakhiri izinmu untuk memakai Perangkat Lunak.
+
+KOMPONEN PIHAK KETIGA
+
+Aplikasi ini memuat komponen dari pembuat lain dengan lisensinya
+masing-masing, yang tercantum di THIRD_PARTY_NOTICES.txt. Lisensi ini tidak
+membatasi hakmu berdasarkan lisensi-lisensi tersebut.
+
+VERSI SEBELUMNYA
+
+Versi 1.2.1 dan sebelumnya diterbitkan dengan Lisensi MIT. Salinan versi
+tersebut tetap memakai lisensi itu. Lisensi ini berlaku untuk versi
+sesudahnya.
+
+TANPA JAMINAN
+
+PERANGKAT LUNAK DISEDIAKAN "SEBAGAIMANA ADANYA", TANPA JAMINAN APA PUN, BAIK
+TERSURAT MAUPUN TERSIRAT, TERMASUK NAMUN TIDAK TERBATAS PADA JAMINAN DAPAT
+DIPERDAGANGKAN, KESESUAIAN UNTUK TUJUAN TERTENTU, DAN TIDAK MELANGGAR HAK
+PIHAK LAIN. PEMBUAT TIDAK BERTANGGUNG JAWAB ATAS KLAIM, KERUGIAN, ATAU
+TANGGUNG JAWAB LAIN YANG TIMBUL DARI ATAU BERKAITAN DENGAN PERANGKAT LUNAK
+ATAU PEMAKAIANNYA.
+
+Lisensi ini ditulis dalam bahasa Inggris dan bahasa Indonesia. Jika kedua
+versi berbeda, yang berlaku adalah versi bahasa Indonesia.

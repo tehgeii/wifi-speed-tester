@@ -13,17 +13,20 @@ change.
 
 | Option | Cost | Notes |
 |---|---|---|
-| **SignPath Foundation** (open-source program) | Free for qualifying open-source projects | Apply as a project. The usual requirements are an OSI-approved license, public source, and releases built by CI (GitHub Actions is supported). The certificate is issued to SignPath Foundation on the project's behalf. |
+| **SignPath Foundation** (open-source program) | Free for qualifying open-source projects | Requires an OSI-approved open-source license, so it does **not** apply to this project's current license (see below). |
 | **Microsoft Trusted/Artifact Signing** (Azure) | Monthly subscription | Cloud signing service with a GitHub Action. Identity validation is required, and availability for individual developers depends on the country. |
 | **Commercial OV certificate** (Sectigo, DigiCert, …) | Yearly fee | The key must live on a hardware token or cloud HSM, so signing in CI needs the vendor's cloud-signing option. |
 
 Even with a valid signature, SmartScreen builds "reputation" from downloads
 over time. The warning goes away gradually, not always on day one.
 
-## Prerequisite: a license
+## License and signing
 
-The project is MIT-licensed (`LICENSE`). That is an OSI-approved license, so
-it meets the usual requirement of open-source signing programs.
+Since version 1.3 the project uses its own license (`LICENSE`): the code is
+public, but copying, modifying and selling need permission. That is not an
+OSI-approved open-source license, so free programs for open-source projects
+(such as SignPath Foundation) are not available. Microsoft Trusted/Artifact
+Signing or a commercial certificate remain the options.
 
 ## How it would plug into the release workflow
 

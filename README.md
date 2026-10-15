@@ -13,7 +13,8 @@ WiFiSpeedTester-Portable-<version>-win-x64.zip
 ├── WiFiSpeedTester.exe
 ├── WiFiSpeedTester.config.example.json
 ├── README.txt
-└── LICENSE.txt
+├── LICENSE.txt
+└── THIRD_PARTY_NOTICES.txt
 ```
 
 ## Download
@@ -223,8 +224,8 @@ runner.
 To publish a release: **Actions → build → Run workflow**, choose `main`, and
 enter a version such as `1.0.1`. The workflow builds both zips and
 `SHA256SUMS.txt`, creates the tag `v1.0.1`, and publishes the release with
-the notes from `packaging/RELEASE_NOTES.md` plus the changes since the last
-release. Pushing a `v*` tag does the same.
+the notes from `packaging/RELEASE_NOTES.md` (update its "What's new" section
+first). Pushing a `v*` tag does the same.
 
 The icon, DPI manifest and version info come from
 `cmd/wifispeedtester/rsrc_windows_*.syso`. Regenerate them after changing
@@ -294,9 +295,18 @@ tray mode. The Wi-Fi channel check only reads what Windows already shows.
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+Copyright (c) 2026-present tehgeii. All rights reserved.
 
-## Credits
+You may view the code, run the official releases for personal use, and share
+the Releases link or the unmodified release files for free. Copying or
+reusing the code, distributing modified versions, and re-uploading or selling
+the app need written permission. The full terms, in English and Bahasa
+Indonesia, are in [LICENSE](LICENSE). Versions up to 1.2.1 were released
+under the MIT License.
 
-- **[@tehgeii](https://github.com/tehgeii)**: product owner. Wrote the
-  [product brief](docs/PRODUCT_BRIEF.md) and owns the project.
+Third-party components keep their own licenses, listed in
+[THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt).
+
+## Author
+
+Made by **[@tehgeii](https://github.com/tehgeii)**.

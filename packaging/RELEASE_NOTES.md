@@ -1,13 +1,8 @@
-## What's new in 1.2
+## What's new in 1.3
 
-- **Tools** (new button in the top bar):
-  - **Stability monitor**: pings every second for 5–30 minutes to catch short drops and lag spikes, with a live chart, a verdict and a TXT report. It runs only while the window is open.
-  - **DNS test**: compares your DNS with Cloudflare, Google and Quad9.
-  - **Wi-Fi channel check**: shows how crowded each channel is and suggests a better one.
-- **Your ISP plan** (Settings ⚙): results show "% of plan", with a tip when speed is far below it.
-- **ISP report** (History): a text summary of your tests to send to your ISP.
-- **Extra ping targets** (Settings ⚙): add up to 5, for example a game server.
-- Fixes: very slow uploads are now estimated instead of failing; history charts use real time spacing; exporting an old or cancelled result works; opening the app twice brings the existing window to the front; the router and TCP ping labels are translated.
+- **New license.** The app stays free to download, use and share as published. Copying the code, distributing modified versions or selling the app now needs permission from the author. The full terms, in English and Bahasa Indonesia, are in `LICENSE.txt`. Versions up to 1.2.1 remain under the MIT License.
+- The zip now includes `THIRD_PARTY_NOTICES.txt`, which lists the components from other authors and their licenses.
+- Results, measurements and features are unchanged from 1.2.1.
 
 ## Download
 

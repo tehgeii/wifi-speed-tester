@@ -19,7 +19,8 @@ for ARCH in amd64 arm64; do
   go run ./cmd/wifispeedtester --print-config > "$STAGE/WiFiSpeedTester.config.example.json"
   cp packaging/README.txt "$STAGE/README.txt"
   cp LICENSE "$STAGE/LICENSE.txt"
+  cp THIRD_PARTY_NOTICES.txt "$STAGE/THIRD_PARTY_NOTICES.txt"
   ZIP="dist/WiFiSpeedTester-Portable-$VERSION-$LABEL.zip"
-  (cd "$STAGE" && python3 -m zipfile -c "../$(basename "$ZIP")" WiFiSpeedTester.exe WiFiSpeedTester.config.example.json README.txt LICENSE.txt)
+  (cd "$STAGE" && python3 -m zipfile -c "../$(basename "$ZIP")" WiFiSpeedTester.exe WiFiSpeedTester.config.example.json README.txt LICENSE.txt THIRD_PARTY_NOTICES.txt)
   echo "  -> $ZIP"
 done
