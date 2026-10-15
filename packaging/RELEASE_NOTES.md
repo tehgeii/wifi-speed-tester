@@ -1,20 +1,20 @@
-## What's new in 1.3
+## Yang baru di 1.3
 
-- **New license.** The app stays free to download, use and share as published. Copying the code, distributing modified versions or selling the app now needs permission from the author. The full terms, in English and Bahasa Indonesia, are in `LICENSE.txt`. Versions up to 1.2.1 remain under the MIT License.
-- The zip now includes `THIRD_PARTY_NOTICES.txt`, which lists the components from other authors and their licenses.
-- Results, measurements and features are unchanged from 1.2.1.
+- **Lisensi baru.** Aplikasi tetap gratis untuk di-download, dipakai, dan dibagikan apa adanya. Menyalin kode, menyebarkan versi yang sudah diubah, atau menjual aplikasinya sekarang perlu izin dari pembuatnya. Ketentuan lengkapnya, dalam bahasa Inggris dan Bahasa Indonesia, ada di `LICENSE.txt`. Versi 1.2.1 dan sebelumnya tetap memakai Lisensi MIT.
+- Zip sekarang menyertakan `THIRD_PARTY_NOTICES.txt`, berisi daftar komponen dari pembuat lain beserta lisensinya.
+- Hasil tes, cara mengukur, dan fiturnya sama persis dengan 1.2.1.
 
 ## Download
 
-| Your PC | File |
+| PC kamu | File |
 |---|---|
-| Most Windows 10/11 PCs (Intel / AMD) | **`WiFiSpeedTester-Portable-…-win-x64.zip`** |
+| Kebanyakan PC/laptop Windows 10/11 (Intel / AMD) | **`WiFiSpeedTester-Portable-…-win-x64.zip`** |
 | Windows on ARM (Snapdragon) | `WiFiSpeedTester-Portable-…-win-arm64.zip` |
 
-1. Download the zip and extract it anywhere.
-2. Double-click **`WiFiSpeedTester.exe`**. Nothing is installed.
-3. If Windows shows **"Windows protected your PC"**, click **More info → Run anyway**. The app is not code-signed yet, which is why SmartScreen warns.
+1. Download zip-nya, lalu ekstrak di mana saja.
+2. Klik dua kali **`WiFiSpeedTester.exe`**. Tidak ada yang perlu diinstal.
+3. Kalau Windows menampilkan **"Windows protected your PC"**, klik **More info → Run anyway** (di Windows berbahasa Indonesia: **Info selengkapnya → Tetap jalankan**). Peringatan SmartScreen ini muncul karena aplikasinya belum punya tanda tangan digital (code signing).
 
-The app needs the Microsoft Edge WebView2 Runtime, which is built into Windows 11 and most Windows 10 installations. If it is missing, the app offers the download link.
+Aplikasi ini membutuhkan Microsoft Edge WebView2 Runtime, yang sudah ada di Windows 11 dan kebanyakan Windows 10. Kalau belum ada, aplikasi akan menawarkan link download-nya.
 
-`SHA256SUMS.txt` lists checksums so you can verify the download (`certutil -hashfile <zip> SHA256`).
+`SHA256SUMS.txt` berisi checksum untuk memastikan file yang kamu download asli dan tidak rusak (`certutil -hashfile <zip> SHA256`).
