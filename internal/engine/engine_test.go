@@ -292,3 +292,39 @@ func TestSubResolutionRepliesCountAsMeasured(t *testing.T) {
 		t.Fatalf("quality = %+v, want a rating", res.Quality)
 	}
 }
+
+// The activity list is sent after ping and after download, so the page can
+// fill it in while the test runs, and the final one comes with the result.
+func TestSuitabilityStreamsDuringRun(t *testing.T) {
+	srv := testutil.NewSpeedServer(1_000_000)
+	defer srv.Close()
+	rec := &recorder{}
+	res := testEngine(srv, &testutil.Pinger{RTT: 2 * time.Millisecond}).Run(context.Background(), Options{Mode: "general"}, rec.emit)
+
+	var lists [][]model.Activity
+	for _, e := range rec.events {
+		if e.Type == "suitability" {
+			lists = append(lists, e.Activities)
+		}
+	}
+	if len(lists) != 2 {
+		t.Fatalf("suitability events = %d, want 2 (after ping and after download)", len(lists))
+	}
+	status := func(list []model.Activity, key string) string {
+		for _, a := range list {
+			if a.Key == key {
+				return a.Status
+			}
+		}
+		return ""
+	}
+	if status(lists[0], "hd") != "pending" || status(lists[1], "hd") == "pending" || status(lists[1], "live") != "pending" {
+		t.Fatalf("progression: first=%+v second=%+v", lists[0], lists[1])
+	}
+	if len(res.Activities) != 7 || status(res.Activities, "live") == "pending" {
+		t.Fatalf("final activities = %+v", res.Activities)
+	}
+	if res.BloatGrade == "" {
+		t.Fatal("bufferbloat grade missing although latency under load was measured")
+	}
+}

@@ -107,6 +107,17 @@ var catalog = map[string][2]string{
 	"plan.wifiLimit": {"Your Wi-Fi link speed (%.0f Mbps) is below your plan, so Wi-Fi itself limits the speed here.", "Wi-Fi link speed kamu (%.0f Mbps) di bawah paket, jadi Wi-Fi-nya sendiri yang membatasi kecepatan di sini."},
 	"tip.belowPlan":  {"Speed is well below your plan. Test once with a LAN cable next to the router; if it stays low at different times of day, contact your ISP with the ISP report (History → ISP report).", "Kecepatan jauh di bawah paket. Coba tes sekali dengan kabel LAN di dekat router; kalau tetap rendah di jam yang berbeda, hubungi ISP dengan laporan ISP (Riwayat → Laporan ISP)."},
 
+	"act.browse":    {"Browsing & chat", "Browsing & chat"},
+	"act.hd":        {"YouTube 1080p", "YouTube 1080p"},
+	"act.uhd":       {"YouTube / Netflix 4K", "YouTube / Netflix 4K"},
+	"act.call":      {"HD video calls (Zoom, Meet)", "Video call HD (Zoom, Meet)"},
+	"act.game":      {"Online games", "Game online"},
+	"act.live":      {"Live streaming (upload)", "Live streaming (upload)"},
+	"act.bigdl":     {"Large downloads", "Download besar"},
+	"act.need":      {"%s %s (ideal %s)", "%s %s (idealnya %s)"},
+	"act.na":        {"not measured", "tidak terukur"},
+	"act.bigdlTime": {"a 50 GB game ≈ %s", "game 50 GB ≈ %s"},
+
 	// DNS test
 	"dns.system":      {"Your DNS (%s)", "DNS kamu (%s)"},
 	"dns.switch":      {"%s answered fastest (%s, your current DNS %s). Switching DNS can make websites start loading faster.", "%s paling cepat (%s, DNS kamu sekarang %s). Mengganti DNS bisa membuat website mulai terbuka lebih cepat."},
@@ -123,8 +134,9 @@ var catalog = map[string][2]string{
 	"scan.try5":      {"2.4 GHz is crowded here (%d networks). If your router has 5 GHz, use it.", "2,4 GHz di sini ramai (%d jaringan). Kalau router punya 5 GHz, pakai itu."},
 	"scan.none":      {"No Wi-Fi networks found. Is Wi-Fi turned on?", "Tidak ada jaringan Wi-Fi yang terdeteksi. Wi-Fi sudah dinyalakan?"},
 
-	"dur.min": {"%d min", "%d menit"},
-	"dur.sec": {"%d s", "%d detik"},
+	"dur.hour": {"%d h", "%d jam"},
+	"dur.min":  {"%d min", "%d menit"},
+	"dur.sec":  {"%d s", "%d detik"},
 
 	// Stability monitor
 	"mon.stable":     {"Stable: no drops and no big spikes during %s.", "Stabil: tidak ada putus dan lonjakan besar selama %s."},
@@ -254,6 +266,13 @@ var catalog = map[string][2]string{
 	"rep.pingDownload": {"Ping During Download", "Ping Saat Download"},
 	"rep.pingUpload":   {"Ping During Upload", "Ping Saat Upload"},
 	"rep.quality":      {"Quality", "Kualitas"},
+	"rep.grade":        {"Bufferbloat grade", "Nilai bufferbloat"},
+	"rep.activities":   {"WHAT IT IS GOOD FOR", "COCOK UNTUK APA"},
+	"act.st.ok":        {"smooth", "lancar"},
+	"act.st.warn":      {"usable, may stutter", "bisa, kadang tersendat"},
+	"act.st.bad":       {"not enough", "kurang"},
+	"act.st.pending":   {"measuring", "mengukur"},
+	"act.st.na":        {"not measured", "tidak terukur"},
 	"rep.pingDetails":  {"PING DETAILS", "DETAIL PING"},
 	"rep.pingLine":     {"%d sent, %d received, loss %s", "%d terkirim, %d diterima, loss %s"},
 	"rep.pingStats":    {"min %s / avg %s / max %s, jitter %s", "min %s / rata-rata %s / maks %s, jitter %s"},

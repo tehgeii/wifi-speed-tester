@@ -28,6 +28,8 @@ func RunWindow(exeDir string, logf func(string, ...any)) error {
 		dataPath = filepath.Join(d, "WiFiSpeedTester", "WebView2")
 	}
 
+	dataDir := app.DataDir(exeDir)
+	saved, haveSaved := loadWindow(dataDir)
 	w := webview2.NewWithOptions(webview2.WebViewOptions{
 		Debug:     os.Getenv("WST_DEBUG") == "1",
 		AutoFocus: true,
@@ -37,14 +39,19 @@ func RunWindow(exeDir string, logf func(string, ...any)) error {
 			Width:  1060,
 			Height: 820,
 			IconId: 1, // from the embedded .syso resource
-			Center: true,
+			Center: !haveSaved,
 		},
 	})
 	if w == nil {
 		return ErrNoWebView2
 	}
 	defer w.Destroy()
+	hwnd := uintptr(w.Window())
 	w.SetSize(760, 600, webview2.HintMin)
+	if haveSaved {
+		restoreWindow(hwnd, saved)
+	}
+	onClose(hwnd, func(h uintptr) { saveWindow(h, dataDir) })
 
 	host := app.Host{
 		Emit: func(name string, payload any) {
@@ -84,6 +91,8 @@ func RunWindow(exeDir string, logf func(string, ...any)) error {
 	}
 	host.CopyText = func(text string) error { return copyText(uintptr(w.Window()), text) }
 	host.OpenURL = func(url string) error { OpenURL(url); return nil }
+	host.Attention = func() { w.Dispatch(func() { flashTaskbar(hwnd) }) }
+	host.SetDarkTitleBar = func(dark bool) { w.Dispatch(func() { setDarkTitleBar(hwnd, dark) }) }
 	a := app.New(exeDir, host, logf)
 	if err := w.Bind("wstCall", func(method string, params []json.RawMessage) (any, error) {
 		return a.Call(method, params)

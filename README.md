@@ -43,6 +43,8 @@ Windows berbahasa Indonesia: **Info selengkapnya → Tetap jalankan**).
 | Ping saat sibuk | Ping diukur selama download dan upload, dengan petunjuk bufferbloat yang hati-hati (tidak langsung memvonis) |
 | Rating | SANGAT BAGUS / BAGUS / CUKUP / BURUK / TIDAK STABIL, berdasarkan batas nilai yang terdokumentasi dan bisa diatur ([docs/QUALITY.md](docs/QUALITY.md)). **Kenapa rating-nya segini?** menampilkan nilai dan batas tiap metrik |
 | Saran | Langkah nyata sesuai hasil yang terukur (nyalakan SQM/QoS, pakai 5 GHz, coba kabel LAN, restart router, VPN aktif, hubungi ISP…) |
+| Cocok untuk apa? | Daftar aktivitas sehari-hari (browsing & chat, YouTube 1080p, YouTube/Netflix 4K, video call HD, game online, live streaming, download besar) dengan status **Lancar / Bisa, kadang tersendat / Kurang** dan alasannya. Daftarnya terisi **selama tes berjalan**, setelah tiap tahap, plus perkiraan waktu download game 50 GB |
+| Nilai bufferbloat | Nilai **A+ sampai F** untuk seberapa besar ping naik saat koneksi sibuk, seperti di situs tes untuk gamer. Tampil di hasil, panel Gaming, Riwayat, dan kartu PNG |
 | Paket ISP kamu | Isi kecepatan paket internetmu sekali saja (**Pengaturan ⚙**); hasil tes lalu menampilkan "62% dari paket", dan muncul saran kalau kecepatannya jauh di bawah paket |
 | Mode Gaming | Menilai ping, jitter, loss, dan kestabilan ping, bukan besar bandwidth |
 | Ping Cepat | Sekitar 5 detik: cek koneksi dan ping saja, untuk cek kilat sebelum main game |
@@ -60,6 +62,7 @@ Windows berbahasa Indonesia: **Info selengkapnya → Tetap jalankan**).
 | Error | Penyebab dan saran dengan bahasa sederhana, detail teknisnya bisa dibuka kalau perlu |
 | Batal | Menghentikan semua aktivitas jaringan saat itu juga (tombol Esc juga bisa) |
 | Satu jendela | Kalau exe-nya dibuka lagi, jendela yang sudah terbuka langsung muncul ke depan, bukan membuka jendela kedua |
+| Tampilan | Navigasi tab **Tes · Riwayat · Alat** (juga lewat Ctrl+1/2/3), tema **Terang / Gelap / Ikuti Windows** di **Pengaturan ⚙** (title bar jendela ikut berubah), ukuran dan posisi jendela diingat, dan tombol taskbar berkedip saat tes atau monitor selesai sementara kamu membuka aplikasi lain |
 
 ## Kebutuhan sistem
 
@@ -99,7 +102,8 @@ lalu lintas dikirim sesuai pengaturan yang sedang dipakai.
 File yang dibuat aplikasi:
 
 - Folder `WiFiSpeedTester-data\` di samping exe berisi `history.json`,
-  `settings.json` (bahasa, satuan, mode, cek update, kecepatan paket),
+  `settings.json` (bahasa, satuan, mode, tema, cek update, kecepatan paket),
+  `window.json` (ukuran dan posisi jendela),
   `server.json` (server yang dipilih di aplikasi, kalau ada), `targets.json`
   (target ping tambahanmu) dan `monitors.json` (20 ringkasan monitor
   stabilitas terakhir). Kalau folder itu tidak bisa ditulisi, aplikasi

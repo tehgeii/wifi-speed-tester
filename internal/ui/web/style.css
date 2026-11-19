@@ -22,8 +22,31 @@
   --series-3: #4a3aa7; /* ping */
   color-scheme: light;
 }
+/* Dark theme: chosen in Settings, or following Windows when "system". */
+:root[data-theme="dark"] {
+  --bg: #0e1116;
+  --card: #161b22;
+  --ink: #e6edf3;
+  --muted: #8d96a0;
+  --line: #2a313c;
+  --accent: #4493f8;
+  --track: #232a33;
+  --ok: #3fb950;
+  --warn: #d29922;
+  --bad: #f85149;
+  --excellent: #3fb950;
+  --good: #58a6ff;
+  --fair: #d29922;
+  --poor: #f85149;
+  --unstable: #a371f7;
+  --shadow: none;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #9085e9;
+  color-scheme: dark;
+}
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #0e1116;
     --card: #161b22;
     --ink: #e6edf3;
@@ -252,8 +275,6 @@ dialog { width: min(620px, calc(100vw - 32px)); }
 }
 
 /* --- v1.2 additions --- */
-.tools-head { display: flex; justify-content: space-between; align-items: center; margin: 0 0 12px; }
-.tools-head h2 { margin: 0; }
 .tool > p.small { margin: -4px 0 10px; max-width: 780px; }
 .tool-controls { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin: 0 0 12px; }
 .tool-controls > span { align-self: center; }
@@ -301,4 +322,50 @@ dialog h3 + p.small { margin-top: 0; }
 .csv-group:focus-within, .csv-group:hover { border-color: var(--accent); }
 @media (max-width: 760px) {
   .out-group + .out-group { padding-left: 0; border-left: 0; }
+}
+
+/* --- v2.0: tabs, activities, grade, tool picker --- */
+.topbar { gap: 12px 20px; }
+.tabs { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+.tabs [role="tab"] { border: 0; border-radius: 8px; background: transparent; color: var(--muted); padding: 7px 14px; font-weight: 600; }
+.tabs [role="tab"][aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+.tabs [role="tab"]:hover:not([aria-selected="true"]):not(:disabled) { color: var(--ink); background: var(--track); }
+.mode-seg { margin-bottom: 4px; }
+.gauge-wrap .mode-seg button { width: auto; margin: 0; padding: 4px 16px; font-size: 13px; }
+
+.activities h2 { margin-bottom: 8px; }
+.act-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.act { display: grid; grid-template-columns: 26px 1fr auto; grid-template-rows: auto auto; column-gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-left-width: 4px; border-radius: 10px; }
+.act .ai { grid-row: 1 / span 2; font-size: 18px; text-align: center; }
+.act .an { font-weight: 600; }
+.act .as { font-size: 12px; font-weight: 700; white-space: nowrap; }
+.act .ar { grid-column: 2 / span 2; font-size: 12px; color: var(--muted); min-height: 0; user-select: text; }
+.act-ok { border-left-color: var(--ok); }
+.act-ok .as { color: var(--ok); }
+.act-warn { border-left-color: var(--warn); }
+.act-warn .as { color: var(--warn); }
+.act-bad { border-left-color: var(--bad); }
+.act-bad .as { color: var(--bad); }
+.act-pending, .act-na { border-left-color: var(--line); }
+.act-pending .as, .act-na .as { color: var(--muted); }
+.act-pending .as::after { content: ""; display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; background: var(--muted); animation: pulse 1.2s ease-in-out infinite; }
+
+.grade-row { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding-bottom: 12px; border-bottom: 1px dashed var(--line); }
+.grade-row b { display: block; }
+.grade { display: inline-grid; place-items: center; min-width: 46px; height: 46px; padding: 0 8px; border-radius: 12px; font-size: 22px; font-weight: 800; color: #fff; background: var(--muted); }
+.grade.sm { min-width: 0; height: auto; padding: 0 6px; border-radius: 6px; font-size: 11px; vertical-align: 1px; margin-left: 4px; }
+.g-Ap, .g-A { background: var(--ok); }
+.g-B { background: var(--good); }
+.g-C { background: var(--fair); }
+.g-D, .g-F { background: var(--poor); }
+
+.tool-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 0 0 14px; }
+.tool-tile { display: grid; grid-template-columns: 34px 1fr; grid-template-rows: auto auto; column-gap: 8px; text-align: left; padding: 10px 12px; border-radius: 12px; background: var(--card); box-shadow: var(--shadow); }
+.tool-tile .tt-icon { grid-row: 1 / span 2; font-size: 22px; align-self: center; }
+.tool-tile .tt-desc { font-size: 12px; color: var(--muted); }
+.tool-tile[aria-selected="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.settings-row { display: flex; gap: 16px; flex-wrap: wrap; }
+@media (max-width: 760px) {
+  .topbar { justify-content: flex-start; }
+  .tabs [role="tab"] { padding: 6px 10px; }
 }

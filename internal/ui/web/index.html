@@ -15,17 +15,16 @@
       <p class="tagline" data-i18n="tagline">Check your speed. Measure your ping. Understand your connection.</p>
     </div>
   </div>
+  <nav class="tabs" role="tablist" data-i18n-aria="aria.tabs">
+    <button role="tab" id="tabTest" data-view="test" aria-selected="true" aria-controls="dashboard"><span aria-hidden="true">⚡</span> <span data-i18n="tab.test">Test</span></button>
+    <button role="tab" id="tabHistory" data-view="history" aria-selected="false" aria-controls="historyView" tabindex="-1"><span aria-hidden="true">🕘</span> <span data-i18n="history">History</span></button>
+    <button role="tab" id="tabTools" data-view="tools" aria-selected="false" aria-controls="toolsView" tabindex="-1"><span aria-hidden="true">🧰</span> <span data-i18n="tools">Tools</span></button>
+  </nav>
   <div class="controls">
-    <div class="seg" role="group" data-i18n-aria="aria.mode" id="modeSeg">
-      <button data-mode="general" class="on" data-i18n="mode.general">General</button>
-      <button data-mode="gaming" data-i18n="mode.gaming">Gaming</button>
-    </div>
     <div class="seg" role="group" data-i18n-aria="aria.unit" id="unitSeg">
       <button data-unit="Mbps" class="on">Mbps</button>
       <button data-unit="MB/s">MB/s</button>
     </div>
-    <button class="ghost" id="toolsBtn" data-i18n="tools">Tools</button>
-    <button class="ghost" id="historyBtn" data-i18n="history">History</button>
     <button class="ghost icon" id="settingsBtn" data-i18n-title="settings" data-i18n-aria="settings">⚙</button>
     <button class="ghost icon" id="aboutBtn" data-i18n-title="about.title" data-i18n-aria="about.title">?</button>
   </div>
@@ -56,6 +55,10 @@
 
   <section class="hero">
     <div class="gauge-wrap card">
+      <div class="seg mode-seg" role="group" data-i18n-aria="aria.mode" id="modeSeg">
+        <button data-mode="general" class="on" data-i18n="mode.general">General</button>
+        <button data-mode="gaming" data-i18n="mode.gaming">Gaming</button>
+      </div>
       <svg viewBox="0 0 200 130" class="gauge" aria-hidden="true">
         <path class="track" d="M20 110 A80 80 0 0 1 180 110"/>
         <path class="fill" id="gaugeFill" d="M20 110 A80 80 0 0 1 180 110"/>
@@ -91,6 +94,12 @@
     </div>
   </section>
 
+  <section class="card activities hidden" id="activityCard" aria-live="polite">
+    <h2 data-i18n="act.title">What is it good for?</h2>
+    <ul class="act-grid" id="actList"></ul>
+    <p class="small muted hidden" id="actQuickNote" data-i18n="act.quickNote">Quick Ping only checks latency, so activities that need speed are left out.</p>
+  </section>
+
   <section class="card failure hidden" id="failureCard" role="alert">
     <h2 id="failTitle"></h2>
     <p><b data-i18n="fail.reason">Reason:</b> <span id="failReason"></span></p>
@@ -99,6 +108,10 @@
   </section>
 
   <section class="card summary hidden" id="summaryCard">
+    <div class="grade-row hidden" id="gradeRow" data-i18n-title="grade.hint">
+      <span class="grade" id="gradeBadge">A</span>
+      <div><b data-i18n="grade.title">Bufferbloat grade</b><span class="small muted" id="gradeText"></span></div>
+    </div>
     <div class="gaming hidden" id="gamingPanel">
       <h2 data-i18n="gaming.title">Gaming Connection</h2>
       <ul class="gamelist" id="gameList"></ul>
@@ -178,7 +191,6 @@
           <label class="chk" data-i18n-title="history.csvNamesHint"><input type="checkbox" id="histSensitive"> <span data-i18n="history.csvNames">with Wi-Fi names</span></label>
         </span>
         <button class="ghost" id="histClear" data-i18n="history.clear">Clear</button>
-        <button class="primary small" id="histBack" data-i18n="back">Back</button>
       </div>
     </div>
     <div class="hist-filters" id="histFilters">
@@ -215,9 +227,10 @@
 </section>
 
 <section id="toolsView" class="hidden">
-  <div class="tools-head">
-    <h2 data-i18n="tools.title">Tools</h2>
-    <button class="primary small" id="toolsBack" data-i18n="back">Back</button>
+  <div class="tool-picker" role="tablist" data-i18n-aria="tools.title">
+    <button role="tab" class="tool-tile" data-tool="monitorCard" aria-controls="monitorCard"><span class="tt-icon" aria-hidden="true">📈</span><b data-i18n="mon.title">Stability monitor</b><span class="tt-desc" data-i18n="mon.short">Catch short drops and lag spikes</span></button>
+    <button role="tab" class="tool-tile" data-tool="dnsCard" aria-controls="dnsCard"><span class="tt-icon" aria-hidden="true">🌐</span><b data-i18n="dns.title">DNS test</b><span class="tt-desc" data-i18n="dns.short">Is your DNS slowing websites down?</span></button>
+    <button role="tab" class="tool-tile" data-tool="wifiCard" aria-controls="wifiCard"><span class="tt-icon" aria-hidden="true">📶</span><b data-i18n="scan.title">Wi-Fi channel check</b><span class="tt-desc" data-i18n="scan.short">Find a less crowded channel</span></button>
   </div>
 
   <section class="card tool" id="monitorCard">
@@ -311,9 +324,14 @@
 
 <dialog id="settingsDlg">
   <h2 data-i18n="settings">Settings</h2>
-  <label class="field"><span data-i18n="settings.lang">Language</span>
-    <select id="langSelect"><option value="en">English</option><option value="id">Bahasa Indonesia</option></select>
-  </label>
+  <div class="settings-row">
+    <label class="field"><span data-i18n="settings.lang">Language</span>
+      <select id="langSelect"><option value="en">English</option><option value="id">Bahasa Indonesia</option></select>
+    </label>
+    <label class="field"><span data-i18n="settings.theme">Theme</span>
+      <select id="themeSelect"><option value="system" data-i18n="theme.system">Follow Windows</option><option value="light" data-i18n="theme.light">Light</option><option value="dark" data-i18n="theme.dark">Dark</option></select>
+    </label>
+  </div>
   <h3 data-i18n="plan.title">Your internet plan</h3>
   <p class="small muted" data-i18n="plan.intro">Optional. Results then show what share of your plan you actually get.</p>
   <div class="plan-row">
