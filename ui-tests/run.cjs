@@ -20,6 +20,16 @@ async function shot(page, name) {
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, name + '.png'), fullPage: true });
 }
 
+// Screenshots for the website (site/): the window, cropped below the last
+// card so short views carry no empty space.
+async function siteShot(page, name) {
+  if (!SHOTS) return;
+  const h = await page.evaluate(() => Math.ceil(Math.max(...[...document.querySelectorAll('main .card, section .card, .card')]
+    .filter(el => el.offsetParent !== null).map(el => el.getBoundingClientRect().bottom)) + 16));
+  const vp = page.viewportSize();
+  await page.screenshot({ path: path.join(SHOTS, 'site-' + name + '.png'), clip: { x: 0, y: 0, width: vp.width, height: Math.min(vp.height, Math.max(300, h)) } });
+}
+
 // Runs action and waits for a toast whose text matches re.
 async function toastAfter(page, action, re, timeout = 15000) {
   await page.evaluate(() => { const t = document.querySelector('#toast'); t.textContent = ''; t.classList.add('hidden'); });
@@ -196,6 +206,10 @@ async function main() {
   const repText = fs.existsSync(repPath) ? fs.readFileSync(repPath, 'utf8') : '';
   check(repText.includes('INTERNET QUALITY REPORT') && /Plan:\s+50\.0 Mbps/.test(repText), 'ISP report written with the plan');
   check(/Tests:\s+1\n/.test(repText), 'ISP report counts the full test only, not Quick Ping');
+  const pdfMsg = await toastAfter(page, () => page.click('#histReportPdf'), /^Saved to .*\.pdf/);
+  const pdfPath = pdfMsg.replace(/^Saved to /, '').trim();
+  const pdf = fs.existsSync(pdfPath) ? fs.readFileSync(pdfPath) : Buffer.alloc(0);
+  check(pdf.subarray(0, 8).toString() === '%PDF-1.4' && pdf.length > 2000 && pdf.subarray(-6).toString() === '%%EOF\n', 'ISP report as PDF');
   await checkNoRawKeys(page, 'history');
   await shot(page, 'history');
   await page.click('#tabTest');
@@ -325,6 +339,7 @@ async function main() {
   check(await page.getAttribute('#tabDiag', 'aria-selected') === 'false', `the "${action}" action opens its tool`);
   await page.click('#tabDiag');
   check(await page.isVisible('#diagResult'), 'the conclusion stays until Run again');
+  await page.evaluate(() => { window.diagForSite = diag.steps; });
   await page.click('#diagAgain');
   check(await page.getAttribute('#diagSteps [data-step="now"]', 'class') === 'run' && await page.isVisible('#diagGo'), 'Run again starts over');
   await page.click('#tabTest');
@@ -346,6 +361,22 @@ async function main() {
   const about = await page.textContent('#aboutTraffic');
   check(about.includes('9.9.9.9') && about.includes('Game server'), 'About lists DNS-test servers and custom targets');
   check(about.includes('Ping to regions') && about.includes('127.0.0.1:18099'), 'About lists the region hosts');
+
+  console.log('report a problem');
+  await page.click('#aboutProblem');
+  await page.waitForSelector('#problemDlg[open]');
+  check(!(await page.evaluate(() => document.querySelector('#aboutDlg').open)), 'the problem dialog replaces About');
+  const info = await page.textContent('#problemInfo');
+  const myIp = await page.evaluate(() => ((state.network || {}).ipv4 || [])[0] || '');
+  check(/WiFi Speed \+ Ping Tester/.test(info) && /Connection: /.test(info) && /Last test: /.test(info), 'the report shows app, connection and last test');
+  check(!myIp || !info.includes(myIp), 'the report holds no IP address');
+  const copiedInfo = await toastAfter(page, () => page.click('#problemCopy'), /copied/);
+  check(/Info copied/.test(copiedInfo) && (await page.evaluate(() => navigator.clipboard.readText())) === info, 'Copy info puts the report on the clipboard');
+  await ctx.route('https://github.com/**', r => r.fulfill({ status: 200, body: 'issue form' }));
+  const [popup] = await Promise.all([page.waitForEvent('popup'), page.click('#problemIssue')]);
+  const issueUrl = new URL(popup.url());
+  check(issueUrl.href.startsWith('https://github.com/tehgeii/wifi-speed-tester/issues/new?') && issueUrl.searchParams.get('body').includes(info.split('\n')[0]), 'Open GitHub Issues prefills a new issue');
+  await popup.close();
   await page.keyboard.press('Escape');
 
   console.log('data saver and repeat');
@@ -403,6 +434,28 @@ async function main() {
   await page.waitForSelector('#summaryCard:not(.hidden)');
   check((await page.textContent('#pingTable')).includes('Gateway Lokal'), 'ping target labels in Indonesian');
   check((await page.textContent('#actList')).includes('Game online'), 'activities in Indonesian');
+  if (SHOTS) {
+    // The website shows the app in Indonesian.
+    await page.click('#tabHistory');
+    await page.waitForSelector('#histTable tbody tr');
+    await siteShot(page, 'history');
+    await page.click('#histTable tbody tr:nth-child(2)');
+    await page.waitForSelector('#summaryCard:not(.hidden)');
+    await siteShot(page, 'result');
+    await page.click('#tabDiag');
+    await page.evaluate(() => { diag.steps = window.diagForSite; diag.marks = { now: 'done', cable: 'done' }; return diagConclude(); });
+    await page.waitForSelector('#diagResult:not(.hidden)');
+    await siteShot(page, 'diagnosis');
+    await page.click('#tabTools');
+    await page.click('[data-tool="signalCard"]');
+    await page.click('#sigStart');
+    await page.waitForFunction(() => sig.samples.length >= 9, null, { timeout: 15000 });
+    await siteShot(page, 'signal');
+    await page.click('[data-tool="regionCard"]');
+    await page.click('#regStart');
+    await page.waitForFunction(() => !reg.running && reg.results.length === 3, null, { timeout: 30000 });
+    await siteShot(page, 'regions');
+  }
   await page.click('#tabTools');
   await checkNoRawKeys(page, 'tools (id)');
   await shot(page, 'tools-id');

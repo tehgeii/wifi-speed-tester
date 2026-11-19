@@ -415,3 +415,6 @@ dialog h3 + p.small { margin-top: 0; }
 @media (max-width: 760px) {
   .diag-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+.csv-group button:last-child { border-right: 0; border-radius: 0 8px 8px 0; }
+.problem-info { background: var(--track); border-radius: 8px; padding: 10px 12px; font-size: 12px; white-space: pre-wrap; word-break: break-word; user-select: text; max-height: 220px; overflow: auto; }
+#problemDlg p { max-width: 560px; }

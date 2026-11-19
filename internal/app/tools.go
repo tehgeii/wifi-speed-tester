@@ -304,6 +304,7 @@ type ReportRequest struct {
 	Connection       string `json:"connection"`
 	Unit             string `json:"unit"`
 	IncludeSensitive bool   `json:"includeSensitive"`
+	Format           string `json:"format"` // "pdf" or "txt" (default)
 }
 
 func (a *App) ispReport(req ReportRequest) (string, error) {
@@ -316,8 +317,13 @@ func (a *App) ispReport(req ReportRequest) (string, error) {
 		f.Since = time.Now().AddDate(0, 0, -req.Days)
 	}
 	opts := export.Options{Unit: req.Unit, IncludeSensitive: req.IncludeSensitive, Lang: a.lang()}
+	name := "WiFiSpeedTest-ISP-report-" + time.Now().Format("2006-01-02")
+	if req.Format == "pdf" {
+		data := export.ISPReportPDF(all, a.monitorHistory(), a.plan(), f, opts, time.Now())
+		return a.save(name+".pdf", "PDF document", "pdf", data)
+	}
 	data := export.ISPReport(all, a.monitorHistory(), a.plan(), f, opts)
-	return a.save("WiFiSpeedTest-ISP-report-"+time.Now().Format("2006-01-02")+".txt", "Text report", "txt", data)
+	return a.save(name+".txt", "Text report", "txt", data)
 }
 
 func (a *App) exportMonitor(unitSensitive bool) (string, error) {

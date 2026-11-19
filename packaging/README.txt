@@ -38,7 +38,13 @@ WHAT IT MEASURES
     Wi-Fi channel check lists nearby networks and suggests a less crowded
                         channel for your router.
 
-  History -> ISP report writes a text summary you can send to your ISP.
+  History -> ISP report (PDF) writes a report with charts you can send to
+  your ISP (also as TXT).
+
+  Something not working? About (?) -> Report a problem opens a prefilled
+  GitHub issue or copies the info (no IP address or Wi-Fi name).
+
+  Website: https://tehgeii.github.io/wifi-speed-tester/
 
 PRIVACY
   Testing is local except for the traffic needed to measure your connection:

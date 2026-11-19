@@ -61,13 +61,31 @@ type ReportFilter struct {
 	Connection string    // "" = all
 }
 
-// ISPReport summarizes many speed tests into one document a user can send
-// to their ISP: averages, % of plan, a time-of-day breakdown, the slowest
-// tests and the latest stability monitor runs in the period. Quick Ping
-// results are left out of the speed figures.
-func ISPReport(all []*model.TestResult, monitors []*model.MonitorSummary, plan *model.Plan, f ReportFilter, o Options) []byte {
-	T := func(key string, args ...any) string { return i18n.T(o.Lang, key, args...) }
-	var tests []*model.TestResult
+// ispData is what the ISP report shows, worked out once for the TXT and
+// the PDF versions.
+type ispData struct {
+	tests    []*model.TestResult // in time order
+	monitors []*model.MonitorSummary
+	conn     string
+	plan     *model.Plan
+
+	down, up, ping, jit, loss []float64
+
+	lowPct     float64 // tests below lowPct % of the plan (download)…
+	below      int     // …and how many
+	slots      [4]ispSlot
+	fast, slow int // slot indexes, -1 when unknown
+	peakDrop   float64
+	worst      []*model.TestResult // slowest downloads first, up to 5
+	wifiTests  int
+}
+
+type ispSlot struct{ down, ping []float64 }
+
+// buildISP selects the tests for the report and computes its figures.
+// Quick Ping results are left out of the speed figures.
+func buildISP(all []*model.TestResult, monitors []*model.MonitorSummary, plan *model.Plan, f ReportFilter) *ispData {
+	d := &ispData{plan: plan, fast: -1, slow: -1}
 	for _, r := range all {
 		if r.Mode == "quick" || r.Cancelled || !r.StartedAt.After(f.Since) {
 			continue
@@ -78,47 +96,22 @@ func ISPReport(all []*model.TestResult, monitors []*model.MonitorSummary, plan *
 		if (r.Download == nil || r.Download.Mbps <= 0) && r.PingMs <= 0 {
 			continue
 		}
-		tests = append(tests, r)
+		d.tests = append(d.tests, r)
 	}
-	sort.Slice(tests, func(a, b int) bool { return tests[a].StartedAt.Before(tests[b].StartedAt) })
-
-	var b bytes.Buffer
-	line := func(k, v string) { fmt.Fprintf(&b, "%-26s %s\n", k+":", v) }
-	b.WriteString(T("isp.title") + "\n" + strings.Repeat("=", 52) + "\n" + T("isp.intro") + "\n\n")
+	sort.Slice(d.tests, func(a, b int) bool { return d.tests[a].StartedAt.Before(d.tests[b].StartedAt) })
 	// Stability monitor runs in the period are evidence too, even without
 	// speed tests.
-	writeMonitors := func() {
-		var mons []*model.MonitorSummary
-		for _, m := range monitors {
-			if m.StartedAt.After(f.Since) && (f.Connection == "" || (m.Network != nil && string(m.Network.Connection) == f.Connection)) {
-				mons = append(mons, m)
-			}
-		}
-		if len(mons) == 0 {
-			return
-		}
-		b.WriteString("\n" + T("rep.monTitle") + "\n")
-		for _, m := range mons[:min(10, len(mons))] {
-			fmt.Fprintf(&b, "  %s  %s: %s\n", m.StartedAt.Format("2006-01-02 15:04"), analysis.FormatDuration(m.DurationSec, o.Lang), m.Verdict)
+	for _, m := range monitors {
+		if len(d.monitors) < 10 && m.StartedAt.After(f.Since) && (f.Connection == "" || (m.Network != nil && string(m.Network.Connection) == f.Connection)) {
+			d.monitors = append(d.monitors, m)
 		}
 	}
-	if len(tests) == 0 {
-		b.WriteString(T("isp.none") + "\n")
-		writeMonitors()
-		b.WriteString("\n" + T("rep.footer") + "\n")
-		return b.Bytes()
+	if len(d.tests) == 0 {
+		return d
 	}
-	line(T("isp.period"), dateText(tests[0].StartedAt, o.Lang)+" – "+dateText(tests[len(tests)-1].StartedAt, o.Lang))
-	line(T("isp.tests"), fmt.Sprint(len(tests)))
-	conn := f.Connection
-	if conn == "" {
-		conn = connectionsOf(tests)
-	}
-	line(T("isp.connection"), conn)
-	if plan != nil && (plan.DownMbps > 0 || plan.UpMbps > 0) {
-		line(T("isp.plan"), T("isp.planVal", speedOrDash(plan.DownMbps, o.Unit), speedOrDash(plan.UpMbps, o.Unit)))
-	} else {
-		line(T("isp.plan"), T("isp.planNone"))
+	d.conn = f.Connection
+	if d.conn == "" {
+		d.conn = connectionsOf(d.tests)
 	}
 
 	speedOf := func(s *model.SpeedResult) float64 {
@@ -127,100 +120,140 @@ func ISPReport(all []*model.TestResult, monitors []*model.MonitorSummary, plan *
 		}
 		return -1
 	}
-	down := collect(tests, func(r *model.TestResult) float64 { return speedOf(r.Download) })
-	up := collect(tests, func(r *model.TestResult) float64 { return speedOf(r.Upload) })
-	ping := collect(tests, func(r *model.TestResult) float64 {
-		if r.PingMs > 0 {
-			return r.PingMs
+	ifPing := func(v func(*model.TestResult) float64) func(*model.TestResult) float64 {
+		return func(r *model.TestResult) float64 {
+			if r.PingMs > 0 {
+				return v(r)
+			}
+			return -1
 		}
-		return -1
-	})
-	jit := collect(tests, func(r *model.TestResult) float64 {
-		if r.PingMs > 0 {
-			return r.JitterMs
-		}
-		return -1
-	})
-	loss := collect(tests, func(r *model.TestResult) float64 {
-		if r.PingMs > 0 {
-			return r.PacketLoss
-		}
-		return -1
-	})
-	b.WriteString("\n" + T("isp.summary") + "\n")
-	spd := func(v float64) string { return analysis.FormatSpeed(v, o.Unit) }
-	if len(down) > 0 {
-		line("Download", T("isp.avgMinMax", spd(avg(down)), spd(minOf(down)), spd(maxOf(down))))
 	}
-	if len(up) > 0 {
-		line("Upload", T("isp.avgMinMax", spd(avg(up)), spd(minOf(up)), spd(maxOf(up))))
-	}
-	if len(ping) > 0 {
-		line("Ping", T("isp.avgMinMax", analysis.FormatMs(avg(ping)), analysis.FormatMs(minOf(ping)), analysis.FormatMs(maxOf(ping))))
-	}
-	if len(jit) > 0 {
-		line("Jitter", T("isp.avgMinMax", analysis.FormatMs(avg(jit)), analysis.FormatMs(minOf(jit)), analysis.FormatMs(maxOf(jit))))
-	}
-	if len(loss) > 0 {
-		line("Packet Loss", T("isp.avgMinMax", pctText(avg(loss)), pctText(minOf(loss)), pctText(maxOf(loss))))
-	}
-	if plan != nil && plan.DownMbps > 0 && len(down) > 0 {
-		upPct := "—"
-		if plan.UpMbps > 0 && len(up) > 0 {
-			upPct = pctText(model.PlanPercent(avg(up), plan.UpMbps))
-		}
-		line(T("isp.ofPlan"), T("isp.ofPlanVal", pctText(model.PlanPercent(avg(down), plan.DownMbps)), upPct))
+	d.down = collect(d.tests, func(r *model.TestResult) float64 { return speedOf(r.Download) })
+	d.up = collect(d.tests, func(r *model.TestResult) float64 { return speedOf(r.Upload) })
+	d.ping = collect(d.tests, ifPing(func(r *model.TestResult) float64 { return r.PingMs }))
+	d.jit = collect(d.tests, ifPing(func(r *model.TestResult) float64 { return r.JitterMs }))
+	d.loss = collect(d.tests, ifPing(func(r *model.TestResult) float64 { return r.PacketLoss }))
+
+	if plan != nil && plan.DownMbps > 0 {
 		low := plan.LowPct
 		if low <= 0 {
 			low = 50
 		}
-		below := 0
-		for _, v := range down {
+		d.lowPct = low
+		for _, v := range d.down {
 			if model.PlanPercent(v, plan.DownMbps) < low {
-				below++
+				d.below++
 			}
 		}
-		line(T("isp.belowPlan", low), T("isp.belowVal", below, len(down)))
 	}
 
 	// Time of day: four 6-hour slots.
-	type slot struct{ down, ping []float64 }
-	var slots [4]slot
-	for _, r := range tests {
+	for _, r := range d.tests {
 		i := r.StartedAt.Hour() / 6
 		if v := mbps(r.Download); v > 0 {
-			slots[i].down = append(slots[i].down, v)
+			d.slots[i].down = append(d.slots[i].down, v)
 		}
 		if r.PingMs > 0 {
-			slots[i].ping = append(slots[i].ping, r.PingMs)
+			d.slots[i].ping = append(d.slots[i].ping, r.PingMs)
 		}
 	}
+	for i, s := range d.slots {
+		if len(s.down) == 0 {
+			continue
+		}
+		if d.fast < 0 || avg(s.down) > avg(d.slots[d.fast].down) {
+			d.fast = i
+		}
+		if d.slow < 0 || avg(s.down) < avg(d.slots[d.slow].down) {
+			d.slow = i
+		}
+	}
+	if d.fast >= 0 && d.slow >= 0 && d.fast != d.slow {
+		d.peakDrop = (1 - avg(d.slots[d.slow].down)/avg(d.slots[d.fast].down)) * 100
+	}
+
+	for _, r := range d.tests {
+		if mbps(r.Download) > 0 {
+			d.worst = append(d.worst, r)
+		}
+	}
+	sort.SliceStable(d.worst, func(a, c int) bool { return mbps(d.worst[a].Download) < mbps(d.worst[c].Download) })
+	d.worst = d.worst[:min(5, len(d.worst))]
+	d.wifiTests = countConn(d.tests, model.ConnWiFi)
+	return d
+}
+
+// congested reports whether the slowest time slot is clearly slower.
+func (d *ispData) congested() bool { return d.peakDrop >= 25 }
+
+// ISPReport summarizes many speed tests into one document a user can send
+// to their ISP: averages, % of plan, a time-of-day breakdown, the slowest
+// tests and the latest stability monitor runs in the period.
+func ISPReport(all []*model.TestResult, monitors []*model.MonitorSummary, plan *model.Plan, f ReportFilter, o Options) []byte {
+	T := func(key string, args ...any) string { return i18n.T(o.Lang, key, args...) }
+	d := buildISP(all, monitors, plan, f)
+
+	var b bytes.Buffer
+	line := func(k, v string) { fmt.Fprintf(&b, "%-26s %s\n", k+":", v) }
+	b.WriteString(T("isp.title") + "\n" + strings.Repeat("=", 52) + "\n" + T("isp.intro") + "\n\n")
+	writeMonitors := func() {
+		if len(d.monitors) == 0 {
+			return
+		}
+		b.WriteString("\n" + T("rep.monTitle") + "\n")
+		for _, m := range d.monitors {
+			fmt.Fprintf(&b, "  %s  %s: %s\n", m.StartedAt.Format("2006-01-02 15:04"), analysis.FormatDuration(m.DurationSec, o.Lang), m.Verdict)
+		}
+	}
+	if len(d.tests) == 0 {
+		b.WriteString(T("isp.none") + "\n")
+		writeMonitors()
+		b.WriteString("\n" + T("rep.footer") + "\n")
+		return b.Bytes()
+	}
+	line(T("isp.period"), dateText(d.tests[0].StartedAt, o.Lang)+" – "+dateText(d.tests[len(d.tests)-1].StartedAt, o.Lang))
+	line(T("isp.tests"), fmt.Sprint(len(d.tests)))
+	line(T("isp.connection"), d.conn)
+	if plan != nil && (plan.DownMbps > 0 || plan.UpMbps > 0) {
+		line(T("isp.plan"), T("isp.planVal", speedOrDash(plan.DownMbps, o.Unit), speedOrDash(plan.UpMbps, o.Unit)))
+	} else {
+		line(T("isp.plan"), T("isp.planNone"))
+	}
+
+	b.WriteString("\n" + T("isp.summary") + "\n")
+	spd := func(v float64) string { return analysis.FormatSpeed(v, o.Unit) }
+	stat := func(name string, xs []float64, f func(float64) string) {
+		if len(xs) > 0 {
+			line(name, T("isp.avgMinMax", f(avg(xs)), f(minOf(xs)), f(maxOf(xs))))
+		}
+	}
+	stat("Download", d.down, spd)
+	stat("Upload", d.up, spd)
+	stat("Ping", d.ping, analysis.FormatMs)
+	stat("Jitter", d.jit, analysis.FormatMs)
+	stat("Packet Loss", d.loss, pctText)
+	if plan != nil && plan.DownMbps > 0 && len(d.down) > 0 {
+		line(T("isp.ofPlan"), T("isp.ofPlanVal", pctText(model.PlanPercent(avg(d.down), plan.DownMbps)), d.upOfPlan()))
+		line(T("isp.belowPlan", d.lowPct), T("isp.belowVal", d.below, len(d.down)))
+	}
+
 	b.WriteString("\n" + T("isp.byTime") + "\n")
-	fast, slow := -1, -1
-	for i, s := range slots {
+	for i, s := range d.slots {
 		n := max(len(s.down), len(s.ping))
 		if n == 0 {
 			continue
 		}
-		d, p := "—", "—"
+		dl, p := "—", "—"
 		if len(s.down) > 0 {
-			d = spd(avg(s.down))
-			if fast < 0 || avg(s.down) > avg(slots[fast].down) {
-				fast = i
-			}
-			if slow < 0 || avg(s.down) < avg(slots[slow].down) {
-				slow = i
-			}
+			dl = spd(avg(s.down))
 		}
 		if len(s.ping) > 0 {
 			p = analysis.FormatMs(avg(s.ping))
 		}
-		b.WriteString("  " + T("isp.timeRow", T(fmt.Sprintf("isp.slot%d", i)), n, d, p) + "\n")
+		b.WriteString("  " + T("isp.timeRow", T(fmt.Sprintf("isp.slot%d", i)), n, dl, p) + "\n")
 	}
-	if fast >= 0 && slow >= 0 && fast != slow {
-		if drop := (1 - avg(slots[slow].down)/avg(slots[fast].down)) * 100; drop >= 25 {
-			b.WriteString("  " + T("isp.peak", T(fmt.Sprintf("isp.slot%d", slow)), drop, T(fmt.Sprintf("isp.slot%d", fast))) + "\n")
-		}
+	if d.congested() {
+		b.WriteString("  " + d.peakText(T) + "\n")
 	}
 
 	row := func(r *model.TestResult) string {
@@ -234,16 +267,9 @@ func ISPReport(all []*model.TestResult, monitors []*model.MonitorSummary, plan *
 		}
 		return "  " + T("isp.row", r.StartedAt.Format("2006-01-02 15:04"), c, speedOrDash(mbps(r.Download), o.Unit), speedOrDash(mbps(r.Upload), o.Unit), p, l)
 	}
-	withSpeed := make([]*model.TestResult, 0, len(tests))
-	for _, r := range tests {
-		if mbps(r.Download) > 0 {
-			withSpeed = append(withSpeed, r)
-		}
-	}
-	sort.SliceStable(withSpeed, func(a, c int) bool { return mbps(withSpeed[a].Download) < mbps(withSpeed[c].Download) })
-	if len(withSpeed) > 0 {
+	if len(d.worst) > 0 {
 		b.WriteString("\n" + T("isp.worst") + "\n")
-		for _, r := range withSpeed[:min(5, len(withSpeed))] {
+		for _, r := range d.worst {
 			b.WriteString(row(r) + "\n")
 		}
 	}
@@ -251,14 +277,26 @@ func ISPReport(all []*model.TestResult, monitors []*model.MonitorSummary, plan *
 	writeMonitors()
 
 	b.WriteString("\n" + T("isp.all") + "\n")
-	for _, r := range tests {
+	for _, r := range d.tests {
 		b.WriteString(row(r) + "\n")
 	}
-	if wifi := countConn(tests, model.ConnWiFi); wifi > 0 {
-		b.WriteString("\n" + T("isp.wifiNote", wifi) + "\n")
+	if d.wifiTests > 0 {
+		b.WriteString("\n" + T("isp.wifiNote", d.wifiTests) + "\n")
 	}
 	b.WriteString("\n" + T("rep.footer") + "\n")
 	return b.Bytes()
+}
+
+// upOfPlan is the average upload as a share of the plan, or a dash.
+func (d *ispData) upOfPlan() string {
+	if d.plan == nil || d.plan.UpMbps <= 0 || len(d.up) == 0 {
+		return "—"
+	}
+	return pctText(model.PlanPercent(avg(d.up), d.plan.UpMbps))
+}
+
+func (d *ispData) peakText(T func(string, ...any) string) string {
+	return T("isp.peak", T(fmt.Sprintf("isp.slot%d", d.slow)), d.peakDrop, T(fmt.Sprintf("isp.slot%d", d.fast)))
 }
 
 func mbps(s *model.SpeedResult) float64 {

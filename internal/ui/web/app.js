@@ -137,7 +137,7 @@ const TEXT = {
     'data.month': 'Data used by tests this month: {0} ({1} tests)', 'data.perTest': 'per test',
     'run.label': 'Test {0} of {1}', 'runs.title': '{0} runs (the figures above are the middle values)', 'runs.col': 'Run',
     'hist.saver': 'data saver',
-    'history.report': 'ISP report', 'history.reportHint': 'A plain-text report of the selected tests that you can send to your ISP',
+    'history.reportPdf': 'ISP report (PDF)', 'history.reportTxt': 'TXT', 'history.reportHint': 'A report of the selected tests, with charts, that you can send to your ISP. TXT is the same as plain text',
     'col.plan': '% of plan', 'plan.of': '{0}% of plan',
     'plan.title': 'Your internet plan', 'plan.intro': 'Optional. Results then show what share of your plan you actually get.',
     'plan.saved': 'Plan saved.',
@@ -163,6 +163,10 @@ const TEXT = {
     'scan.nearby': 'Nearby networks', 'scan.name': 'Name', 'scan.hidden': '(hidden network)',
     'scan.yours': 'your channel', 'scan.suggested': 'suggested', 'scan.connected': 'connected',
     'busy.low': 'low', 'busy.medium': 'medium', 'busy.high': 'high',
+    'prob.btn': 'Report a problem', 'prob.head': 'Something not working?',
+    'prob.intro': 'Tell the developer what went wrong. This information goes with it; it holds no IP address, Wi-Fi name or device name.',
+    'prob.issue': 'Open GitHub Issues', 'prob.copy': 'Copy info', 'prob.copied': 'Info copied. Paste it into your message.',
+    'prob.copyHint': 'No GitHub account? Copy the info and send it with WhatsApp or email.',
     'tab.diag': 'Diagnosis',
     'diag.title': 'Automatic diagnosis',
     'diag.intro': 'Finds out whether a slow connection comes from the Wi-Fi, the router or the ISP, in up to three short tests. Just follow the steps; nothing on your router is changed. These tests are not saved in History.',
@@ -298,7 +302,7 @@ const TEXT = {
     'data.month': 'Kuota terpakai untuk tes bulan ini: {0} ({1} tes)', 'data.perTest': 'per tes',
     'run.label': 'Tes {0} dari {1}', 'runs.title': '{0} putaran (angka di atas adalah nilai tengahnya)', 'runs.col': 'Putaran',
     'hist.saver': 'hemat kuota',
-    'history.report': 'Laporan ISP', 'history.reportHint': 'Laporan teks dari tes yang dipilih, bisa dikirim ke ISP kamu',
+    'history.reportPdf': 'Laporan ISP (PDF)', 'history.reportTxt': 'TXT', 'history.reportHint': 'Laporan dari tes yang dipilih, lengkap dengan grafik, untuk dikirim ke ISP kamu. TXT berisi hal yang sama dalam teks biasa',
     'col.plan': '% paket', 'plan.of': '{0}% dari paket',
     'plan.title': 'Paket internet kamu', 'plan.intro': 'Opsional. Hasil tes lalu menunjukkan berapa persen dari paket yang benar-benar kamu dapat.',
     'plan.saved': 'Paket disimpan.',
@@ -324,6 +328,10 @@ const TEXT = {
     'scan.nearby': 'Jaringan di sekitar', 'scan.name': 'Nama', 'scan.hidden': '(jaringan tersembunyi)',
     'scan.yours': 'channel kamu', 'scan.suggested': 'disarankan', 'scan.connected': 'terhubung',
     'busy.low': 'sepi', 'busy.medium': 'sedang', 'busy.high': 'ramai',
+    'prob.btn': 'Laporkan masalah', 'prob.head': 'Ada yang tidak jalan?',
+    'prob.intro': 'Ceritakan ke pembuat aplikasi apa yang salah. Info di bawah ikut terkirim; isinya tidak memuat alamat IP, nama Wi-Fi, atau nama perangkat.',
+    'prob.issue': 'Buka GitHub Issues', 'prob.copy': 'Salin info', 'prob.copied': 'Info disalin. Tempel di pesanmu.',
+    'prob.copyHint': 'Tidak punya akun GitHub? Salin info ini lalu kirim lewat WhatsApp atau email.',
     'tab.diag': 'Diagnosa',
     'diag.title': 'Diagnosa otomatis',
     'diag.intro': 'Mencari tahu apakah koneksi lambat karena Wi-Fi, router, atau ISP, lewat maksimal tiga tes singkat. Ikuti saja langkahnya; tidak ada pengaturan router yang diubah. Tes di sini tidak disimpan ke Riwayat.',
@@ -1301,10 +1309,12 @@ $('#histClear').onclick = async () => {
   if (!confirm(t('history.confirmClear'))) return;
   try { await bridge.call('clearHistory'); loadHistory(); } catch (e) { toast(e.message); }
 };
-$('#histReport').onclick = () => bridge.call('ispReport', {
-  // The ISP report holds no network identifiers, so it needs no option.
-  days: state.histRange, connection: state.histConn === 'all' ? '' : state.histConn, unit: state.unit,
+// The ISP report holds no network identifiers, so it needs no option.
+const ispReport = format => bridge.call('ispReport', {
+  days: state.histRange, connection: state.histConn === 'all' ? '' : state.histConn, unit: state.unit, format,
 }).catch(e => toast(e.message));
+$('#histReportPdf').onclick = () => ispReport('pdf');
+$('#histReport').onclick = () => ispReport('txt');
 $('#histCsv').onclick = () => bridge.call('export', { format: 'history-csv', unit: state.unit, includeSensitive: $('#histSensitive').checked }).catch(e => toast(e.message));
 window.addEventListener('resize', () => {
   if (!$('#historyView').classList.contains('hidden')) renderTrend(filteredHistory());
@@ -2038,6 +2048,32 @@ function renderDiagResult() {
   }
   box.classList.toggle('hidden', box.children.length === 0);
 }
+
+// ---- report a problem ------------------------------------------------------------
+// Go builds the report (no addresses or network names); the page shows it
+// before anything leaves the computer.
+let problem = null;
+async function openProblem() {
+  try { problem = await bridge.call('problemReport'); } catch (e) { toast(e.message); return; }
+  $('#problemInfo').textContent = problem.text;
+  if ($('#aboutDlg').open) $('#aboutDlg').close();
+  $('#problemDlg').showModal();
+}
+$('#aboutProblem').onclick = openProblem;
+$('#failProblem').onclick = openProblem;
+$('#problemIssue').onclick = () => {
+  if (!problem) return;
+  if (state.info && state.info.canOpenUrl) bridge.call('openUrl', problem.url).catch(e => toast(e.message));
+  else window.open(problem.url, '_blank', 'noopener');
+};
+$('#problemCopy').onclick = async () => {
+  if (!problem) return;
+  try {
+    const copied = await bridge.call('copyProblem', problem.text);
+    if (!copied) await navigator.clipboard.writeText(problem.text);
+    toast(t('prob.copied'));
+  } catch (e) { toast(t('toast.copyFailed', e.message || e)); }
+};
 
 // ---- about ------------------------------------------------------------------
 $('#aboutBtn').onclick = async () => {
