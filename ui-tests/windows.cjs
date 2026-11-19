@@ -29,10 +29,15 @@ async function eventually(fn, timeout = 10000) {
 async function main() {
   fs.mkdirSync(SHOTS, { recursive: true });
   let browser = null;
+  let lastErr = null;
   for (let i = 0; i < 60 && !browser; i++) {
-    try { browser = await chromium.connectOverCDP('http://127.0.0.1:9222'); } catch { await sleep(1000); }
+    // Chromium listens on 127.0.0.1; [::1] covers a resolver that prefers IPv6.
+    for (const host of ['127.0.0.1', '[::1]']) {
+      try { browser = await chromium.connectOverCDP(`http://${host}:9222`, { timeout: 5000 }); break; } catch (e) { lastErr = e; }
+    }
+    if (!browser) await sleep(1000);
   }
-  if (!browser) throw new Error('the app\'s WebView2 did not open its DevTools port');
+  if (!browser) throw new Error('the app\'s WebView2 did not open its DevTools port; last error: ' + (lastErr && lastErr.message.split('\n')[0]));
   let page = null;
   await eventually(async () => {
     for (const ctx of browser.contexts()) {

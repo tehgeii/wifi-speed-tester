@@ -202,6 +202,15 @@ jobs:
               Write-Host "--- $f ---"
               if (Test-Path $f) { Get-Content $f } else { Write-Host '(missing)' }
             }
+            # Did the browser get --remote-debugging-port, and what listens?
+            Write-Host '--- WebView2 browser process ---'
+            Get-CimInstance Win32_Process -Filter "Name='msedgewebview2.exe'" |
+              Where-Object { $_.CommandLine -notmatch '--type=' } |
+              ForEach-Object { Write-Host "$($_.ProcessId): $($_.CommandLine)" }
+            Write-Host '--- listening on loopback ---'
+            Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
+              Where-Object { $_.LocalAddress -in '127.0.0.1', '::1' } |
+              ForEach-Object { Write-Host "$($_.LocalAddress):$($_.LocalPort) pid $($_.OwningProcess)" }
             try {
               New-Item -ItemType Directory -Force ui-windows-shots | Out-Null
               Add-Type -AssemblyName System.Windows.Forms, System.Drawing
