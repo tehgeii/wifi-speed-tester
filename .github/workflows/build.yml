@@ -45,7 +45,9 @@ jobs:
   # Drives the embedded UI in Chromium against the real Go API and a local
   # fake speed-test server: every view, both languages, light and dark.
   ui:
-    runs-on: ubuntu-latest
+    # Pinned: Playwright supports a runner image only after a release adds
+    # it, and ubuntu-latest moved to 26.04, which 1.56 cannot set up.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5

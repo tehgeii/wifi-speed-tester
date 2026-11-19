@@ -35,7 +35,7 @@ const (
 
 // Event is a progress notification. Only the fields relevant to Type are set.
 type Event struct {
-	Type     string             `json:"type"` // stage | check | network | progress | ping | speed | result
+	Type     string             `json:"type"` // stage | check | network | progress | ping | speed | suitability | result
 	Stage    string             `json:"stage,omitempty"`
 	Progress float64            `json:"progress"`
 	Mbps     float64            `json:"mbps,omitempty"`
@@ -45,6 +45,8 @@ type Event struct {
 	Ping     *model.PingStats   `json:"ping,omitempty"`
 	Speed    *model.SpeedResult `json:"speed,omitempty"`
 	Result   *model.TestResult  `json:"result,omitempty"`
+	// Activities is the "what is it good for" list so far (type suitability).
+	Activities []model.Activity `json:"activities,omitempty"`
 }
 
 // Engine runs tests with a fixed configuration.
@@ -132,6 +134,8 @@ func (e *Engine) Run(ctx context.Context, opts Options, emit func(Event)) *model
 		measured := r.res.PingMs > 0 || r.res.Download != nil && r.res.Download.Mbps > 0 || r.res.Upload != nil && r.res.Upload.Mbps > 0
 		if !r.res.Cancelled && measured {
 			r.res.Quality = analysis.Evaluate(r.res, mode, r.cfg.Profile(mode), r.lang)
+			r.res.Activities = analysis.Suitability(r.res, true, r.lang)
+			r.res.BloatGrade = analysis.GradeOf(r.res)
 		}
 		emit(Event{Type: "result", Stage: StageDone, Progress: 1, Result: r.res})
 	}()
@@ -149,10 +153,12 @@ func (e *Engine) Run(ctx context.Context, opts Options, emit func(Event)) *model
 	if ctx.Err() != nil || mode == "quick" {
 		return r.res
 	}
+	r.suitability()
 	r.res.Download = r.speed(ctx, StageDownload)
 	if ctx.Err() != nil {
 		return r.res
 	}
+	r.suitability()
 	r.res.Upload = r.speed(ctx, StageUpload)
 	if ctx.Err() != nil {
 		return r.res
@@ -171,6 +177,15 @@ func newID() string {
 }
 
 func (r *runner) t(key string, args ...any) string { return i18n.T(r.lang, key, args...) }
+
+// suitability sends the activity list as measured so far, so the UI can fill
+// it in while the test runs. The final list comes with the result.
+func (r *runner) suitability() {
+	if r.res.PingMs <= 0 && len(r.res.Pings) == 0 {
+		return
+	}
+	r.emit(Event{Type: "suitability", Activities: analysis.Suitability(r.res, false, r.lang)})
+}
 
 // check records the state of one pre-flight step (key: adapter, gateway,
 // dns, internet).

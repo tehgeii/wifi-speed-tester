@@ -10,6 +10,17 @@ import (
 // FormatDuration renders seconds as "5 min" / "1 min 30 s" ("5 menit" ...).
 func FormatDuration(sec float64, lang i18n.Lang) string {
 	total := int(math.Round(sec))
+	if total >= 3600 {
+		// Long durations (download estimates) only need hours and minutes.
+		h, m := total/3600, (total%3600+30)/60
+		if m == 60 {
+			h, m = h+1, 0
+		}
+		if m == 0 {
+			return i18n.T(lang, "dur.hour", h)
+		}
+		return i18n.T(lang, "dur.hour", h) + " " + i18n.T(lang, "dur.min", m)
+	}
 	m, s := total/60, total%60
 	switch {
 	case m == 0:

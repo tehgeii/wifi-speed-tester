@@ -119,7 +119,14 @@ const TEXT = {
     'wifi.unavailable': 'Wi-Fi details unavailable: {0}',
     'conn.Wi-Fi': 'Wi-Fi', 'conn.Ethernet': 'Ethernet', 'conn.Hotspot / Tethering': 'Hotspot / Tethering', 'conn.Cellular': 'Cellular',
     'conn.VPN / Virtual': 'VPN / Virtual', 'conn.Unknown': 'Unknown',
-    tools: 'Tools', 'tools.title': 'Tools',
+    tools: 'Tools', 'tools.title': 'Tools', 'tab.test': 'Test', 'aria.tabs': 'Sections',
+    'mon.short': 'Catch short drops and lag spikes', 'dns.short': 'Is your DNS slowing websites down?', 'scan.short': 'Find a less crowded channel',
+    'act.title': 'What is it good for?', 'act.quickNote': 'Quick Ping only checks latency, so activities that need speed are left out.',
+    'act.s.ok': 'Smooth', 'act.s.warn': 'Usable, may stutter', 'act.s.bad': 'Not enough', 'act.s.pending': 'Measuring', 'act.s.na': 'Not measured',
+    'grade.title': 'Bufferbloat grade', 'grade.text': 'ping rises {0} ms while the connection is busy',
+    'grade.hint': 'How much ping rises while the connection is busy downloading or uploading. A+ and A are great for games and calls.',
+    'settings.theme': 'Theme', 'theme.system': 'Follow Windows', 'theme.light': 'Light', 'theme.dark': 'Dark',
+    'card.grade': 'Bufferbloat {0}',
     'history.report': 'ISP report', 'history.reportHint': 'A plain-text report of the selected tests that you can send to your ISP',
     'col.plan': '% of plan', 'plan.of': '{0}% of plan',
     'plan.title': 'Your internet plan', 'plan.intro': 'Optional. Results then show what share of your plan you actually get.',
@@ -241,7 +248,14 @@ const TEXT = {
     'wifi.unavailable': 'Detail Wi-Fi tidak tersedia: {0}',
     'conn.Wi-Fi': 'Wi-Fi', 'conn.Ethernet': 'Ethernet (kabel)', 'conn.Hotspot / Tethering': 'Hotspot / Tethering', 'conn.Cellular': 'Seluler',
     'conn.VPN / Virtual': 'VPN / Virtual', 'conn.Unknown': 'Tidak diketahui',
-    tools: 'Alat', 'tools.title': 'Alat',
+    tools: 'Alat', 'tools.title': 'Alat', 'tab.test': 'Tes', 'aria.tabs': 'Bagian',
+    'mon.short': 'Tangkap putus sesaat dan lonjakan lag', 'dns.short': 'Apakah DNS bikin website lambat?', 'scan.short': 'Cari channel yang lebih sepi',
+    'act.title': 'Cocok untuk apa?', 'act.quickNote': 'Ping Cepat hanya mengecek ping, jadi aktivitas yang butuh kecepatan tidak ditampilkan.',
+    'act.s.ok': 'Lancar', 'act.s.warn': 'Bisa, kadang tersendat', 'act.s.bad': 'Kurang', 'act.s.pending': 'Mengukur', 'act.s.na': 'Tidak terukur',
+    'grade.title': 'Nilai bufferbloat', 'grade.text': 'ping naik {0} ms saat koneksi sedang sibuk',
+    'grade.hint': 'Seberapa besar ping naik saat koneksi sibuk download atau upload. A+ dan A sangat bagus untuk game dan video call.',
+    'settings.theme': 'Tema', 'theme.system': 'Ikuti Windows', 'theme.light': 'Terang', 'theme.dark': 'Gelap',
+    'card.grade': 'Bufferbloat {0}',
     'history.report': 'Laporan ISP', 'history.reportHint': 'Laporan teks dari tes yang dipilih, bisa dikirim ke ISP kamu',
     'col.plan': '% paket', 'plan.of': '{0}% dari paket',
     'plan.title': 'Paket internet kamu', 'plan.intro': 'Opsional. Hasil tes lalu menunjukkan berapa persen dari paket yang benar-benar kamu dapat.',
@@ -402,7 +416,7 @@ function resetRun(mode) {
   $('#qualityLevel').textContent = '—';
   $('#qualityLevel').className = '';
   $('#qualityProfile').textContent = '';
-  ['#failureCard', '#summaryCard', '#detailsCard'].forEach(s => $(s).classList.add('hidden'));
+  ['#failureCard', '#summaryCard', '#detailsCard', '#activityCard'].forEach(s => $(s).classList.add('hidden'));
   $('#progressCard').classList.remove('hidden');
 }
 
@@ -434,8 +448,8 @@ function setRunning(on) {
   $('#subActions').classList.toggle('hidden', on);
   $('#cancelBtn').disabled = false;
   $$('#modeSeg button').forEach(b => { b.disabled = on; });
-  $('#historyBtn').disabled = on;
-  $('#toolsBtn').disabled = on;
+  $('#tabHistory').disabled = on;
+  $('#tabTools').disabled = on;
   $('#settingsBtn').disabled = on;
   if (!on) activeMetric('');
 }
@@ -476,9 +490,13 @@ function onTestEvent(ev) {
       }
       break;
     }
+    case 'suitability':
+      renderActivities(ev.activities, state.runMode);
+      break;
     case 'result':
       setRunning(false);
       renderResult(ev.result);
+      bridge.call('attention').catch(() => {});
       break;
   }
 }
@@ -581,8 +599,10 @@ function renderResult(r, fromHistory) {
     $('#tips').innerHTML = tips.map(n => `<li>${esc(n)}</li>`).join('');
     renderWhy(q);
     renderGaming(r);
+    renderGrade(r);
     renderPrivacyHint();
   }
+  renderActivities(r.activities, r.mode);
   renderDetails(r);
 }
 
@@ -612,7 +632,7 @@ function renderGaming(r) {
   $('#gameList').innerHTML = items.map(g => {
     const stab = g.key === 'loadedLatency';
     const label = stab ? t('gaming.stability') : g.metric;
-    const val = stab ? `${t('level.' + g.grade)} (${g.value})` : g.value;
+    const val = stab ? `${r.bloatGrade || t('level.' + g.grade)} (${g.value})` : g.value;
     return `<li><span class="k">${esc(label)}</span><span class="v">${esc(val)} <span class="${good(g.grade) ? 'ok' : 'bad'}">${good(g.grade) ? '✓' : '✗'}</span></span></li>`;
   }).join('');
 }
@@ -725,7 +745,7 @@ function makeCard(r) {
     big('↑ UPLOAD', sp(r.upload), state.unit, 230, 110);
     big('● PING', r.pingMs > 0 ? ms(r.pingMs) : '—', 'ms', 428, 110);
     g.fillStyle = '#c9d4e2'; g.font = '15px Segoe UI, system-ui, sans-serif';
-    g.fillText(`Jitter ${r.pingMs > 0 ? ms(r.jitterMs) + ' ms' : '—'}     Loss ${r.pingMs > 0 ? pct(r.packetLossPct) + '%' : '—'}`, 32, 210);
+    g.fillText(`Jitter ${r.pingMs > 0 ? ms(r.jitterMs) + ' ms' : '—'}     Loss ${r.pingMs > 0 ? pct(r.packetLossPct) + '%' : '—'}${r.bloatGrade ? '     ' + t('card.grade', r.bloatGrade) : ''}`, 32, 210);
   }
   const q = r.quality ? r.quality.level : 'UNKNOWN';
   const colors = { EXCELLENT: '#3fb950', GOOD: '#58a6ff', FAIR: '#d29922', POOR: '#f85149', UNSTABLE: '#a371f7', UNKNOWN: '#8d96a0' };
@@ -807,11 +827,87 @@ $('#detailsBtn').onclick = () => {
   }
 };
 
+// ---- activities & bufferbloat grade ------------------------------------------
+// The engine sends the activity list after each stage, so it fills in while
+// the test runs; the final list comes with the result.
+const actIcon = { browse: '🌐', hd: '▶️', uhd: '🎬', call: '📹', game: '🎮', live: '📡', bigdl: '⬇️' };
+function renderActivities(list, mode) {
+  const card = $('#activityCard');
+  if (!list || !list.length) { card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+  $('#actQuickNote').classList.toggle('hidden', mode !== 'quick');
+  $('#actList').innerHTML = list.map(a => `
+    <li class="act act-${esc(a.status)}" data-key="${esc(a.key)}">
+      <span class="ai" aria-hidden="true">${actIcon[a.key] || '•'}</span>
+      <span class="an">${esc(a.name)}</span>
+      <span class="as">${esc(t('act.s.' + a.status))}</span>
+      <span class="ar">${esc(a.reason || '')}</span>
+    </li>`).join('');
+}
+
+const gradeClass = g => 'g-' + (g === 'A+' ? 'Ap' : g);
+function gradeBadge(g, small) {
+  return ` <span class="grade${small ? ' sm' : ''} ${gradeClass(g)}" title="${esc(t('grade.title'))}">${esc(g)}</span>`;
+}
+function renderGrade(r) {
+  const g = r.bloatGrade;
+  $('#gradeRow').classList.toggle('hidden', !g);
+  if (!g) return;
+  const badge = $('#gradeBadge');
+  badge.textContent = g;
+  badge.className = 'grade ' + gradeClass(g);
+  const loaded = [r.download, r.upload].filter(s => s && s.loadedSamples).map(s => s.loadedPingMs);
+  $('#gradeText').textContent = t('grade.text', ms(Math.max(0, Math.max(...loaded) - r.pingMs)));
+}
+
+// ---- views & theme -------------------------------------------------------------
+const viewSel = { test: '#dashboard', history: '#historyView', tools: '#toolsView' };
+function showView(v) {
+  for (const [k, sel] of Object.entries(viewSel)) $(sel).classList.toggle('hidden', k !== v);
+  $$('.tabs [role="tab"]').forEach(b => {
+    const on = b.dataset.view === v;
+    b.setAttribute('aria-selected', on);
+    b.tabIndex = on ? 0 : -1;
+  });
+  if (v === 'history') loadHistory();
+  if (v === 'tools') openTools();
+  window.scrollTo(0, 0);
+}
+$$('.tabs [role="tab"]').forEach(b => { b.onclick = () => showView(b.dataset.view); });
+// Arrow keys move between tabs, as in any tab strip.
+$('.tabs').addEventListener('keydown', e => {
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  const tabs = $$('.tabs [role="tab"]').filter(b => !b.disabled);
+  const i = tabs.indexOf(document.activeElement);
+  if (i < 0) return;
+  const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+  next.focus();
+  next.click();
+  e.preventDefault();
+});
+
+const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
+const themePref = () => (prefs.theme === 'light' || prefs.theme === 'dark' ? prefs.theme : 'system');
+// "system" follows Windows; the window frame follows the page.
+function applyTheme() {
+  const p = themePref();
+  if (p === 'system') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = p;
+  bridge.call('setTitleBar', p === 'dark' || (p === 'system' && darkMQ.matches)).catch(() => {});
+  redrawCharts();
+}
+darkMQ.addEventListener('change', () => { if (themePref() === 'system') applyTheme(); });
+$('#themeSelect').onchange = () => { store.set('theme', $('#themeSelect').value); applyTheme(); };
+
+// Canvas charts read the theme colors when drawn, so redraw visible ones.
+function redrawCharts() {
+  if (state.result && !$('#detailsCard').classList.contains('hidden')) renderDetails(state.result);
+  if (!$('#historyView').classList.contains('hidden')) renderTrend(filteredHistory());
+  if (!$('#toolsView').classList.contains('hidden') && mon.samples.length) drawMonitor();
+}
+
 // ---- history --------------------------------------------------------------
-async function showHistory() {
-  $('#dashboard').classList.add('hidden');
-  $('#toolsView').classList.add('hidden');
-  $('#historyView').classList.remove('hidden');
+async function loadHistory() {
   try { state.history = await bridge.call('history') || []; } catch (e) { toast(e.message); state.history = []; }
   renderHistory();
 }
@@ -850,7 +946,7 @@ function renderHistory() {
       <td>${esc(new Date(h.date).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' }))}${h.mode !== 'general' ? ` <span class="muted">(${esc(h.mode === 'quick' ? t('quick') : t('mode.' + h.mode))})</span>` : ''}</td>
       <td>${esc(connName(h.connection))}</td>
       <td>${h.download ? speed(h.download) : '—'} / ${h.upload ? speed(h.upload) : '—'} ${state.unit}</td>
-      <td>${h.ping ? ms(h.ping) + ' ms' : '—'}</td>
+      <td>${h.ping ? ms(h.ping) + ' ms' : '—'}${h.grade ? gradeBadge(h.grade, true) : ''}</td>
       <td>${h.ping ? ms(h.jitter) + ' ms' : '—'}</td>
       <td>${h.ping ? pct(h.loss) + '%' : '—'}</td>
       <td class="plan-col">${h.planPct > 0 ? Math.round(h.planPct) + '%' : '—'}</td>
@@ -861,7 +957,7 @@ function renderHistory() {
       try {
         const r = await bridge.call('historyItem', tr.dataset.id);
         if (!r) return;
-        hideHistory();
+        showView('test');
         resetRun(r.mode);
         $('#progressCard').classList.add('hidden');
         renderResult(r, true);
@@ -1029,16 +1125,10 @@ function niceMax(v) {
   return 10 * p;
 }
 
-function hideHistory() {
-  $('#historyView').classList.add('hidden');
-  $('#dashboard').classList.remove('hidden');
-}
-$('#historyBtn').onclick = showHistory;
-$('#histBack').onclick = hideHistory;
 $$('#histRange button').forEach(b => b.onclick = () => { state.histRange = +b.dataset.range; renderHistory(); });
 $('#histClear').onclick = async () => {
   if (!confirm(t('history.confirmClear'))) return;
-  try { await bridge.call('clearHistory'); showHistory(); } catch (e) { toast(e.message); }
+  try { await bridge.call('clearHistory'); loadHistory(); } catch (e) { toast(e.message); }
 };
 $('#histReport').onclick = () => bridge.call('ispReport', {
   // The ISP report holds no network identifiers, so it needs no option.
@@ -1111,6 +1201,7 @@ function onServers(p) {
 // ---- settings & updates -----------------------------------------------------
 $('#settingsBtn').onclick = async () => {
   $('#langSelect').value = lang;
+  $('#themeSelect').value = themePref();
   $('#updateToggle').checked = prefs.updateCheck !== 'off';
   $('#updateStatus').textContent = '';
   $('#targetStatus').textContent = '';
@@ -1211,19 +1302,23 @@ $('#updateClose').onclick = () => $('#updateBanner').classList.add('hidden');
 const mon = { running: false, samples: [], seconds: 0, label: '', method: '', summary: null };
 const tools = { dns: null, scan: null };
 
-function showTools() {
-  $('#dashboard').classList.add('hidden');
-  $('#historyView').classList.add('hidden');
-  $('#toolsView').classList.remove('hidden');
+function openTools() {
   loadMonitorTargets();
-  if (mon.samples.length) drawMonitor();
+  showTool(prefs.tool && $('#' + prefs.tool) ? prefs.tool : 'monitorCard');
 }
-function hideTools() {
-  $('#toolsView').classList.add('hidden');
-  $('#dashboard').classList.remove('hidden');
+
+// One tool at a time; the picker remembers the last one.
+function showTool(id) {
+  $$('.tool-picker [role="tab"]').forEach(b => {
+    const on = b.dataset.tool === id;
+    b.setAttribute('aria-selected', on);
+    b.tabIndex = on ? 0 : -1;
+  });
+  $$('#toolsView > section.tool').forEach(c => c.classList.toggle('hidden', c.id !== id));
+  if (prefs.tool !== id) store.set('tool', id);
+  if (id === 'monitorCard' && mon.samples.length) drawMonitor();
 }
-$('#toolsBtn').onclick = showTools;
-$('#toolsBack').onclick = hideTools;
+$$('.tool-picker [role="tab"]').forEach(b => { b.onclick = () => showTool(b.dataset.tool); });
 
 async function loadMonitorTargets() {
   let list = [];
@@ -1313,6 +1408,7 @@ function onMonitor(p) {
     renderMonSummary();
     // Finished while the user looked at another view.
     if ($('#toolsView').classList.contains('hidden')) toast(p.summary.verdict, 8000);
+    bridge.call('attention').catch(() => {});
   }
 }
 
@@ -1505,6 +1601,7 @@ bridge.listen((name, payload) => {
   lang = prefs.lang === 'id' || prefs.lang === 'en' ? prefs.lang : ((navigator.language || '').toLowerCase().startsWith('id') ? 'id' : 'en');
   if (prefs.lang !== lang) store.set('lang', lang);
   applyText();
+  applyTheme();
   renderTools();
   $$('#modeSeg button').forEach(x => x.classList.toggle('on', x.dataset.mode === state.mode));
   $$('#unitSeg button').forEach(x => x.classList.toggle('on', x.dataset.unit === state.unit));
@@ -1521,4 +1618,9 @@ bridge.listen((name, payload) => {
 
 window.addEventListener('keydown', e => {
   if (e.key === 'Escape' && state.running) $('#cancelBtn').click();
+  // Ctrl+1/2/3 switch tabs, like browser tabs.
+  if (e.ctrlKey && !e.altKey && !e.shiftKey && /^[1-9]$/.test(e.key)) {
+    const tab = $$('.tabs [role="tab"]')[+e.key - 1];
+    if (tab && !tab.disabled) { tab.click(); e.preventDefault(); }
+  }
 });

@@ -153,6 +153,19 @@ type TestResult struct {
 	Cancelled  bool         `json:"cancelled"`
 	Failure    *Failure     `json:"failure,omitempty"`
 	Plan       *Plan        `json:"plan,omitempty"` // the user's ISP plan at test time
+	// Activities says which everyday uses the connection suits.
+	Activities []Activity `json:"activities,omitempty"`
+	// BloatGrade grades the latency increase under load (A+ to F), empty
+	// when latency under load was not measured.
+	BloatGrade string `json:"bloatGrade,omitempty"`
+}
+
+// Activity says how well the connection suits one everyday use.
+type Activity struct {
+	Key    string `json:"key"`
+	Name   string `json:"name"`
+	Status string `json:"status"` // ok | warn | bad | pending | na
+	Reason string `json:"reason,omitempty"`
 }
 
 // Plan is the internet package speed the user pays for, in Mbps (0 = not set).

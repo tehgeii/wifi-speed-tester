@@ -100,3 +100,18 @@ func TestTXTIndonesian(t *testing.T) {
 		}
 	}
 }
+
+// Results saved before 2.0 have no activity list; the report computes it.
+func TestTXTActivitiesAndGrade(t *testing.T) {
+	r := sample()
+	r.Download.LoadedSamples, r.Download.LoadedPingMs = 10, 52 // +34 ms: grade B
+	txt := string(TXT(r, Options{Unit: "Mbps", Lang: i18n.ID}))
+	for _, want := range []string{"Nilai bufferbloat:", " B\n", "COCOK UNTUK APA", "YouTube 1080p", "lancar", "Game online", "game 50 GB ≈"} {
+		if !strings.Contains(txt, want) {
+			t.Errorf("TXT missing %q\n%s", want, txt)
+		}
+	}
+	if strings.Contains(string(TXT(sample(), Options{Unit: "Mbps"})), "Bufferbloat grade") {
+		t.Error("grade printed without latency under load")
+	}
+}

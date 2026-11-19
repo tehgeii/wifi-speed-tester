@@ -132,13 +132,19 @@ async function main() {
   await page.waitForSelector('#startBtn:not(.hidden)');
   check(!(await page.textContent('#qualityLevel')).includes('—'), 'quick ping gives a rating');
   check((await page.textContent('#m-download .sub')) === 'not part of Quick Ping', 'quick ping skips download');
+  check(await page.locator('#actList .act').count() === 3 && await page.isVisible('#actQuickNote'), 'quick ping judges only latency-based activities');
 
   console.log('full test');
   await page.click('#startBtn');
   check(await visible(page, '#cancelBtn'), 'cancel is shown while testing');
-  check(await page.isDisabled('#toolsBtn'), 'tools are locked while testing');
+  check(await page.isDisabled('#tabTools') && await page.isDisabled('#tabHistory'), 'other tabs are locked while testing');
+  await page.waitForSelector('#activityCard:not(.hidden) .act-pending', { timeout: 30000 });
+  check(await page.isVisible('#cancelBtn'), 'activities appear while the test is still running');
   await page.waitForSelector('#summaryCard:not(.hidden)', { timeout: 60000 });
   await page.waitForSelector('#startBtn:not(.hidden)');
+  check(await page.locator('#actList .act').count() === 7 && await page.locator('#actList .act-pending').count() === 0, 'all 7 activities are judged at the end');
+  check(/50 GB/.test(await page.textContent('#actList [data-key="bigdl"] .ar')), 'large download shows an estimated time');
+  check(await page.isVisible('#gradeRow') && /^(A\+|A|B|C|D|F)$/.test(await page.textContent('#gradeBadge')), 'bufferbloat grade is shown');
   check(/% of plan/.test(await page.textContent('#m-download .sub')), 'download shows the share of the plan');
   await page.click('#detailsBtn');
   check((await page.textContent('#pingTable')).includes('Game server'), 'the custom target was pinged');
@@ -173,9 +179,11 @@ async function main() {
   }
 
   console.log('history');
-  await page.click('#historyBtn');
+  await page.keyboard.press('Control+2');
   await page.waitForSelector('#histTable tbody tr');
+  check(await page.getAttribute('#tabHistory', 'aria-selected') === 'true', 'Ctrl+2 opens the History tab');
   check(await page.locator('#histTable tbody tr').count() === 2, 'both tests are in the history');
+  check(await page.locator('#histTable .grade.sm').count() >= 1, 'history shows the bufferbloat grade');
   check(await page.isVisible('#histTable thead .plan-col'), 'the plan column is shown');
   // Ping has two points (quick + full test); speed only one.
   const plot = await page.locator('#plotPing').boundingBox();
@@ -190,10 +198,12 @@ async function main() {
   check(/Tests:\s+1\n/.test(repText), 'ISP report counts the full test only, not Quick Ping');
   await checkNoRawKeys(page, 'history');
   await shot(page, 'history');
-  await page.click('#histBack');
+  await page.click('#tabTest');
 
   console.log('tools');
-  await page.click('#toolsBtn');
+  await page.click('#tabTools');
+  check(await page.isVisible('#monitorCard') && !(await page.isVisible('#dnsCard')), 'tools open one at a time');
+  await page.click('[data-tool="wifiCard"]');
   await page.click('#scanStart');
   await page.waitForSelector('#scanResult:not(.hidden)');
   check(await page.locator('#netTable tbody tr').count() === 8, 'Wi-Fi scan lists the networks');
@@ -201,21 +211,24 @@ async function main() {
   check((await page.textContent('#chanTable')).includes('suggested'), 'a less crowded channel is suggested');
   check((await page.textContent('#scanAdvice')).includes('Channel 1'), 'scan advice names the channel');
 
+  await page.click('[data-tool="dnsCard"]');
   await page.click('#dnsStart');
   await page.waitForFunction(() => document.querySelector('#dnsAdvice').children.length > 0, null, { timeout: 70000 });
   check(await page.locator('#dnsTable tbody tr').count() >= 1, 'DNS test lists servers');
 
+  await page.click('[data-tool="monitorCard"]');
   const options = await page.locator('#monTarget option').allTextContents();
   check(options.some(o => o.includes('Game server')), 'the monitor can watch the custom target');
   await page.click('#monStart');
   await page.waitForFunction(() => mon.samples.length >= 3, null, { timeout: 15000 });
   check(await page.isDisabled('#scanStart'), 'Wi-Fi scan is locked during the monitor');
   check(/\d+:\d\d \/ 5:00/.test(await page.textContent('#monElapsed')), 'monitor shows elapsed time');
-  await page.click('#toolsBack');
+  await page.click('#tabTest');
   check(await page.isDisabled('#startBtn'), 'speed test is locked during the monitor');
   const busy = await page.evaluate(() => bridge.call('startTest', 'quick').then(() => 'started', e => e.message));
   check(busy !== 'started', 'the engine also refuses a test during the monitor');
-  await page.click('#toolsBtn');
+  await page.click('#tabTools');
+  check(await page.isVisible('#monitorCard'), 'the last tool stays selected');
   await shot(page, 'tools-live');
   await page.click('#monStop');
   await page.waitForSelector('#monResult:not(.hidden)', { timeout: 10000 });
@@ -225,8 +238,19 @@ async function main() {
   check(/^Saved to /.test(monExp), 'monitor report export');
   await checkNoRawKeys(page, 'tools');
   await shot(page, 'tools');
-  await page.click('#toolsBack');
+  await page.click('#tabTest');
   check(await page.isEnabled('#startBtn'), 'speed test unlocks after the monitor');
+
+  console.log('theme');
+  const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  const lightBg = await bg();
+  await page.click('#settingsBtn');
+  await page.selectOption('#themeSelect', 'dark');
+  check(await bg() === 'rgb(14, 17, 22)', 'Dark theme applies at once');
+  check(await eventually(async () => (await page.evaluate(() => bridge.call('getPrefs'))).theme === 'dark'), 'theme is saved');
+  await page.selectOption('#themeSelect', 'system');
+  check(await bg() === lightBg, 'Follow Windows goes back to the system theme');
+  await page.keyboard.press('Escape');
 
   console.log('about');
   await page.click('#aboutBtn');
@@ -250,7 +274,8 @@ async function main() {
   await page.waitForSelector('#startBtn:not(.hidden)', { timeout: 30000 });
   await page.waitForSelector('#summaryCard:not(.hidden)');
   check((await page.textContent('#pingTable')).includes('Gateway Lokal'), 'ping target labels in Indonesian');
-  await page.click('#toolsBtn');
+  check((await page.textContent('#actList')).includes('Game online'), 'activities in Indonesian');
+  await page.click('#tabTools');
   await checkNoRawKeys(page, 'tools (id)');
   await shot(page, 'tools-id');
   await ctx.close();
@@ -264,7 +289,7 @@ async function main() {
   await dp.waitForFunction(() => typeof state !== 'undefined' && state.info);
   check(await dp.evaluate(() => getComputedStyle(document.body).backgroundColor) === 'rgb(14, 17, 22)', 'dark theme applied');
   await noHorizontalScroll(dp, 'dashboard');
-  await dp.click('#historyBtn');
+  await dp.click('#tabHistory');
   await dp.waitForSelector('#histTable tbody tr');
   await noHorizontalScroll(dp, 'history');
   await shot(dp, 'history-dark');
@@ -272,13 +297,14 @@ async function main() {
   await dp.waitForSelector('#summaryCard:not(.hidden)');
   await noHorizontalScroll(dp, 'result and export actions');
   await shot(dp, 'result-dark');
-  await dp.click('#historyBtn');
-  await dp.click('#histBack');
-  await dp.click('#toolsBtn');
+  await dp.click('#tabTools');
+  await dp.click('[data-tool="wifiCard"]');
   await dp.click('#scanStart');
   await dp.waitForSelector('#scanResult:not(.hidden)');
   await noHorizontalScroll(dp, 'tools');
   await shot(dp, 'tools-dark');
+  await dp.evaluate(() => { prefs.theme = 'light'; applyTheme(); });
+  check(await dp.evaluate(() => getComputedStyle(document.body).backgroundColor) === 'rgb(244, 246, 249)', 'Light theme overrides a dark Windows');
   await dark.close();
   await browser.close();
 

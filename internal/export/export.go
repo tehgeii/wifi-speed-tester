@@ -194,6 +194,23 @@ func TXT(r *model.TestResult, o Options) []byte {
 	if q := r.Quality; q != nil {
 		line(T("rep.quality"), T("level."+string(q.Level)))
 	}
+	if g := analysis.GradeOf(r); g != "" {
+		line(T("rep.grade"), g)
+	}
+	acts := r.Activities
+	if len(acts) == 0 && r.Quality != nil {
+		acts = analysis.Suitability(r, true, o.Lang) // saved before 2.0
+	}
+	if len(acts) > 0 {
+		b.WriteString("\n" + T("rep.activities") + "\n")
+		for _, a := range acts {
+			fmt.Fprintf(&b, "  %-30s %s", a.Name, T("act.st."+a.Status))
+			if a.Reason != "" {
+				b.WriteString(" (" + a.Reason + ")")
+			}
+			b.WriteString("\n")
+		}
+	}
 
 	if len(r.Pings) > 0 {
 		b.WriteString("\n" + T("rep.pingDetails") + "\n")

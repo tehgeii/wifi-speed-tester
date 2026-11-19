@@ -43,6 +43,11 @@ type Host struct {
 	CopyText func(text string) error
 	// OpenURL opens a web page in the default browser. Optional.
 	OpenURL func(url string) error
+	// Attention flashes the taskbar button when the window is in the
+	// background, e.g. when a test finishes. Optional.
+	Attention func()
+	// SetDarkTitleBar matches the window frame to the page theme. Optional.
+	SetDarkTitleBar func(dark bool)
 }
 
 // App holds the state of one window.
@@ -133,11 +138,28 @@ func (a *App) Call(method string, params []json.RawMessage) (any, error) {
 		}
 		r, err := a.hist.Get(id)
 		if r != nil && r.Quality != nil {
-			// Notes and tips are text; rebuild them in the current language.
-			// The rating itself is deterministic, so it does not change.
+			// Notes, tips and activity texts are rebuilt in the current
+			// language (results saved before 2.0 get them too). The rating
+			// itself is deterministic, so it does not change.
 			r.Quality = analysis.Evaluate(r, r.Mode, a.cfg.Profile(r.Mode), a.lang())
+			r.Activities = analysis.Suitability(r, true, a.lang())
+			r.BloatGrade = analysis.GradeOf(r)
 		}
 		return r, err
+	case "attention":
+		if a.host.Attention != nil {
+			a.host.Attention()
+		}
+		return nil, nil
+	case "setTitleBar":
+		var dark bool
+		if err := arg(0, &dark); err != nil {
+			return nil, err
+		}
+		if a.host.SetDarkTitleBar != nil {
+			a.host.SetDarkTitleBar(dark)
+		}
+		return nil, nil
 	case "copyResult":
 		var req struct {
 			ID   string `json:"id"`
@@ -355,6 +377,7 @@ type HistoryEntry struct {
 	Loss       float64   `json:"loss"`
 	Quality    string    `json:"quality"`
 	PlanPct    float64   `json:"planPct"` // download as % of the plan at test time, 0 = no plan
+	Grade      string    `json:"grade"`   // bufferbloat grade, "" when not measured
 }
 
 func (a *App) historyList() ([]HistoryEntry, error) {
@@ -380,6 +403,7 @@ func (a *App) historyList() ([]HistoryEntry, error) {
 		if r.Plan != nil {
 			e.PlanPct = model.PlanPercent(e.Download, r.Plan.DownMbps)
 		}
+		e.Grade = analysis.GradeOf(r)
 		out = append(out, e)
 	}
 	return out, nil
@@ -466,7 +490,7 @@ func (a *App) prefs() map[string]string {
 }
 
 func (a *App) savePrefs(p map[string]string) error {
-	allowed := map[string]bool{"unit": true, "mode": true, "lang": true, "updateCheck": true, "planDown": true, "planUp": true}
+	allowed := map[string]bool{"unit": true, "mode": true, "lang": true, "updateCheck": true, "planDown": true, "planUp": true, "theme": true, "tool": true}
 	clean := map[string]string{}
 	for k, v := range p {
 		if allowed[k] && len(v) < 32 {

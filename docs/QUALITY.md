@@ -111,6 +111,47 @@ healthy connection gets no tips.
 
 The plan only adds notes and a tip; it never changes the rating.
 
+## What is it good for?
+
+After each stage of a test (ping, download, upload) the app judges everyday
+activities, so the list fills in while the test runs. The code is
+`internal/analysis/suitability.go`. Each activity needs every listed value to
+be at least as good as its threshold:
+
+| Activity | Smooth when | Usable (may stutter) when |
+|---|---|---|
+| Browsing & chat | download ≥ 5 Mbps, ping ≤ 100 ms, loss ≤ 1 % | download ≥ 1.5, ping ≤ 300, loss ≤ 5 |
+| YouTube 1080p | download ≥ 8 Mbps, loss ≤ 2 % | download ≥ 5, loss ≤ 5 |
+| YouTube / Netflix 4K | download ≥ 25 Mbps, loss ≤ 2 % | download ≥ 15, loss ≤ 5 |
+| HD video calls | download ≥ 4, upload ≥ 3 Mbps, ping ≤ 100 ms, jitter ≤ 30 ms, loss ≤ 1 % | download ≥ 1.5, upload ≥ 1, ping ≤ 200, jitter ≤ 50, loss ≤ 3 |
+| Online games | ping ≤ 60 ms, jitter ≤ 15 ms, loss ≤ 0.5 %, latency increase under load ≤ 30 ms | ping ≤ 100, jitter ≤ 30, loss ≤ 2, increase ≤ 80 |
+| Live streaming | upload ≥ 6 Mbps, loss ≤ 1 % | upload ≥ 3, loss ≤ 3 |
+| Large downloads | download ≥ 56 Mbps (50 GB in about 2 hours) | download ≥ 14 (about 8 hours) |
+
+Otherwise the activity is "not enough", with the value that falls short. An
+activity is shown as soon as one of its values is already "not enough", even
+if other measurements are still running. Quick Ping judges only browsing,
+video calls and games, from latency alone. Latency under load is optional:
+when it was not measured, games are judged without it.
+
+## Bufferbloat grade
+
+The grade shows how much latency rises while the connection is busy (the
+larger of the download and upload increase), on the scale common bufferbloat
+tests use:
+
+| Grade | Increase under load |
+|---|---|
+| A+ | under 5 ms |
+| A | under 30 ms |
+| B | under 60 ms |
+| C | under 200 ms |
+| D | under 400 ms |
+| F | 400 ms or more |
+
+It is shown only when latency under load was measured. It does not change
+the overall rating; the profile's `loadedLatency` band does that.
+
 ## Ping, jitter and packet loss definitions
 
 - **Ping**: average round-trip time to the first internet ping target that
