@@ -160,6 +160,29 @@ jobs:
           node-version: 22
       # Only the driver: it attaches to the app's own WebView2.
       - run: npm install --no-save --no-package-lock playwright@1.56.1
+      # The runner image has Edge but may lack the WebView2 Runtime the app
+      # needs (without it the app waits on a "WebView2 missing" dialog).
+      # Install it with Microsoft's Evergreen bootstrapper when absent.
+      - name: WebView2 Runtime
+        shell: pwsh
+        run: |
+          $id = '{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
+          function Get-WebView2 {
+            foreach ($k in "HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\$id",
+                           "HKLM:\SOFTWARE\Microsoft\EdgeUpdate\Clients\$id",
+                           "HKCU:\Software\Microsoft\EdgeUpdate\Clients\$id") {
+              $v = (Get-ItemProperty -Path $k -Name pv -ErrorAction SilentlyContinue).pv
+              if ($v -and $v -ne '0.0.0.0') { return $v }
+            }
+          }
+          $v = Get-WebView2
+          if (-not $v) {
+            Write-Host 'WebView2 Runtime not found; installing it'
+            Invoke-WebRequest 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile MicrosoftEdgeWebview2Setup.exe
+            Start-Process .\MicrosoftEdgeWebview2Setup.exe -ArgumentList '/silent', '/install' -Wait
+            $v = Get-WebView2
+          }
+          Write-Host "WebView2 Runtime: $(if ($v) { $v } else { 'still not found' })"
       - shell: pwsh
         env:
           WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: --remote-debugging-port=9222
@@ -169,6 +192,26 @@ jobs:
           $p = Start-Process app\WiFiSpeedTester.exe -PassThru
           node ui-tests/windows.cjs
           $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            # Everything needed to see why, right in the job log.
+            Write-Host '--- diagnostics ---'
+            $p.Refresh()
+            if ($p.HasExited) { Write-Host "app exited with code $($p.ExitCode)" }
+            else { Write-Host "app still running, window title: '$($p.MainWindowTitle)'" }
+            foreach ($f in 'app\WiFiSpeedTester-debug.log', 'app\WiFiSpeedTester-data\crash.log') {
+              Write-Host "--- $f ---"
+              if (Test-Path $f) { Get-Content $f } else { Write-Host '(missing)' }
+            }
+            try {
+              New-Item -ItemType Directory -Force ui-windows-shots | Out-Null
+              Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+              $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+              $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+              [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+              $bmp.Save("$PWD\ui-windows-shots\desktop.png")
+              Write-Host 'desktop screenshot saved to the ui-windows artifact'
+            } catch { Write-Host "no desktop screenshot: $_" }
+          }
           Stop-Process -Id $p.Id -ErrorAction SilentlyContinue
           exit $code
       - uses: actions/upload-artifact@v4

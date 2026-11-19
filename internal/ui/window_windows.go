@@ -11,6 +11,7 @@ import (
 	"unsafe"
 
 	webview2 "github.com/jchv/go-webview2"
+	"github.com/jchv/go-webview2/webviewloader"
 	"golang.org/x/sys/windows"
 
 	"github.com/tehgeii/wifi-speed-tester/internal/app"
@@ -43,6 +44,10 @@ func RunWindow(exeDir string, logf func(string, ...any)) error {
 		},
 	})
 	if w == nil {
+		// go-webview2 gives no reason; the installed runtime version tells
+		// a missing runtime from one that failed to start.
+		ver, err := webviewloader.GetInstalledVersion()
+		logf("webview2: window not created; installed runtime %q (err %v), data folder %s", ver, err, dataPath)
 		return ErrNoWebView2
 	}
 	defer w.Destroy()
