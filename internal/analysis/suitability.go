@@ -197,13 +197,13 @@ func needReason(n need, v float64, T func(string, ...any) string) string {
 		if n.m == mUp {
 			name = T("metric.upload")
 		}
-		return T("act.need", name, FormatSpeed(v, "Mbps"), "≥ "+FormatSpeed(n.ok, "Mbps"))
+		return T("act.need", name, FormatSpeed(v, "Mbps"), fmt.Sprintf("≥ %g Mbps", n.ok))
 	case mPing:
-		return T("act.need", T("metric.ping"), FormatMs(v)+" ms", fmt.Sprintf("≤ %s ms", FormatMs(n.ok)))
+		return T("act.need", T("metric.ping"), FormatMs(v), "≤ "+FormatMs(n.ok))
 	case mJitter:
-		return T("act.need", T("metric.jitter"), FormatMs(v)+" ms", fmt.Sprintf("≤ %s ms", FormatMs(n.ok)))
+		return T("act.need", T("metric.jitter"), FormatMs(v), "≤ "+FormatMs(n.ok))
 	case mLoaded:
-		return T("act.need", T("metric.loadedLatency"), "+"+FormatMs(v)+" ms", fmt.Sprintf("≤ +%s ms", FormatMs(n.ok)))
+		return T("act.need", T("metric.loadedLatency"), "+"+FormatMs(v), "≤ +"+FormatMs(n.ok))
 	}
 	return T("act.need", T("metric.packetLoss"), FormatPct(v)+"%", fmt.Sprintf("≤ %s%%", FormatPct(n.ok)))
 }

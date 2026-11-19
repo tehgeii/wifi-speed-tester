@@ -60,7 +60,7 @@ func TestSuitabilityWhileRunning(t *testing.T) {
 	// A clearly bad value is reported at once, without waiting.
 	r.PingMs = 250
 	acts = byKey(Suitability(r, false, i18n.ID))
-	if acts["game"].Status != ActBad || !strings.Contains(acts["game"].Reason, "250 ms") || !strings.Contains(acts["game"].Reason, "idealnya") {
+	if acts["game"].Status != ActBad || acts["game"].Reason != "Ping 250 ms (idealnya ≤ 60 ms)" {
 		t.Errorf("game = %+v", acts["game"])
 	}
 	if acts["call"].Status != ActBad {
@@ -75,7 +75,7 @@ func TestSuitabilityThresholds(t *testing.T) {
 	r := goodResult()
 	r.Download.Mbps = 10 // enough for 1080p, not for 4K
 	acts := byKey(Suitability(r, true, i18n.EN))
-	if acts["hd"].Status != ActOK || acts["uhd"].Status != ActBad || !strings.Contains(acts["uhd"].Reason, "≥ 25") {
+	if acts["hd"].Status != ActOK || acts["uhd"].Status != ActBad || acts["uhd"].Reason != "Download 10.0 Mbps (ideal ≥ 25 Mbps)" {
 		t.Fatalf("hd=%+v uhd=%+v", acts["hd"], acts["uhd"])
 	}
 	r.Download.Mbps = 20
@@ -84,7 +84,7 @@ func TestSuitabilityThresholds(t *testing.T) {
 	}
 	r.Download.Mbps = 95
 	r.Download.LoadedPingMs = 120 // +102 ms under load: bad for games
-	if a := byKey(Suitability(r, true, i18n.EN))["game"]; a.Status != ActBad || !strings.Contains(a.Reason, "Latency Under Load") {
+	if a := byKey(Suitability(r, true, i18n.EN))["game"]; a.Status != ActBad || a.Reason != "Latency Under Load +102 ms (ideal ≤ +30 ms)" {
 		t.Fatalf("game = %+v", a)
 	}
 }
