@@ -197,6 +197,20 @@ func TXT(r *model.TestResult, o Options) []byte {
 	if g := analysis.GradeOf(r); g != "" {
 		line(T("rep.grade"), g)
 	}
+	if n := r.DataUsed(); n > 0 {
+		v := "≈ " + analysis.FormatBytes(n)
+		if r.DataSaver {
+			v += " " + T("rep.dataSaver")
+		}
+		line(T("rep.data"), v)
+	}
+	if len(r.Runs) > 1 {
+		b.WriteString("\n" + T("rep.runs", len(r.Runs)) + "\n")
+		for i, run := range r.Runs {
+			fmt.Fprintf(&b, "  %d. %s\n", i+1, T("rep.runLine", analysis.FormatSpeed(run.DownMbps, o.Unit), analysis.FormatSpeed(run.UpMbps, o.Unit),
+				analysis.FormatMs(run.PingMs), analysis.FormatMs(run.JitterMs), analysis.FormatPct(run.LossPct)))
+		}
+	}
 	acts := r.Activities
 	if len(acts) == 0 && r.Quality != nil {
 		acts = analysis.Suitability(r, true, o.Lang) // saved before 2.0

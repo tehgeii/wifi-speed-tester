@@ -35,7 +35,7 @@ const (
 
 // Event is a progress notification. Only the fields relevant to Type are set.
 type Event struct {
-	Type     string             `json:"type"` // stage | check | network | progress | ping | speed | suitability | result
+	Type     string             `json:"type"` // run | stage | check | network | progress | ping | speed | suitability | result
 	Stage    string             `json:"stage,omitempty"`
 	Progress float64            `json:"progress"`
 	Mbps     float64            `json:"mbps,omitempty"`
@@ -47,6 +47,11 @@ type Event struct {
 	Result   *model.TestResult  `json:"result,omitempty"`
 	// Activities is the "what is it good for" list so far (type suitability).
 	Activities []model.Activity `json:"activities,omitempty"`
+	// DataBytes is the data used so far by the whole test (type progress).
+	DataBytes int64 `json:"dataBytes,omitempty"`
+	// Run and Runs number the rounds of a repeated test (type run).
+	Run  int `json:"run,omitempty"`
+	Runs int `json:"runs,omitempty"`
 }
 
 // Engine runs tests with a fixed configuration.
@@ -80,6 +85,8 @@ type Options struct {
 	ExtraTargets []config.PingTarget
 	// Plan is the user's ISP plan; results are compared with it.
 	Plan *model.Plan
+	// DataSaver runs shorter, data-capped speed tests.
+	DataSaver bool
 }
 
 type runner struct {
@@ -95,6 +102,8 @@ type runner struct {
 	// loadPinger creates the pinger used for latency under load: ICMP, or
 	// TCP when ICMP is blocked.
 	loadPinger func() (measure.Pinger, error)
+	saver      bool
+	data       int64 // bytes used by the finished speed stages
 }
 
 // Run executes a full test. It always returns a result; when ctx is
@@ -115,7 +124,7 @@ func (e *Engine) Run(ctx context.Context, opts Options, emit func(Event)) *model
 	if len(opts.ExtraTargets) > 0 {
 		cfg.PingTargets = append(append([]config.PingTarget(nil), cfg.PingTargets...), opts.ExtraTargets...)
 	}
-	r := &runner{e: e, cfg: cfg, emit: emit, errs: map[string]error{}, lang: opts.Lang, loadPinger: e.NewPinger, res: &model.TestResult{
+	r := &runner{e: e, cfg: cfg, emit: emit, errs: map[string]error{}, lang: opts.Lang, loadPinger: e.NewPinger, saver: opts.DataSaver, res: &model.TestResult{
 		ID:        newID(),
 		StartedAt: time.Now(),
 		Mode:      mode,
@@ -127,6 +136,8 @@ func (e *Engine) Run(ctx context.Context, opts Options, emit func(Event)) *model
 	}
 	defer func() {
 		r.res.FinishedAt = time.Now()
+		r.res.DataBytes = r.data
+		r.res.DataSaver = r.saver && mode != "quick"
 		if errors.Is(ctx.Err(), context.Canceled) {
 			r.res.Cancelled = true
 			r.res.Failure = nil
@@ -436,11 +447,23 @@ func (r *runner) speed(ctx context.Context, stage string) *model.SpeedResult {
 			return measure.Upload(ctx, r.e.Client, s.Upload(), o)
 		}
 	}
+	var used int64 // over all servers tried
 	opts := measure.SpeedOptions{
 		Duration: dur, Warmup: r.cfg.Warmup(), Streams: r.cfg.Streams,
-		OnProgress: func(f, mbps float64) {
-			r.emit(Event{Type: "progress", Stage: stage, Progress: f, Mbps: mbps})
+		OnProgress: func(f, mbps float64, n int64) {
+			r.emit(Event{Type: "progress", Stage: stage, Progress: f, Mbps: mbps, DataBytes: r.data + used + n})
 		},
+	}
+	if r.saver {
+		// A shorter warm-up too: the cap only applies once a second has
+		// been measured after it.
+		opts.Duration = min(opts.Duration, r.cfg.DataSaverDuration())
+		opts.Warmup = min(opts.Warmup, time.Second)
+		mb := r.cfg.DataSaverDownloadMB
+		if stage == StageUpload {
+			mb = r.cfg.DataSaverUploadMB
+		}
+		opts.MaxBytes = int64(mb * 1e6)
 	}
 
 	var res model.SpeedResult
@@ -471,6 +494,7 @@ func (r *runner) speed(ctx context.Context, stage string) *model.SpeedResult {
 		res, err = run(ctx, s, opts)
 		stopLoad()
 		lw.Wait()
+		used += res.DataBytes
 
 		res.Server = s.Name
 		if len(loaded) > 0 {
@@ -490,6 +514,8 @@ func (r *runner) speed(ctx context.Context, stage string) *model.SpeedResult {
 		res.Error = Explain(r.lang, "", err).Reason
 	}
 	out := res
+	out.DataBytes = used
+	r.data += used
 	r.emit(Event{Type: "speed", Stage: stage, Progress: 1, Speed: &out})
 	return &out
 }

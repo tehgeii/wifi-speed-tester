@@ -5,6 +5,8 @@
 //	--cli            run one test in the console and print a report
 //	--gaming         use the gaming profile (with --cli)
 //	--quick          ping only, no speed test (with --cli)
+//	--repeat N       run the test N times and report the medians (with --cli)
+//	--data-saver     shorter, data-capped speed test (with --cli)
 //	--lang id|en     report language (with --cli)
 //	--list-servers   find public LibreSpeed servers and rank them by latency
 //	--dns            compare DNS servers
@@ -42,6 +44,8 @@ func main() {
 	gaming := flag.Bool("gaming", false, "use the gaming profile (with --cli)")
 	asJSON := flag.Bool("json", false, "print JSON instead of text (with --cli)")
 	quick := flag.Bool("quick", false, "ping only, no download/upload (with --cli)")
+	repeat := flag.Int("repeat", 1, "run the test `N` times and report the medians (with --cli)")
+	dataSaver := flag.Bool("data-saver", false, "shorter, data-capped speed test (with --cli)")
 	lang := flag.String("lang", "en", "report language: en or id (with --cli)")
 	listServers := flag.Bool("list-servers", false, "find public LibreSpeed servers and rank them by latency")
 	dnsTest := flag.Bool("dns", false, "compare how fast DNS servers answer")
@@ -82,7 +86,7 @@ func main() {
 		if *quick {
 			mode = "quick"
 		}
-		os.Exit(runCLI(exeDir, mode, i18n.Parse(*lang), *asJSON))
+		os.Exit(runCLI(exeDir, engine.Options{Mode: mode, Lang: i18n.Parse(*lang), DataSaver: *dataSaver}, max(1, min(*repeat, 10)), *asJSON))
 	case *serve > 0:
 		runServer(exeDir, *serve)
 	default:
@@ -106,7 +110,8 @@ func fatalf(format string, args ...any) {
 	os.Exit(1)
 }
 
-func runCLI(exeDir, mode string, lang i18n.Lang, asJSON bool) int {
+func runCLI(exeDir string, eo engine.Options, runs int, asJSON bool) int {
+	lang := eo.Lang
 	cfg, path, err := config.Load(exeDir)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "config:", err, "(using defaults)")
@@ -117,8 +122,11 @@ func runCLI(exeDir, mode string, lang i18n.Lang, asJSON bool) int {
 	defer stop()
 
 	last := ""
-	res := engine.New(cfg).Run(ctx, engine.Options{Mode: mode, Lang: lang}, func(ev engine.Event) {
+	res := engine.New(cfg).RunRepeated(ctx, eo, runs, func(ev engine.Event) {
 		switch ev.Type {
+		case "run":
+			fmt.Fprintf(os.Stderr, "=== Run %d of %d ===\n", ev.Run, ev.Runs)
+			last = ""
 		case "check":
 			if ev.Check.Status != "pending" {
 				fmt.Fprintf(os.Stderr, "  [%s] %s  %s\n", ev.Check.Status, ev.Check.Name, ev.Check.Detail)

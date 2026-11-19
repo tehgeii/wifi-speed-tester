@@ -69,6 +69,18 @@ func FormatSpeed(mbps float64, unit string) string {
 	return fmt.Sprintf("%.1f Mbps", mbps)
 }
 
+// FormatBytes renders a data amount the way phone plans count quota
+// (decimal megabytes and gigabytes).
+func FormatBytes(n int64) string {
+	switch {
+	case n >= 1e9:
+		return fmt.Sprintf("%.2f GB", float64(n)/1e9)
+	case n >= 10e6:
+		return fmt.Sprintf("%.0f MB", float64(n)/1e6)
+	}
+	return fmt.Sprintf("%.1f MB", float64(n)/1e6)
+}
+
 // LoadedIncrease returns how much the median latency under load exceeded the
 // idle ping (the larger of download and upload), and whether it was measured.
 func LoadedIncrease(r *model.TestResult) (float64, bool) {
@@ -157,6 +169,12 @@ func Evaluate(r *model.TestResult, profileName string, p config.Profile, lang i1
 		if ps.PrimaryTarget && ps.Method == "tcp" {
 			q.Notes = append(q.Notes, T("note.tcpPing"))
 		}
+	}
+	if len(r.Runs) > 1 {
+		q.Notes = append(q.Notes, T("note.repeated", len(r.Runs)))
+	}
+	if r.DataSaver {
+		q.Notes = append(q.Notes, T("note.dataSaver"))
 	}
 	loc := locate(r)
 	q.Notes = append(q.Notes, locationNotes(r, loc, T)...)

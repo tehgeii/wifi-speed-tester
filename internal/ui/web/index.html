@@ -73,6 +73,15 @@
         <button class="ghost small" id="quickBtn" data-i18n-title="quick.hint" data-i18n="quick">Quick Ping</button>
         <button class="ghost small server-chip" id="serverBtn" data-i18n-title="server.hint"><span data-i18n="server">Server</span>: <b id="serverName">Cloudflare</b></button>
       </div>
+      <div class="test-opts" id="testOpts">
+        <button class="chip" id="saverBtn" aria-pressed="false"><span aria-hidden="true">💾</span> <span data-i18n="saver">Data saver</span></button>
+        <button class="chip" id="repeatBtn" aria-pressed="false"><span aria-hidden="true">🔁</span> <span data-i18n="repeat">Repeat 3×</span></button>
+      </div>
+      <p class="data-line" id="dataLine" aria-live="polite"></p>
+      <div class="hotspot-hint hidden" id="hotspotHint">
+        <span data-i18n="data.hotspot">You're on a phone hotspot or mobile data. Turn on Data saver?</span>
+        <button class="primary small" id="hotspotOn" data-i18n="data.turnOn">Turn on</button>
+      </div>
     </div>
 
     <div class="metrics">
@@ -117,6 +126,13 @@
       <ul class="gamelist" id="gameList"></ul>
     </div>
     <p id="summaryText"></p>
+    <div class="runs hidden" id="runsBox">
+      <h3 id="runsTitle"></h3>
+      <table class="tbl runs-tbl">
+        <thead><tr><th data-i18n="runs.col">Run</th><th>Download</th><th>Upload</th><th>Ping</th><th>Jitter</th><th>Loss</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
     <div class="tips hidden" id="tipsBox">
       <h3 data-i18n="tips.title">What you can do</h3>
       <ul id="tips"></ul>
@@ -193,6 +209,7 @@
         <button class="ghost" id="histClear" data-i18n="history.clear">Clear</button>
       </div>
     </div>
+    <p class="small muted hist-data" id="histData"></p>
     <div class="hist-filters" id="histFilters">
       <div class="seg" role="group" id="histConn"></div>
       <div class="seg" role="group" id="histRange">
