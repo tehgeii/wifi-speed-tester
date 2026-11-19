@@ -166,6 +166,14 @@ func (a *App) Call(method string, params []json.RawMessage) (any, error) {
 			a.host.SetDarkTitleBar(dark)
 		}
 		return nil, nil
+	case "problemReport":
+		return a.problemReport(), nil
+	case "copyProblem":
+		var text string
+		if err := arg(0, &text); err != nil {
+			return nil, err
+		}
+		return a.copyProblem(text)
 	case "copyResult":
 		var req struct {
 			ID   string `json:"id"`

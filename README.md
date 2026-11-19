@@ -18,6 +18,8 @@ WiFiSpeedTester-Portable-<versi>-win-x64.zip
 └── THIRD_PARTY_NOTICES.txt
 ```
 
+Website: **https://tehgeii.github.io/wifi-speed-tester/**
+
 ## Download
 
 Ambil versi terbaru di
@@ -56,7 +58,7 @@ Windows berbahasa Indonesia: **Info selengkapnya → Tetap jalankan**).
 | Export | **Bagikan**: **Salin hasil** dan **Kartu PNG**, yang tidak pernah memuat nama Wi-Fi atau alamat IP. **Simpan sebagai file**: TXT, JSON dan CSV, yang menyamarkan data itu (`Ho*****`, `192.168.1.x`) kecuali kamu mencentang **Sertakan identitas jaringan**; keterangan di bawah tombol menunjukkan persis apa yang disembunyikan. TXT memuat nama Wi-Fi dan IP, JSON juga BSSID, CSV hanya nama Wi-Fi |
 | Riwayat | Disimpan di komputer sendiri sebagai JSON di samping file exe; grafik tren kecepatan dan ping dari waktu ke waktu, rata-rata per jenis koneksi (Wi-Fi vs Ethernet…), % dari paket, filter 7/30 hari, buka ulang hasil, export ke CSV, hapus |
 | Diagnosa otomatis | Tab **Diagnosa**: panduan langkah demi langkah untuk mencari tahu koneksi lambat karena **jangkauan Wi-Fi, Wi-Fi-nya, router, atau ISP**. Tes di posisi sekarang → tes dekat router (khusus Wi-Fi) → tes pakai kabel LAN (opsional), lalu kesimpulan yang jelas plus tombol ke alat yang cocok (Cek channel, Laporan ISP, Monitor). Langkah yang tidak perlu dilewati otomatis, dan tes diagnosa tidak masuk Riwayat |
-| Laporan ISP | **Riwayat → Laporan ISP** membuat ringkasan teks untuk dikirim ke ISP: rata-rata, % dari paket, hasil per jam, tes paling lambat, dan hasil monitor stabilitas |
+| Laporan ISP | **Riwayat → Laporan ISP (PDF)** membuat laporan rapi untuk dikirim ke ISP: rata-rata, % dari paket, grafik kecepatan dan ping dari waktu ke waktu, rata-rata per jam, tes paling lambat, dan hasil monitor stabilitas. Isi yang sama juga tersedia sebagai **TXT**. Tidak memuat nama Wi-Fi atau alamat IP |
 | Monitor stabilitas | **Alat** → ping ke satu target dan ke router setiap detik selama 5–30 menit untuk menangkap putus sesaat dan lonjakan lag, dengan grafik langsung, kesimpulan (stabil / ada lonjakan / putus; masalahnya di router atau setelahnya) dan laporan TXT. Hanya berjalan selama jendela aplikasi terbuka, dan berhenti saat kamu menekan Stop atau menutup aplikasi |
 | Pencari sinyal Wi-Fi | **Alat** → angka sinyal besar (%, dBm) yang **diperbarui tiap detik**, grafik 60 detik terakhir, dan bunyi seperti detektor logam (opsional, makin kuat makin cepat). Bawa laptop berkeliling untuk mencari posisi terbaik, lalu **simpan titik** ("Kamar", "Ruang tamu") untuk melihat peringkatnya. Tidak memakai kuota sama sekali, dan berhenti sendiri saat kamu keluar dari alat ini |
 | Ping ke region | **Alat** → latensi ke region cloud Jakarta, Singapura, Kuala Lumpur, Hong Kong, Tokyo, Mumbai, Sydney, Frankfurt dan California, muncul satu per satu begitu terukur, plus kesimpulan untuk game (sebagian besar server game Asia Tenggara ada di Singapura). Ini ping ke region-nya, bukan ke server game tertentu |
@@ -65,6 +67,7 @@ Windows berbahasa Indonesia: **Info selengkapnya → Tetap jalankan**).
 | Salin hasil | Ringkasan singkat untuk WhatsApp, Discord atau di mana saja, tanpa nama Wi-Fi atau alamat IP |
 | Update | Cek versi baru saat aplikasi dibuka (bisa dimatikan di **Pengaturan ⚙**), dengan link ke halaman download |
 | Error | Penyebab dan saran dengan bahasa sederhana, detail teknisnya bisa dibuka kalau perlu |
+| Laporkan masalah | Di dialog **Tentang** dan di kartu error: **Buka GitHub Issues** dengan info aplikasi yang sudah terisi (versi aplikasi dan Windows, jenis koneksi, error terakhir), atau **Salin info** untuk dikirim lewat WhatsApp/email. Infonya ditampilkan dulu sebelum dikirim, dan tidak memuat alamat IP, nama Wi-Fi, atau nama perangkat |
 | Batal | Menghentikan semua aktivitas jaringan saat itu juga (tombol Esc juga bisa) |
 | Satu jendela | Kalau exe-nya dibuka lagi, jendela yang sudah terbuka langsung muncul ke depan, bukan membuka jendela kedua |
 | Tampilan | Navigasi tab **Tes · Diagnosa · Riwayat · Alat** (juga lewat Ctrl+1/2/3/4), tema **Terang / Gelap / Ikuti Windows** di **Pengaturan ⚙** (title bar jendela ikut berubah), ukuran dan posisi jendela diingat, dan tombol taskbar berkedip saat tes, diagnosa atau monitor selesai sementara kamu membuka aplikasi lain |
@@ -98,6 +101,9 @@ dibutuhkan untuk mengukur koneksi:
 - **Diagnosa otomatis** menjalankan speed test biasa ke server yang sama;
 - hanya saat kamu menekan **Cari server terdekat**: daftar server publik dari
   `librespeed.org` dan satu permintaan kecil ke tiap server di daftar itu;
+- hanya saat kamu menekan **Buka GitHub Issues** di **Laporkan masalah**:
+  halaman issue baru di github.com terbuka di browser, berisi info yang sudah
+  kamu lihat di dialog;
 - hanya kalau **Cek update saat aplikasi dibuka** menyala (**Pengaturan ⚙**,
   menyala secara bawaan): satu permintaan ke `api.github.com` untuk melihat
   versi terbaru.
@@ -264,9 +270,17 @@ scripts/ui-test.sh          # tes UI end-to-end (butuh Node dan Playwright, liha
 ```
 
 CI (`.github/workflows/build.yml`) menjalankan `go vet` dan semua tes di Linux
-dan Windows, menjalankan tes UI di Chromium, dan membuat kedua zip sebagai
-artifact. CI juga menjalankan smoke test sungguhan untuk `--cli`, `--dns` dan
-`--wifi-scan` di runner Windows.
+dan Windows (isi Laporan ISP PDF dicek dengan `pdftotext`), menjalankan tes UI
+di Chromium, dan membuat kedua zip sebagai artifact. CI juga menjalankan smoke
+test sungguhan untuk `--cli`, `--dns` dan `--wifi-scan` di runner Windows, dan
+menguji jendela exe yang asli lewat port DevTools WebView2
+(`ui-tests/windows.cjs`): bridge Go, tab, tema, Ping Cepat, ping ke region, dan
+kode Wi-Fi Windows.
+
+Website di folder `site/` diterbitkan ke GitHub Pages oleh
+`.github/workflows/pages.yml` setiap ada perubahan di `main`. Screenshot-nya
+diambil dari tes UI, jadi selalu sesuai tampilan terbaru. Sekali saja, di
+repository: **Settings → Pages → Source: GitHub Actions**.
 
 Untuk menerbitkan rilis: buka **Actions → build → Run workflow**, pilih
 `main`, lalu isi versinya, misalnya `1.0.1`. Workflow akan membuat kedua zip
@@ -330,7 +344,7 @@ internal/analysis     ConnectionQualityEngine: rating, catatan dan saran; kesimp
 internal/i18n         teks Inggris / Indonesia untuk semua yang ditulis sisi Go
 internal/servers      daftar server LibreSpeed dan pengurutan latensi
 internal/update       cek rilis terbaru di GitHub
-internal/export       TXT / JSON / CSV, Laporan ISP dan laporan monitor, dengan penyamaran data identitas
+internal/export       TXT / JSON / CSV, Laporan ISP (TXT dan PDF, penulis PDF sendiri tanpa library) dan laporan monitor, dengan penyamaran data identitas
 internal/history      riwayat lokal dalam JSON
 internal/config       konfigurasi dan nilai bawaan
 internal/app          view-model: API yang dipanggil UI; pekerjaan lama berjalan di luar thread UI
