@@ -61,7 +61,9 @@ func pdfText(t *testing.T, b []byte) string {
 	if err := os.WriteFile(f, b, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	out, err := exec.Command("pdftotext", "-layout", f, "-").CombinedOutput()
+	// UTF-8 explicitly: the pdftotext that ships with Git for Windows
+	// writes Latin-1 by default, which turns "·" and "–" into other bytes.
+	out, err := exec.Command("pdftotext", "-enc", "UTF-8", "-layout", f, "-").CombinedOutput()
 	if err != nil {
 		t.Fatalf("pdftotext: %v\n%s", err, out)
 	}
