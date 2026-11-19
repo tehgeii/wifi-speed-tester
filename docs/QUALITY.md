@@ -152,6 +152,44 @@ tests use:
 It is shown only when latency under load was measured. It does not change
 the overall rating; the profile's `loadedLatency` band does that.
 
+## Automatic diagnosis
+
+The Diagnosis tab runs up to three normal tests and compares them. A test
+counts as *healthy* when its rating is EXCELLENT or GOOD, the router answers
+normally (no loss and no unusual delay to the gateway), and the download is
+not below `planLowPct` of the plan when one is set.
+
+1. **Where you are** (always).
+2. **Near the router**, about 2 m away (only offered on a wireless link).
+3. **On a LAN cable** (optional). If Windows still reports Wi-Fi, the step is
+   ignored and the conclusion says so.
+
+A step is skipped once the answer is already clear: a healthy or offline
+first test, a test that is already on a cable, or a good result near the
+router.
+
+| What the tests show | Conclusion | Offered next |
+|---|---|---|
+| The router answers but the internet does not | No internet beyond the router | ISP report |
+| The router does not answer | Not connected to the router | (advice in the text) |
+| Every measured step is healthy | Healthy | Stability monitor |
+| Cable healthy, where you were not | The problem is the Wi-Fi | Wi-Fi channel check |
+| Near the router healthy, where you were not | Weak Wi-Fi coverage | Wi-Fi channel check |
+| Delay or loss already to the router | The router or local Wi-Fi is struggling | Wi-Fi channel check (unless found on a cable) |
+| Router normal, still slow or unstable (also on a cable or near the router) | Most likely the ISP or the route | ISP report, stability monitor |
+| Wi-Fi only, one test, not healthy | Not clear yet: run it with the near-router step | Stability monitor |
+
+When the test server's name took more than 150 ms to look up, the conclusion
+also suggests the DNS test.
+
+## Ping to regions
+
+Each region is timed with 5 TCP connections (median), like the TCP fallback
+for ping. Bars use the online-game limits from "What is it good for?": up to
+60 ms is good, up to 100 ms is fine, above that is high. Singapore gets its
+own verdict because most Southeast Asian game servers run there: up to 40 ms
+great, up to 80 ms fine for most games, above that high.
+
 ## Ping, jitter and packet loss definitions
 
 - **Ping**: average round-trip time to the first internet ping target that

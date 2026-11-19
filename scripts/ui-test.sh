@@ -22,7 +22,7 @@ mkdir -p "$WORK/WiFiSpeedTester-data"
 echo '{"lang": "en", "updateCheck": "off"}' > "$WORK/WiFiSpeedTester-data/settings.json"
 
 "$WORK/fakesrv" -addr 127.0.0.1:18099 -rate 2000000 > "$WORK/fakesrv.log" 2>&1 &
-WST_FAKE_WIFI_SCAN="$PWD/ui-tests/wifi-scan.json" "$WORK/wst" --serve 18088 > "$WORK/wst.log" 2>&1 &
+WST_FAKE_WIFI_SCAN="$PWD/ui-tests/wifi-scan.json" WST_FAKE_WIFI_SIGNAL="$PWD/ui-tests/wifi-signal.json" "$WORK/wst" --serve 18088 > "$WORK/wst.log" 2>&1 &
 
 for _ in $(seq 50); do
   curl -fs -o /dev/null http://127.0.0.1:18088/ && break

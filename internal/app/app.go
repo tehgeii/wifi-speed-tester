@@ -68,7 +68,9 @@ type App struct {
 
 	monCancel   context.CancelFunc // set while the stability monitor runs
 	lastMonitor *model.MonitorSummary
-	monitorUnit time.Duration // one "minute" of monitoring; shortened in tests
+	monitorUnit time.Duration      // one "minute" of monitoring; shortened in tests
+	sigCancel   context.CancelFunc // set while the signal finder runs
+	signalEvery time.Duration      // signal finder interval; shortened in tests
 }
 
 // New loads configuration from exeDir and prepares the data directory.
@@ -80,7 +82,7 @@ func New(exeDir string, host Host, logf func(string, ...any)) *App {
 	if err != nil {
 		logf("config: %v (using defaults)", err)
 	}
-	a := &App{host: host, cfg: cfg, cfgPath: path, cfgErr: err, logf: logf, monitorUnit: time.Minute}
+	a := &App{host: host, cfg: cfg, cfgPath: path, cfgErr: err, logf: logf, monitorUnit: time.Minute, signalEvery: time.Second}
 	a.dataDir = DataDir(exeDir)
 	a.hist = history.Open(filepath.Join(a.dataDir, "history.json"), cfg.HistoryLimit)
 	a.eng = engine.New(cfg)
@@ -216,6 +218,35 @@ func (a *App) Call(method string, params []json.RawMessage) (any, error) {
 	case "stopMonitor":
 		a.stopMonitor()
 		return nil, nil
+	case "signalStart":
+		var token int
+		if err := arg(0, &token); err != nil {
+			return nil, err
+		}
+		a.startSignal(token)
+		return nil, nil
+	case "signalStop":
+		a.stopSignal()
+		return nil, nil
+	case "getSpots":
+		return a.spots(), nil
+	case "saveSpot":
+		var s Spot
+		if err := arg(0, &s); err != nil {
+			return nil, err
+		}
+		return a.saveSpot(s)
+	case "clearSpots":
+		return nil, a.writeJSON("spots.json", []Spot{})
+	case "regionTest":
+		go a.regionTest()
+		return nil, nil
+	case "diagnose":
+		var steps []model.DiagStep
+		if err := arg(0, &steps); err != nil {
+			return nil, err
+		}
+		return a.diagnose(steps), nil
 	case "exportMonitor":
 		var sensitive bool
 		if err := arg(0, &sensitive); err != nil {
@@ -297,7 +328,12 @@ func (a *App) info() map[string]any {
 	for i, t := range a.cfg.DNSServers {
 		dns[i] = t.Host
 	}
+	regions := make([]string, len(a.cfg.Regions))
+	for i, t := range a.cfg.Regions {
+		regions[i] = t.Host
+	}
 	m := map[string]any{
+		"regions":     regions,
 		"version":     Version,
 		"configPath":  a.cfgPath,
 		"configFile":  config.FileName,
@@ -333,6 +369,7 @@ func (a *App) detectNetwork() {
 type TestOptions struct {
 	Repeat    bool `json:"repeat"`    // run 3 times and keep the medians
 	DataSaver bool `json:"dataSaver"` // shorter, data-capped speed tests
+	Diagnosis bool `json:"diagnosis"` // a step of the guided diagnosis: not saved to history
 }
 
 // RepeatRuns is how many times a repeated test runs.
@@ -362,7 +399,7 @@ func (a *App) StartTest(mode string, o TestOptions) error {
 		a.running, a.cancel = false, nil
 		a.last = res
 		a.mu.Unlock()
-		if !res.Cancelled && (res.Quality != nil || res.Failure == nil) {
+		if !res.Cancelled && !o.Diagnosis && (res.Quality != nil || res.Failure == nil) {
 			if err := a.hist.Add(res); err != nil {
 				a.logf("history: %v", err)
 			}

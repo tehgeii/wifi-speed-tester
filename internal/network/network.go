@@ -119,3 +119,10 @@ func BandFromChannel(ch int) string {
 func ScanWiFi(ctx context.Context, rescan bool) ([]model.WiFiNetwork, error) {
 	return scanWiFi(ctx, rescan)
 }
+
+// WiFiSignal reads the current Wi-Fi connection's signal, quickly enough to
+// call every second (signal finder). Windows refreshes the values itself
+// every one to a few seconds, depending on the Wi-Fi card.
+func WiFiSignal(ctx context.Context) (*model.WiFiInfo, error) {
+	return wifiSignal(ctx)
+}

@@ -266,7 +266,8 @@ func (r *runner) connectivity(ctx context.Context) bool {
 		r.check("internet", model.CheckFail, r.t("check.unavailable"))
 		return r.fail(r.t("fail.offline.title"), r.t("fail.dns.reason"), r.t("fail.dns.suggestion"), err)
 	} else {
-		r.check("dns", model.CheckOK, r.t("check.dnsOK", analysis.FormatMs(float64(d)/float64(time.Millisecond))))
+		r.res.DNSMs = float64(d) / float64(time.Millisecond)
+		r.check("dns", model.CheckOK, r.t("check.dnsOK", analysis.FormatMs(r.res.DNSMs)))
 	}
 
 	var lastErr error

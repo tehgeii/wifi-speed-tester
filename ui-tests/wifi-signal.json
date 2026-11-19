@@ -1,0 +1,5 @@
+[
+  { "ssid": "HomeNet", "band": "2.4 GHz", "channel": 6, "signalPercent": 35, "rssi": -78, "rxRateMbps": 72 },
+  { "ssid": "HomeNet", "band": "2.4 GHz", "channel": 6, "signalPercent": 55, "rssi": -68, "rxRateMbps": 144 },
+  { "ssid": "HomeNet", "band": "2.4 GHz", "channel": 6, "signalPercent": 82, "rssi": -55, "rxRateMbps": 300 }
+]

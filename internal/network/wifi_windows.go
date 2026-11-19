@@ -27,6 +27,7 @@ var (
 const (
 	wlanOpcodeCurrentConnection = 7
 	wlanOpcodeChannelNumber     = 8
+	wlanOpcodeRSSI              = 0x10000102 // wlan_intf_opcode_rssi: live RSSI of the connection
 	wlanStateConnected          = 1
 )
 
@@ -193,6 +194,17 @@ func wifiInfo(net *model.NetworkInfo) (*model.WiFiInfo, error) {
 			}
 		}
 		procWlanFreeMemory.Call(uintptr(list))
+	}
+
+	// The driver's live RSSI is fresher than the BSS list, which only
+	// changes after a scan; the signal finder depends on that.
+	var rssiPtr unsafe.Pointer
+	if rc, _, _ := procWlanQueryInterface.Call(uintptr(h), uintptr(unsafe.Pointer(&guid)), wlanOpcodeRSSI, 0,
+		uintptr(unsafe.Pointer(&size)), uintptr(unsafe.Pointer(&rssiPtr)), 0); rc == 0 && rssiPtr != nil {
+		if v := int(*(*int32)(rssiPtr)); v < 0 && v > -128 {
+			w.RSSI = v
+		}
+		procWlanFreeMemory.Call(uintptr(rssiPtr))
 	}
 
 	if w.FrequencyMHz > 0 {

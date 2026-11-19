@@ -17,6 +17,7 @@
   </div>
   <nav class="tabs" role="tablist" data-i18n-aria="aria.tabs">
     <button role="tab" id="tabTest" data-view="test" aria-selected="true" aria-controls="dashboard"><span aria-hidden="true">⚡</span> <span data-i18n="tab.test">Test</span></button>
+    <button role="tab" id="tabDiag" data-view="diag" aria-selected="false" aria-controls="diagView" tabindex="-1"><span aria-hidden="true">🩺</span> <span data-i18n="tab.diag">Diagnosis</span></button>
     <button role="tab" id="tabHistory" data-view="history" aria-selected="false" aria-controls="historyView" tabindex="-1"><span aria-hidden="true">🕘</span> <span data-i18n="history">History</span></button>
     <button role="tab" id="tabTools" data-view="tools" aria-selected="false" aria-controls="toolsView" tabindex="-1"><span aria-hidden="true">🧰</span> <span data-i18n="tools">Tools</span></button>
   </nav>
@@ -196,6 +197,35 @@
   <footer class="privacy" id="privacyLine"></footer>
 </main>
 
+<section id="diagView" class="hidden">
+  <div class="card diag">
+    <h2 data-i18n="diag.title">Automatic diagnosis</h2>
+    <p class="small muted" data-i18n="diag.intro">Finds out whether a slow connection comes from the Wi-Fi, the router or the ISP, in up to three short tests. Just follow the steps; nothing on your router is changed.</p>
+    <ol class="diag-steps" id="diagSteps">
+      <li data-step="now"><span class="ds-num">1</span><b data-i18n="diag.s.now">Test where you are</b><span class="ds-state"></span></li>
+      <li data-step="near"><span class="ds-num">2</span><b data-i18n="diag.s.near">Test near the router</b><span class="ds-state"></span></li>
+      <li data-step="cable"><span class="ds-num">3</span><b data-i18n="diag.s.cable">Test with a LAN cable (optional)</b><span class="ds-state"></span></li>
+      <li data-step="result"><span class="ds-num">4</span><b data-i18n="diag.s.result">Conclusion</b><span class="ds-state"></span></li>
+    </ol>
+    <div class="diag-panel" id="diagPanel">
+      <p id="diagMsg"></p>
+      <p class="diag-live hidden" id="diagLive"><span id="diagStage"></span> <b id="diagValue"></b></p>
+      <div class="dlg-actions">
+        <button class="primary" id="diagGo">Start diagnosis</button>
+        <button class="ghost small hidden" id="diagSkip">Skip this step</button>
+        <button class="danger small hidden" id="diagCancel" data-i18n="cancel">Cancel</button>
+      </div>
+    </div>
+    <div class="diag-result hidden" id="diagResult" aria-live="polite">
+      <h3 id="diagTitle"></h3>
+      <p id="diagDetail"></p>
+      <ul class="notes" id="diagFacts"></ul>
+      <div class="dlg-actions" id="diagActions"></div>
+      <button class="ghost small" id="diagAgain" data-i18n="diag.again">Run again</button>
+    </div>
+  </div>
+</section>
+
 <section id="historyView" class="hidden">
   <div class="card">
     <div class="hist-head">
@@ -246,6 +276,8 @@
 <section id="toolsView" class="hidden">
   <div class="tool-picker" role="tablist" data-i18n-aria="tools.title">
     <button role="tab" class="tool-tile" data-tool="monitorCard" aria-controls="monitorCard"><span class="tt-icon" aria-hidden="true">📈</span><b data-i18n="mon.title">Stability monitor</b><span class="tt-desc" data-i18n="mon.short">Catch short drops and lag spikes</span></button>
+    <button role="tab" class="tool-tile" data-tool="signalCard" aria-controls="signalCard"><span class="tt-icon" aria-hidden="true">📡</span><b data-i18n="sig.title">Wi-Fi signal finder</b><span class="tt-desc" data-i18n="sig.short">Find the best spot, live</span></button>
+    <button role="tab" class="tool-tile" data-tool="regionCard" aria-controls="regionCard"><span class="tt-icon" aria-hidden="true">🗺️</span><b data-i18n="reg.title">Ping to regions</b><span class="tt-desc" data-i18n="reg.short">Jakarta, Singapore, Tokyo…</span></button>
     <button role="tab" class="tool-tile" data-tool="dnsCard" aria-controls="dnsCard"><span class="tt-icon" aria-hidden="true">🌐</span><b data-i18n="dns.title">DNS test</b><span class="tt-desc" data-i18n="dns.short">Is your DNS slowing websites down?</span></button>
     <button role="tab" class="tool-tile" data-tool="wifiCard" aria-controls="wifiCard"><span class="tt-icon" aria-hidden="true">📶</span><b data-i18n="scan.title">Wi-Fi channel check</b><span class="tt-desc" data-i18n="scan.short">Find a less crowded channel</span></button>
   </div>
@@ -279,6 +311,52 @@
       <ul class="notes" id="monNotes"></ul>
       <button class="ghost small" id="monExport" data-i18n="mon.export">Export report (TXT)</button>
     </div>
+  </section>
+
+  <section class="card tool" id="signalCard">
+    <h2 data-i18n="sig.title">Wi-Fi signal finder</h2>
+    <p class="small muted" data-i18n="sig.intro">Walk around with this laptop: the signal updates every second, so you can find the best spot for the laptop or for the router. It uses no internet data and stops when you leave this tool.</p>
+    <div class="tool-controls">
+      <button class="primary small" id="sigStart" data-i18n="sig.start">Start</button>
+      <button class="danger small hidden" id="sigStop" data-i18n="mon.stop">Stop</button>
+      <label class="chk big"><input type="checkbox" id="sigBeep"> <span data-i18n="sig.beep">Beep (faster = stronger)</span></label>
+    </div>
+    <div class="sig-live hidden" id="sigLive">
+      <div class="sig-big"><b id="sigPct">—</b><span class="sig-word" id="sigWord"></span><span class="muted" id="sigDbm"></span></div>
+      <p class="small muted" id="sigMeta"></p>
+      <figure class="trend-fig">
+        <figcaption><span data-i18n="sig.chart">Signal (%), last 60 seconds</span></figcaption>
+        <div class="plot" id="plotSig"><canvas></canvas><div class="tip hidden"></div></div>
+      </figure>
+      <p class="small muted" data-i18n="sig.note">Windows refreshes the signal value every 1–5 seconds, depending on the Wi-Fi card.</p>
+      <div class="tool-controls">
+        <input class="spot-name" id="spotName" maxlength="30" data-i18n-aria="sig.spotName">
+        <button class="ghost small" id="spotSave" data-i18n="sig.save">Save this spot</button>
+      </div>
+    </div>
+    <p class="small muted" id="sigError"></p>
+    <div id="spotBox" class="hidden">
+      <h3 data-i18n="sig.spots">Saved spots, best first</h3>
+      <table class="tbl" id="spotTable">
+        <thead><tr><th>#</th><th data-i18n="sig.spot">Spot</th><th data-i18n="net.signal">Signal</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <button class="ghost small" id="spotClear" data-i18n="sig.clear">Clear spots</button>
+    </div>
+  </section>
+
+  <section class="card tool" id="regionCard">
+    <h2 data-i18n="reg.title">Ping to regions</h2>
+    <p class="small muted" data-i18n="reg.intro">Latency to the cloud regions where game and streaming servers run. Most Southeast Asian game servers are in Singapore. This is the latency to the region, not to one particular game server.</p>
+    <div class="tool-controls">
+      <button class="primary small" id="regStart" data-i18n="reg.start">Measure</button>
+      <span class="small muted" id="regStatus"></span>
+    </div>
+    <ul class="tips-list" id="regAdvice"></ul>
+    <table class="tbl reg-tbl hidden" id="regTable">
+      <thead><tr><th data-i18n="reg.region">Region</th><th>Ping</th><th aria-hidden="true"></th></tr></thead>
+      <tbody></tbody>
+    </table>
   </section>
 
   <section class="card tool" id="dnsCard">
