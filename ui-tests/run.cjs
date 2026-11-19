@@ -179,9 +179,9 @@ async function main() {
   }
 
   console.log('history');
-  await page.keyboard.press('Control+2');
+  await page.keyboard.press('Control+3');
   await page.waitForSelector('#histTable tbody tr');
-  check(await page.getAttribute('#tabHistory', 'aria-selected') === 'true', 'Ctrl+2 opens the History tab');
+  check(await page.getAttribute('#tabHistory', 'aria-selected') === 'true', 'Ctrl+3 opens the History tab');
   check(await page.locator('#histTable tbody tr').count() === 2, 'both tests are in the history');
   check(await page.locator('#histTable .grade.sm').count() >= 1, 'history shows the bufferbloat grade');
   check(await page.isVisible('#histTable thead .plan-col'), 'the plan column is shown');
@@ -241,6 +241,94 @@ async function main() {
   await page.click('#tabTest');
   check(await page.isEnabled('#startBtn'), 'speed test unlocks after the monitor');
 
+  console.log('signal finder');
+  await page.click('#tabTools');
+  await page.click('[data-tool="signalCard"]');
+  check(!(await page.isVisible('#sigLive')) && await page.isDisabled('#spotSave'), 'nothing is read before Start');
+  await page.click('#sigStart');
+  await page.waitForFunction(() => sig.samples.length >= 3, null, { timeout: 10000 });
+  check(/^\d+%$/.test(await page.textContent('#sigPct')) && /^(Strong|Fair|Weak)$/.test(await page.textContent('#sigWord')), 'live signal in % with a word');
+  check((await page.textContent('#sigMeta')).includes('HomeNet') && /dBm/.test(await page.textContent('#sigDbm')), 'the finder shows the network and dBm');
+  check(await page.isVisible('#sigStop') && !(await page.isVisible('#sigStart')), 'Stop replaces Start while reading');
+  const t0 = await page.evaluate(() => sig.samples[0].t);
+  const t2 = await page.evaluate(() => sig.samples[2].t);
+  check(t2 - t0 > 1.5 && t2 - t0 < 3.5, 'one reading per second');
+  await page.check('#sigBeep');
+  await page.fill('#spotName', 'Bedroom');
+  await page.click('#spotSave');
+  await page.waitForSelector('#spotBox:not(.hidden)');
+  await page.waitForTimeout(1200);
+  await page.fill('#spotName', 'Kitchen');
+  await page.press('#spotName', 'Enter');
+  check(await eventually(async () => await page.locator('#spotTable tbody tr').count() === 2), 'spots are saved');
+  const pcts = (await page.locator('#spotTable tbody td:nth-child(3) b').allTextContents()).map(s => parseInt(s, 10));
+  check(pcts.length === 2 && pcts[0] >= pcts[1], 'spots are ranked best first');
+  const noName = await toastAfter(page, () => page.click('#spotSave'), /name/);
+  check(/Give the spot a name/.test(noName), 'a spot needs a name');
+  await shot(page, 'signal');
+  await page.click('[data-tool="regionCard"]');
+  check(await eventually(() => page.evaluate(() => !sig.running)), 'leaving the finder stops it');
+  await page.click('[data-tool="signalCard"]');
+  check(await page.isVisible('#spotBox') && await page.isVisible('#sigStart'), 'saved spots stay; reading waits for Start');
+  await page.click('#spotClear');
+  check(await eventually(async () => !(await page.isVisible('#spotBox'))), 'spots can be cleared');
+
+  console.log('ping to regions');
+  await page.click('[data-tool="regionCard"]');
+  await page.click('#regStart');
+  await page.waitForFunction(() => !reg.running && reg.results.length === 3, null, { timeout: 30000 });
+  const regRows = await page.locator('#regTable tbody tr').evaluateAll(rows => rows.map(r => r.dataset.label));
+  check(regRows.length === 3 && regRows[2] === 'Closed port', 'every region is listed; one that did not answer goes last');
+  check((await page.textContent('#regTable tbody tr:last-child')).includes('no answer'), 'a region without an answer says so');
+  check(/Singapore .* great for online games/.test(await page.textContent('#regAdvice')), 'advice about Singapore for games');
+  check(await page.isEnabled('#regStart'), 'Measure can be run again');
+  await checkNoRawKeys(page, 'regions');
+  await shot(page, 'regions');
+
+  console.log('diagnosis');
+  await page.click('#tabTest');
+  const histN = (await page.evaluate(() => bridge.call('history'))).length;
+  await page.keyboard.press('Control+2');
+  check(await page.getAttribute('#tabDiag', 'aria-selected') === 'true', 'Ctrl+2 opens the Diagnosis tab');
+  check(await page.getAttribute('#diagSteps [data-step="now"]', 'class') === 'run' && !(await page.isVisible('#diagSkip')), 'step 1 is active and cannot be skipped');
+  await page.click('#diagGo');
+  check(await page.isVisible('#diagCancel') && await page.isDisabled('#tabTest') && await page.isDisabled('#tabHistory') && await page.isDisabled('#settingsBtn'), 'other tabs are locked during a step');
+  await page.click('#diagCancel');
+  check(await textMatches(page, '#diagMsg', /cancelled/), 'a cancelled step can be run again');
+  check(await page.isEnabled('#tabTest') && await page.isVisible('#diagGo'), 'tabs unlock after cancelling');
+  await page.click('#diagGo');
+  check(await eventually(async () => /\d/.test(await page.textContent('#diagValue')), 20000), 'live values while a step runs');
+  await page.waitForSelector('#diagResult:not(.hidden), #diagSteps [data-step="near"].run', { timeout: 60000 });
+  check(/↓ /.test(await page.textContent('#diagSteps [data-step="now"] .ds-state')), 'the finished step shows its download speed');
+  // Steps 2 and 3, whatever this machine's own connection is.
+  await page.evaluate(() => {
+    const s = diag.steps.find(x => x.kind === 'now');
+    diagReset();
+    Object.assign(diag, { steps: [s], marks: { now: 'done' }, step: 'near' });
+    renderDiag();
+  });
+  check(await page.isVisible('#diagSkip') && /close to the router/.test(await page.textContent('#diagMsg')), 'step 2 asks to move near the router');
+  await page.click('#diagSkip');
+  check(/LAN cable/.test(await page.textContent('#diagMsg')) && await page.textContent('#diagSkip') === 'Skip, show the conclusion', 'step 3 offers a cable test');
+  check(await page.textContent('#diagSteps [data-step="near"] .ds-state') === 'skipped', 'a skipped step is marked');
+  await page.click('#diagGo');
+  await page.waitForSelector('#diagResult:not(.hidden)', { timeout: 60000 });
+  const facts = await page.locator('#diagFacts li').allTextContents();
+  check(facts.some(f => f.startsWith('Where you are:')) && facts.some(f => f.startsWith('With a cable:')), 'the conclusion lists each measured step');
+  check((await page.textContent('#diagTitle')).length > 5 && (await page.textContent('#diagDetail')).length > 20, 'the conclusion explains itself');
+  check(await page.locator('#diagActions button').count() >= 1, 'the conclusion offers a next step');
+  check((await page.evaluate(() => bridge.call('history'))).length === histN, 'diagnosis tests are not saved in History');
+  await checkNoRawKeys(page, 'diagnosis');
+  await shot(page, 'diagnosis');
+  const action = await page.getAttribute('#diagActions button', 'data-action');
+  await page.click('#diagActions button');
+  check(await page.getAttribute('#tabDiag', 'aria-selected') === 'false', `the "${action}" action opens its tool`);
+  await page.click('#tabDiag');
+  check(await page.isVisible('#diagResult'), 'the conclusion stays until Run again');
+  await page.click('#diagAgain');
+  check(await page.getAttribute('#diagSteps [data-step="now"]', 'class') === 'run' && await page.isVisible('#diagGo'), 'Run again starts over');
+  await page.click('#tabTest');
+
   console.log('theme');
   const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   const lightBg = await bg();
@@ -257,6 +345,7 @@ async function main() {
   await page.waitForSelector('#aboutDlg[open]');
   const about = await page.textContent('#aboutTraffic');
   check(about.includes('9.9.9.9') && about.includes('Game server'), 'About lists DNS-test servers and custom targets');
+  check(about.includes('Ping to regions') && about.includes('127.0.0.1:18099'), 'About lists the region hosts');
   await page.keyboard.press('Escape');
 
   console.log('data saver and repeat');
@@ -342,6 +431,19 @@ async function main() {
   await dp.waitForSelector('#scanResult:not(.hidden)');
   await noHorizontalScroll(dp, 'tools');
   await shot(dp, 'tools-dark');
+  await dp.click('[data-tool="regionCard"]');
+  await dp.click('#regStart');
+  await dp.waitForFunction(() => !reg.running && reg.results.length === 3, null, { timeout: 30000 });
+  await noHorizontalScroll(dp, 'regions');
+  await dp.click('[data-tool="signalCard"]');
+  await dp.click('#sigStart');
+  await dp.waitForFunction(() => sig.samples.length >= 2, null, { timeout: 10000 });
+  await noHorizontalScroll(dp, 'signal finder');
+  await shot(dp, 'signal-dark');
+  await dp.click('#tabDiag');
+  check(await dp.evaluate(() => !sig.running), 'leaving the Tools tab stops the signal finder');
+  await noHorizontalScroll(dp, 'diagnosis');
+  await shot(dp, 'diagnosis-dark');
   await dp.evaluate(() => { prefs.theme = 'light'; applyTheme(); });
   check(await dp.evaluate(() => getComputedStyle(document.body).backgroundColor) === 'rgb(244, 246, 249)', 'Light theme overrides a dark Windows');
   await dark.close();

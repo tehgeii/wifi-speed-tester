@@ -21,10 +21,19 @@ WHAT IT MEASURES
   Settings: enter your ISP plan speed to see "% of plan", and add up to 5
   ping targets of your own (for example a game server).
 
+  Diagnosis tab: up to three short tests (where you are, near the router,
+  on a LAN cable) tell whether a slow connection comes from Wi-Fi coverage,
+  the Wi-Fi itself, the router or the ISP. These tests are not saved.
+
   Tools:
     Stability monitor   pings every second for 5-30 minutes to catch short
                         drops and lag spikes. Runs only while the window is
                         open; there is no background mode.
+    Wi-Fi signal finder live signal every second, optional beep, saved spots,
+                        to find the best place for the laptop or router.
+    Ping to regions     latency to cloud regions (Jakarta, Singapore, Tokyo,
+                        ...); most Southeast Asian game servers are in
+                        Singapore.
     DNS test            compares your DNS with Cloudflare, Google and Quad9.
     Wi-Fi channel check lists nearby networks and suggests a less crowded
                         channel for your router.
@@ -37,14 +46,18 @@ PRIVACY
   speed.cloudflare.com) and ping to your router, 1.1.1.1 and 8.8.8.8.
   Only when you ask for it: the public server list from librespeed.org
   (Server -> Find nearby servers), DNS lookups to your DNS, 1.1.1.1, 8.8.8.8
-  and 9.9.9.9 (DNS test), and one ping per second to the chosen target and
-  your router (stability monitor). The Wi-Fi channel check sends nothing. If "Check for updates" is on (Settings,
+  and 9.9.9.9 (DNS test), one ping per second to the chosen target and
+  your router (stability monitor), and 5 short TCP connections without data
+  to each region, by default dynamodb.<region>.amazonaws.com (ping to
+  regions). The Wi-Fi channel check and the signal finder send nothing.
+  If "Check for updates" is on (Settings,
   on by default): one request to api.github.com for the latest version.
   The app does not read your files, browser history or passwords.
 
 FILES IT CREATES
   WiFiSpeedTester-data\   next to the exe: test history, settings, your ping
-                          targets and stability-monitor summaries
+                          targets, stability-monitor summaries and saved
+                          signal spots
                           (falls back to %APPDATA%\WiFiSpeedTester if the
                           folder is read-only)
   %LOCALAPPDATA%\WiFiSpeedTester\WebView2   browser engine cache

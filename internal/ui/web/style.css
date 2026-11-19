@@ -381,3 +381,37 @@ dialog h3 + p.small { margin-top: 0; }
 .runs h3 { margin: 0 0 4px; font-size: 13px; }
 .runs-tbl { margin-bottom: 0; }
 .hist-data { margin: -4px 0 10px; }
+
+/* --- v2.0: diagnosis, signal finder, regions --- */
+.diag-steps { list-style: none; padding: 0; margin: 4px 0 14px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.diag-steps li { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
+.ds-num { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--track); font-weight: 700; font-size: 12px; flex: none; }
+.ds-state { margin-left: auto; font-weight: 700; }
+.diag-steps li.run { border-color: var(--accent); }
+.diag-steps li.run .ds-num { background: var(--accent); color: var(--accent-ink); }
+.diag-steps li.done .ds-num { background: var(--ok); color: #fff; }
+.diag-steps li.done .ds-state { color: var(--ok); }
+.diag-steps li.skip { opacity: .6; }
+.diag-panel p { margin: 0 0 8px; max-width: 760px; }
+.diag-live { color: var(--muted); font-variant-numeric: tabular-nums; }
+.diag-result { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.diag-result h3 { margin: 0 0 6px; font-size: 17px; }
+.diag-result h3.dk-healthy { color: var(--ok); }
+#diagActions { margin: 4px 0 10px; }
+.diag-result p { margin: 0 0 8px; max-width: 780px; user-select: text; }
+.sig-big { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.sig-big b { font-size: 46px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.sig-word { font-weight: 700; font-size: 16px; }
+.sig-good { color: var(--ok); }
+.sig-fair { color: var(--fair); }
+.sig-weak { color: var(--poor); }
+.spot-name { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); min-width: 220px; user-select: text; }
+.reg-tbl td:last-child { width: 45%; }
+.reg-bar { display: block; height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; }
+.reg-bar i { display: block; height: 100%; border-radius: 4px; }
+.reg-good i { background: var(--ok); }
+.reg-ok i { background: var(--fair); }
+.reg-high i { background: var(--poor); }
+@media (max-width: 760px) {
+  .diag-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

@@ -168,6 +168,8 @@ type TestResult struct {
 	// Runs holds each round of a repeated test; the headline figures are
 	// their medians.
 	Runs []RunSummary `json:"runs,omitempty"`
+	// DNSMs is how long resolving the test server's name took.
+	DNSMs float64 `json:"dnsMs,omitempty"`
 }
 
 // RunSummary is one round of a repeated test.
@@ -281,4 +283,30 @@ type Failure struct {
 	Reason     string `json:"reason"`
 	Suggestion string `json:"suggestion"`
 	Technical  string `json:"technical,omitempty"`
+}
+
+// RegionResult is the latency to one cloud region.
+type RegionResult struct {
+	Label    string  `json:"label"`
+	Host     string  `json:"host"`
+	MedianMs float64 `json:"medianMs"`
+	MinMs    float64 `json:"minMs"`
+	Sent     int     `json:"sent"`
+	OK       int     `json:"ok"`
+	Error    string  `json:"error,omitempty"`
+}
+
+// DiagStep is one measured step of the guided diagnosis.
+type DiagStep struct {
+	Kind   string      `json:"kind"` // now | near | cable
+	Result *TestResult `json:"result"`
+}
+
+// Diagnosis is the conclusion of the guided diagnosis.
+type Diagnosis struct {
+	Kind    string   `json:"kind"` // offline | healthy | coverage | wifi | router | isp | unclear
+	Title   string   `json:"title"`
+	Detail  string   `json:"detail"`
+	Facts   []string `json:"facts"`
+	Actions []string `json:"actions"` // channel | dns | ispReport | monitor | router
 }

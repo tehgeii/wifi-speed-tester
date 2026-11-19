@@ -97,6 +97,8 @@ const TEXT = {
     'about.trafficDNSTest': 'Only when you run the DNS test: lookups of popular site names to your DNS and {0}',
     'about.trafficMonitor': 'Only while the stability monitor runs: one ping per second to the chosen target and your router',
     'about.trafficScan': 'The Wi-Fi channel check sends nothing; it reads the networks Windows already sees',
+    'about.trafficSignal': 'The Wi-Fi signal finder sends nothing; it reads the signal from Windows',
+    'about.trafficRegions': 'Only when you run Ping to regions: a few TCP connections, without data, to {0}',
     'about.cfgError': 'Config error (defaults in use): {0}', 'about.cfgLoaded': 'Loaded: {0}', 'about.cfgNone': 'No config file found — using built-in defaults.',
     privacy: 'Tests send traffic only to the speed-test server ({0}) and the ping targets. Nothing else leaves this computer.',
     live: 'live', measuring: 'measuring…', failed: 'failed', incomplete: 'incomplete', notAvailable: 'not available',
@@ -161,6 +163,28 @@ const TEXT = {
     'scan.nearby': 'Nearby networks', 'scan.name': 'Name', 'scan.hidden': '(hidden network)',
     'scan.yours': 'your channel', 'scan.suggested': 'suggested', 'scan.connected': 'connected',
     'busy.low': 'low', 'busy.medium': 'medium', 'busy.high': 'high',
+    'tab.diag': 'Diagnosis',
+    'diag.title': 'Automatic diagnosis',
+    'diag.intro': 'Finds out whether a slow connection comes from the Wi-Fi, the router or the ISP, in up to three short tests. Just follow the steps; nothing on your router is changed. These tests are not saved in History.',
+    'diag.s.now': 'Test where you are', 'diag.s.near': 'Test near the router', 'diag.s.cable': 'Test with a LAN cable (optional)', 'diag.s.result': 'Conclusion',
+    'diag.start': 'Start diagnosis', 'diag.skip': 'Skip this step', 'diag.again': 'Run again', 'diag.skipped': 'skipped',
+    'diag.ready': 'Step 1 runs a full test right where you normally use the internet (less than a minute).',
+    'diag.nearMsg': 'Now take this laptop close to the router: about 2 meters away, in the same room, with no wall in between. Then start the next test.',
+    'diag.goNear': 'Test near the router',
+    'diag.cableMsg': 'Optional: plug a LAN cable from this laptop into the router and wait until Windows shows the wired connection. No cable? Skip this step.',
+    'diag.goCable': 'Test with the cable', 'diag.skipToResult': 'Skip, show the conclusion',
+    'diag.cancelled': 'The test was cancelled. You can run this step again.',
+    'diag.act.channel': 'Check the Wi-Fi channel', 'diag.act.dns': 'Test DNS', 'diag.act.ispReport': 'Go to the ISP report', 'diag.act.monitor': 'Open the stability monitor',
+    'sig.title': 'Wi-Fi signal finder', 'sig.short': 'Find the best spot, live',
+    'sig.intro': 'Walk around with this laptop: the signal updates every second, so you can find the best spot for the laptop or for the router. It uses no internet data and stops when you leave this tool.',
+    'sig.start': 'Start', 'sig.beep': 'Beep (faster = stronger)', 'sig.chart': 'Signal (%), last 60 seconds', 'sig.now': 'now',
+    'sig.note': 'Windows refreshes the signal value every 1–5 seconds, depending on the Wi-Fi card.',
+    'sig.spotName': 'Spot name, e.g. Bedroom', 'sig.save': 'Save this spot', 'sig.spots': 'Saved spots, best first', 'sig.spot': 'Spot', 'sig.clear': 'Clear spots',
+    'sig.good': 'Strong', 'sig.fair': 'Fair', 'sig.weak': 'Weak',
+    'sig.error': 'Cannot read the Wi-Fi signal: {0}', 'sig.saved': 'Saved "{0}".',
+    'reg.title': 'Ping to regions', 'reg.short': 'Jakarta, Singapore, Tokyo…',
+    'reg.intro': 'Latency to the cloud regions where game and streaming servers run. Most Southeast Asian game servers are in Singapore. This is the latency to the region, not to one particular game server.',
+    'reg.start': 'Measure', 'reg.region': 'Region', 'reg.running': 'Measuring… {0}/{1}', 'reg.noAnswer': 'no answer',
   },
   id: {
     tagline: 'Cek kecepatan. Ukur ping. Pahami koneksimu.',
@@ -234,6 +258,8 @@ const TEXT = {
     'about.trafficDNSTest': 'Hanya saat kamu menjalankan tes DNS: pencarian nama situs populer ke DNS kamu dan {0}',
     'about.trafficMonitor': 'Hanya selama monitor stabilitas berjalan: satu ping per detik ke target yang dipilih dan router kamu',
     'about.trafficScan': 'Cek channel Wi-Fi tidak mengirim apa pun; hanya membaca jaringan yang sudah terlihat oleh Windows',
+    'about.trafficSignal': 'Pencari sinyal Wi-Fi tidak mengirim apa pun; hanya membaca sinyal dari Windows',
+    'about.trafficRegions': 'Hanya saat kamu menjalankan Ping ke region: beberapa koneksi TCP tanpa data ke {0}',
     'about.cfgError': 'Konfigurasi bermasalah (memakai bawaan): {0}', 'about.cfgLoaded': 'Dimuat: {0}', 'about.cfgNone': 'File konfigurasi tidak ditemukan — memakai pengaturan bawaan.',
     privacy: 'Tes hanya mengirim data ke server speed test ({0}) dan target ping. Tidak ada data lain yang keluar dari komputer ini.',
     live: 'langsung', measuring: 'mengukur…', failed: 'gagal', incomplete: 'tidak lengkap', notAvailable: 'tidak tersedia',
@@ -298,6 +324,28 @@ const TEXT = {
     'scan.nearby': 'Jaringan di sekitar', 'scan.name': 'Nama', 'scan.hidden': '(jaringan tersembunyi)',
     'scan.yours': 'channel kamu', 'scan.suggested': 'disarankan', 'scan.connected': 'terhubung',
     'busy.low': 'sepi', 'busy.medium': 'sedang', 'busy.high': 'ramai',
+    'tab.diag': 'Diagnosa',
+    'diag.title': 'Diagnosa otomatis',
+    'diag.intro': 'Mencari tahu apakah koneksi lambat karena Wi-Fi, router, atau ISP, lewat maksimal tiga tes singkat. Ikuti saja langkahnya; tidak ada pengaturan router yang diubah. Tes di sini tidak disimpan ke Riwayat.',
+    'diag.s.now': 'Tes di posisi sekarang', 'diag.s.near': 'Tes dekat router', 'diag.s.cable': 'Tes pakai kabel LAN (opsional)', 'diag.s.result': 'Kesimpulan',
+    'diag.start': 'Mulai diagnosa', 'diag.skip': 'Lewati langkah ini', 'diag.again': 'Ulangi diagnosa', 'diag.skipped': 'dilewati',
+    'diag.ready': 'Langkah 1 menjalankan tes lengkap di tempat kamu biasa memakai internet (kurang dari 1 menit).',
+    'diag.nearMsg': 'Sekarang bawa laptop ini ke dekat router: sekitar 2 meter, di ruangan yang sama, tanpa tembok di antaranya. Lalu mulai tes berikutnya.',
+    'diag.goNear': 'Tes dekat router',
+    'diag.cableMsg': 'Opsional: colok kabel LAN dari laptop ini ke router, lalu tunggu sampai Windows menampilkan koneksi kabel. Tidak punya kabel? Lewati saja langkah ini.',
+    'diag.goCable': 'Tes pakai kabel', 'diag.skipToResult': 'Lewati, lihat kesimpulan',
+    'diag.cancelled': 'Tes dibatalkan. Kamu bisa mengulang langkah ini.',
+    'diag.act.channel': 'Cek channel Wi-Fi', 'diag.act.dns': 'Tes DNS', 'diag.act.ispReport': 'Buka Laporan ISP', 'diag.act.monitor': 'Buka monitor stabilitas',
+    'sig.title': 'Pencari sinyal Wi-Fi', 'sig.short': 'Cari posisi terbaik, langsung',
+    'sig.intro': 'Bawa laptop ini berkeliling: sinyal diperbarui tiap detik, jadi kamu bisa menemukan posisi terbaik untuk laptop atau untuk router. Tidak memakai kuota internet dan berhenti saat kamu keluar dari alat ini.',
+    'sig.start': 'Mulai', 'sig.beep': 'Bunyi (makin cepat = makin kuat)', 'sig.chart': 'Sinyal (%), 60 detik terakhir', 'sig.now': 'sekarang',
+    'sig.note': 'Windows memperbarui nilai sinyal tiap 1–5 detik, tergantung kartu Wi-Fi.',
+    'sig.spotName': 'Nama titik, misalnya Kamar', 'sig.save': 'Simpan titik ini', 'sig.spots': 'Titik tersimpan, terbaik di atas', 'sig.spot': 'Titik', 'sig.clear': 'Hapus semua titik',
+    'sig.good': 'Kuat', 'sig.fair': 'Cukup', 'sig.weak': 'Lemah',
+    'sig.error': 'Sinyal Wi-Fi tidak bisa dibaca: {0}', 'sig.saved': '"{0}" disimpan.',
+    'reg.title': 'Ping ke region', 'reg.short': 'Jakarta, Singapura, Tokyo…',
+    'reg.intro': 'Latensi ke region cloud tempat server game dan streaming berjalan. Sebagian besar server game Asia Tenggara ada di Singapura. Ini latensi ke region-nya, bukan ke server game tertentu.',
+    'reg.start': 'Ukur', 'reg.region': 'Region', 'reg.running': 'Mengukur… {0}/{1}', 'reg.noAnswer': 'tidak menjawab',
   },
 };
 
@@ -470,9 +518,7 @@ function setRunning(on) {
   $('#subActions').classList.toggle('hidden', on);
   $('#cancelBtn').disabled = false;
   $$('#modeSeg button').forEach(b => { b.disabled = on; });
-  $('#tabHistory').disabled = on;
-  $('#tabTools').disabled = on;
-  $('#settingsBtn').disabled = on;
+  lockTabs(on);
   if (!on) activeMetric('');
   renderTestOpts();
 }
@@ -481,6 +527,7 @@ const stageLabel = s => (state.runs > 1 && state.running ? t('run.label', state.
   + ({ connection: t('gauge.checking'), ping: t('stage.ping'), download: 'Download', upload: 'Upload' }[s] || '');
 
 function onTestEvent(ev) {
+  if (diag.running) { onDiagTestEvent(ev); return; }
   switch (ev.type) {
     case 'stage':
       $$('.stage').forEach(s => s.classList.toggle('on', s.dataset.stage === ev.stage));
@@ -975,8 +1022,9 @@ async function refreshHistoryList() {
 }
 
 // ---- views & theme -------------------------------------------------------------
-const viewSel = { test: '#dashboard', history: '#historyView', tools: '#toolsView' };
+const viewSel = { test: '#dashboard', diag: '#diagView', history: '#historyView', tools: '#toolsView' };
 function showView(v) {
+  if (v !== 'tools') sigStop();
   for (const [k, sel] of Object.entries(viewSel)) $(sel).classList.toggle('hidden', k !== v);
   $$('.tabs [role="tab"]').forEach(b => {
     const on = b.dataset.view === v;
@@ -985,7 +1033,13 @@ function showView(v) {
   });
   if (v === 'history') loadHistory();
   if (v === 'tools') openTools();
+  if (v === 'diag') renderDiag();
   window.scrollTo(0, 0);
+}
+// While a test or a diagnosis runs, only its own tab stays usable.
+function lockTabs(on) {
+  $$('.tabs [role="tab"]').forEach(b => { b.disabled = on && b.getAttribute('aria-selected') !== 'true'; });
+  $('#settingsBtn').disabled = on;
 }
 $$('.tabs [role="tab"]').forEach(b => { b.onclick = () => showView(b.dataset.view); });
 // Arrow keys move between tabs, as in any tab strip.
@@ -1018,6 +1072,7 @@ function redrawCharts() {
   if (state.result && !$('#detailsCard').classList.contains('hidden')) renderDetails(state.result);
   if (!$('#historyView').classList.contains('hidden')) renderTrend(filteredHistory());
   if (!$('#toolsView').classList.contains('hidden') && mon.samples.length) drawMonitor();
+  if (!$('#signalCard').classList.contains('hidden') && sig.samples.length) drawSignal();
 }
 
 // ---- history --------------------------------------------------------------
@@ -1254,6 +1309,7 @@ $('#histCsv').onclick = () => bridge.call('export', { format: 'history-csv', uni
 window.addEventListener('resize', () => {
   if (!$('#historyView').classList.contains('hidden')) renderTrend(filteredHistory());
   if (!$('#toolsView').classList.contains('hidden') && mon.samples.length) drawMonitor();
+  if (!$('#signalCard').classList.contains('hidden') && sig.samples.length) drawSignal();
 });
 
 // ---- server picker ----------------------------------------------------------
@@ -1433,6 +1489,8 @@ function showTool(id) {
   $$('#toolsView > section.tool').forEach(c => c.classList.toggle('hidden', c.id !== id));
   if (prefs.tool !== id) store.set('tool', id);
   if (id === 'monitorCard' && mon.samples.length) drawMonitor();
+  // The signal finder runs only while it is on screen.
+  if (id === 'signalCard') { loadSpots(); if (sig.samples.length) drawSignal(); } else sigStop();
 }
 $$('.tool-picker [role="tab"]').forEach(b => { b.onclick = () => showTool(b.dataset.tool); });
 
@@ -1657,6 +1715,328 @@ function renderTools() {
   for (const o of $$('#monMinutes option')) o.textContent = `${o.value} ${t('min')}`;
   if (tools.scan) renderScan();
   if (tools.dns) renderDNS();
+  $('#spotName').placeholder = t('sig.spotName');
+  renderSig();
+  renderSpots();
+  renderRegions();
+  renderDiag();
+}
+
+// ---- Wi-Fi signal finder --------------------------------------------------------
+// Reads the signal once a second while this tool is open; no internet data.
+const sig = { running: false, token: 0, samples: [], wifi: null, spots: [], beepTimer: 0, audio: null };
+const sigLevel = p => (p >= 60 ? 'good' : p >= 40 ? 'fair' : 'weak');
+
+function sigStart() {
+  if (sig.running) return;
+  Object.assign(sig, { running: true, token: sig.token + 1, samples: [], wifi: null });
+  $('#sigError').textContent = '';
+  renderSig();
+  bridge.call('signalStart', sig.token).catch(e => {
+    sig.running = false;
+    renderSig();
+    $('#sigError').textContent = t('sig.error', e.message);
+  });
+}
+function sigStop() {
+  if (!sig.running) return;
+  sig.running = false;
+  renderSig();
+  bridge.call('signalStop').catch(() => {});
+}
+$('#sigStart').onclick = () => { audioReady(); sigStart(); };
+$('#sigStop').onclick = sigStop;
+$('#sigBeep').onchange = () => { audioReady(); beepUpdate(); };
+
+function onSignal(p) {
+  if (p.token !== sig.token || !sig.running) return;
+  if (p.stopped) { sig.running = false; renderSig(); return; }
+  if (p.error) { $('#sigError').textContent = t('sig.error', p.error); return; }
+  $('#sigError').textContent = '';
+  sig.wifi = p.wifi;
+  sig.samples.push({ t: p.t, pct: p.wifi.signalPercent, rssi: p.wifi.rssi });
+  sig.samples = sig.samples.filter(s => s.t > p.t - 60);
+  renderSig();
+  drawSignal();
+}
+
+function renderSig() {
+  $('#sigStart').classList.toggle('hidden', sig.running);
+  $('#sigStop').classList.toggle('hidden', !sig.running);
+  $('#spotSave').disabled = !sig.running || !sig.samples.length;
+  const w = sig.wifi;
+  $('#sigLive').classList.toggle('hidden', !w);
+  beepUpdate();
+  if (!w) return;
+  const lvl = sigLevel(w.signalPercent);
+  $('#sigPct').textContent = w.signalPercent + '%';
+  $('#sigPct').className = 'sig-' + lvl;
+  $('#sigWord').textContent = t('sig.' + lvl);
+  $('#sigWord').className = 'sig-word sig-' + lvl;
+  $('#sigDbm').textContent = w.rssi ? w.rssi + ' dBm' : '';
+  $('#sigMeta').textContent = [w.ssid, w.band, w.channel ? 'ch ' + w.channel : '',
+    w.rxRateMbps ? t('net.link') + ' ' + num(w.rxRateMbps) + ' Mbps' : ''].filter(Boolean).join(' · ');
+}
+
+function drawSignal() {
+  const { ctx, W, H } = setupCanvas($('#plotSig canvas'));
+  const xs = sig.samples;
+  const L = 40, R = 12, T = 10, B = 22;
+  // The newest reading sits at "now" on the right; older ones scroll left.
+  const end = xs.length ? xs[xs.length - 1].t : 0;
+  const x = sec => L + ((sec - (end - 60)) / 60) * (W - L - R);
+  const y = v => T + (1 - v / 100) * (H - T - B);
+  ctx.strokeStyle = cssVar('--line'); ctx.lineWidth = 1; ctx.fillStyle = cssVar('--muted'); ctx.textAlign = 'right';
+  // 40% and 60% are where the reading turns weak / strong.
+  for (const v of [0, 40, 60, 100]) {
+    const yy = Math.round(y(v)) + 0.5;
+    ctx.beginPath(); ctx.moveTo(L, yy); ctx.lineTo(W - R, yy); ctx.stroke();
+    ctx.fillText(v + '%', L - 6, yy + 4);
+  }
+  ctx.textAlign = 'left'; ctx.fillText('−60 s', L, H - 6);
+  ctx.textAlign = 'right'; ctx.fillText(t('sig.now'), W - R, H - 6); ctx.textAlign = 'left';
+  if (!xs.length) return;
+  const col = cssVar('--series-1');
+  ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.beginPath();
+  xs.forEach((s, i) => (i ? ctx.lineTo(x(s.t), y(s.pct)) : ctx.moveTo(x(s.t), y(s.pct))));
+  ctx.stroke();
+  const last = xs[xs.length - 1];
+  dot(ctx, x(last.t), y(last.pct), col);
+}
+
+// Metal-detector beep: the stronger the signal, the faster it ticks. The
+// audio is unlocked by a click, as browsers require.
+function audioReady() {
+  if (!$('#sigBeep').checked) return;
+  try { sig.audio = sig.audio || new AudioContext(); sig.audio.resume(); } catch { /* no audio */ }
+}
+function beepUpdate() {
+  const want = sig.running && !!sig.wifi && $('#sigBeep').checked;
+  if (want && !sig.beepTimer) beepTick();
+  if (!want && sig.beepTimer) { clearTimeout(sig.beepTimer); sig.beepTimer = 0; }
+}
+function beepTick() {
+  const p = sig.wifi ? sig.wifi.signalPercent : 0;
+  try {
+    const a = sig.audio, o = a.createOscillator(), g = a.createGain();
+    o.frequency.value = 520 + p * 6;
+    g.gain.setValueAtTime(0.08, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.08);
+    o.connect(g).connect(a.destination);
+    o.start();
+    o.stop(a.currentTime + 0.09);
+  } catch { /* no audio */ }
+  sig.beepTimer = setTimeout(() => { sig.beepTimer = 0; beepUpdate(); }, 1400 - p * 12);
+}
+
+async function loadSpots() {
+  try { sig.spots = await bridge.call('getSpots') || []; } catch { sig.spots = []; }
+  renderSpots();
+}
+function renderSpots() {
+  const list = [...sig.spots].sort((a, b) => b.signalPercent - a.signalPercent);
+  $('#spotBox').classList.toggle('hidden', list.length === 0);
+  $('#spotTable tbody').innerHTML = list.map((s, i) => {
+    const best = i === 0 && list.length > 1;
+    return `<tr class="${best ? 'suggested' : ''}"><td>${i + 1}</td><td>${esc(s.name)}${best ? ' ★' : ''}</td>
+      <td><b class="sig-${sigLevel(s.signalPercent)}">${s.signalPercent}%</b>${s.rssi ? ` <span class="muted">${s.rssi} dBm</span>` : ''}</td></tr>`;
+  }).join('');
+}
+// A spot keeps the average of the last 5 readings, so one odd reading
+// does not decide it.
+$('#spotSave').onclick = async () => {
+  const recent = sig.samples.slice(-5);
+  if (!recent.length) return;
+  const avg = list => (list.length ? Math.round(list.reduce((a, v) => a + v, 0) / list.length) : 0);
+  const name = $('#spotName').value.trim();
+  try {
+    sig.spots = await bridge.call('saveSpot', { name, signalPercent: avg(recent.map(s => s.pct)), rssi: avg(recent.map(s => s.rssi).filter(Boolean)) }) || [];
+    $('#spotName').value = '';
+    renderSpots();
+    toast(t('sig.saved', name));
+  } catch (e) { toast(e.message); }
+};
+$('#spotName').onkeydown = e => { if (e.key === 'Enter') $('#spotSave').click(); };
+$('#spotClear').onclick = async () => {
+  try { await bridge.call('clearSpots'); sig.spots = []; renderSpots(); } catch (e) { toast(e.message); }
+};
+
+// ---- ping to regions ---------------------------------------------------------------
+const reg = { running: false, total: 0, results: [], advice: [] };
+$('#regStart').onclick = () => {
+  Object.assign(reg, { running: true, total: 0, results: [], advice: [] });
+  renderRegions();
+  bridge.call('regionTest').catch(e => { reg.running = false; renderRegions(); toast(e.message); });
+};
+function onRegion(p) {
+  if (p.results) Object.assign(reg, { running: false, results: p.results, advice: p.advice || [] });
+  else if (p.result) reg.results.push(p.result);
+  else if (p.total !== undefined) reg.total = p.total;
+  renderRegions();
+}
+function renderRegions() {
+  $('#regStart').disabled = reg.running;
+  $('#regStatus').textContent = reg.running ? t('reg.running', reg.results.length, reg.total || '…') : '';
+  // Fastest first, as they arrive; regions that did not answer go last.
+  const rows = [...reg.results].sort((a, b) => (b.ok > 0) - (a.ok > 0) || a.medianMs - b.medianMs);
+  $('#regTable').classList.toggle('hidden', rows.length === 0);
+  const max = Math.max(1, ...rows.filter(r => r.ok > 0).map(r => r.medianMs));
+  $('#regTable tbody').innerHTML = rows.map(r => {
+    if (!(r.ok > 0)) return `<tr data-label="${esc(r.label)}"><td>${esc(r.label)}</td><td class="muted">${esc(t('reg.noAnswer'))}</td><td></td></tr>`;
+    // Same limits as online games in "What is it good for?".
+    const cls = r.medianMs <= 60 ? 'reg-good' : r.medianMs <= 100 ? 'reg-ok' : 'reg-high';
+    return `<tr data-label="${esc(r.label)}"><td>${esc(r.label)}</td><td>${ms(r.medianMs)} ms</td>
+      <td><span class="reg-bar ${cls}"><i style="width:${Math.max(4, Math.round(r.medianMs / max * 100))}%"></i></span></td></tr>`;
+  }).join('');
+  $('#regAdvice').innerHTML = reg.advice.map(a => `<li>${esc(a)}</li>`).join('');
+}
+
+// ---- guided diagnosis ------------------------------------------------------------
+// Up to three tests (where you are, near the router, on a cable); Go draws
+// the conclusion. A step is skipped once the answer is already clear. The
+// tests are not stored in History.
+const diag = { step: 'now', steps: [], marks: {}, running: false, cancelled: false, result: null };
+
+function diagReset() {
+  Object.assign(diag, { step: 'now', steps: [], marks: {}, running: false, cancelled: false, result: null });
+  renderDiag();
+}
+
+function diagMarkText(k) {
+  const m = diag.marks[k];
+  if (m === 'skip') return t('diag.skipped');
+  const st = diag.steps.find(x => x.kind === k);
+  const r = st && st.result;
+  if (!r) return '';
+  if (r.download && r.download.mbps > 0) return '↓ ' + speed(r.download.mbps) + ' ' + state.unit;
+  return r.failure ? '✗' : '✓';
+}
+
+function renderDiag() {
+  for (const k of ['now', 'near', 'cable', 'result']) {
+    const li = $(`#diagSteps [data-step="${k}"]`);
+    const m = diag.marks[k];
+    li.className = k === diag.step && !diag.result ? 'run' : m === 'skip' ? 'skip' : m ? 'done' : '';
+    li.querySelector('.ds-state').textContent = diagMarkText(k);
+  }
+  const done = !!diag.result;
+  $('#diagPanel').classList.toggle('hidden', done);
+  $('#diagResult').classList.toggle('hidden', !done);
+  if (done) { renderDiagResult(); return; }
+  const s = diag.step;
+  $('#diagMsg').textContent = t(diag.cancelled ? 'diag.cancelled' : { now: 'diag.ready', near: 'diag.nearMsg', cable: 'diag.cableMsg' }[s]);
+  $('#diagGo').textContent = t({ now: 'diag.start', near: 'diag.goNear', cable: 'diag.goCable' }[s]);
+  $('#diagGo').classList.toggle('hidden', diag.running);
+  $('#diagCancel').classList.toggle('hidden', !diag.running);
+  $('#diagSkip').classList.toggle('hidden', diag.running || s === 'now');
+  $('#diagSkip').textContent = t(s === 'cable' ? 'diag.skipToResult' : 'diag.skip');
+  $('#diagLive').classList.toggle('hidden', !diag.running);
+}
+
+function setDiagRunning(on) {
+  diag.running = on;
+  $('#diagCancel').disabled = false;
+  lockTabs(on);
+  renderDiag();
+}
+
+async function diagRun() {
+  diag.cancelled = false;
+  $('#diagStage').textContent = t('gauge.starting');
+  $('#diagValue').textContent = '';
+  setDiagRunning(true);
+  try {
+    await bridge.call('startTest', 'general', { diagnosis: true, dataSaver: state.saver });
+  } catch (e) {
+    setDiagRunning(false);
+    toast(e.message);
+  }
+}
+$('#diagGo').onclick = diagRun;
+$('#diagCancel').onclick = () => { $('#diagCancel').disabled = true; bridge.call('cancelTest'); };
+$('#diagSkip').onclick = () => {
+  diag.marks[diag.step] = 'skip';
+  diag.cancelled = false;
+  if (diag.step === 'near') { diag.step = 'cable'; renderDiag(); } else diagConclude();
+};
+$('#diagAgain').onclick = diagReset;
+
+// While a diagnosis step runs, test events update this panel only; the
+// Test tab keeps the last normal result.
+function onDiagTestEvent(ev) {
+  switch (ev.type) {
+    case 'stage':
+      $('#diagStage').textContent = stageLabel(ev.stage);
+      $('#diagValue').textContent = '';
+      break;
+    case 'network':
+      renderNetwork(ev.network);
+      break;
+    case 'progress':
+      if (ev.stage === 'ping' && ev.rttMs) $('#diagValue').textContent = ms(ev.rttMs) + ' ms';
+      else if (ev.stage === 'download' || ev.stage === 'upload') $('#diagValue').textContent = speed(ev.mbps || 0) + ' ' + state.unit;
+      break;
+    case 'result':
+      diagStepDone(ev.result);
+      break;
+  }
+}
+
+// A cable or a walk to the router only helps on a wireless link.
+const wireless = r => !(r.network && ['Ethernet', 'Cellular'].includes(r.network.connection));
+
+async function diagStepDone(r) {
+  setDiagRunning(false);
+  if (r.cancelled) { diag.cancelled = true; renderDiag(); return; }
+  const kind = diag.step;
+  diag.steps = diag.steps.filter(s => s.kind !== kind).concat([{ kind, result: r }]);
+  diag.marks[kind] = 'done';
+  let d = null;
+  try { d = await bridge.call('diagnose', diag.steps); } catch (e) { toast(e.message); }
+  const clear = !d || kind === 'cable' || ['healthy', 'offline', 'offlineLocal', 'coverage'].includes(d.kind)
+    || (kind === 'now' && !wireless(r));
+  if (clear) { diagConclude(d); return; }
+  diag.step = kind === 'now' ? 'near' : 'cable';
+  renderDiag();
+}
+
+async function diagConclude(d) {
+  if (!d) {
+    try { d = await bridge.call('diagnose', diag.steps); } catch (e) { toast(e.message); renderDiag(); return; }
+  }
+  for (const k of ['near', 'cable']) if (!diag.marks[k]) diag.marks[k] = 'skip';
+  diag.marks.result = 'done';
+  diag.step = 'result';
+  diag.result = d;
+  renderDiag();
+  bridge.call('attention').catch(() => {});
+}
+
+function openTool(id) { showView('tools'); showTool(id); }
+const diagActions = {
+  channel: ['diag.act.channel', () => openTool('wifiCard')],
+  dns: ['diag.act.dns', () => openTool('dnsCard')],
+  ispReport: ['diag.act.ispReport', () => showView('history')],
+  monitor: ['diag.act.monitor', () => openTool('monitorCard')],
+};
+function renderDiagResult() {
+  const d = diag.result;
+  $('#diagTitle').textContent = (d.kind === 'healthy' ? '✓ ' : '⚠ ') + d.title;
+  $('#diagTitle').className = 'dk-' + d.kind;
+  $('#diagDetail').textContent = d.detail;
+  $('#diagFacts').innerHTML = (d.facts || []).map(f => `<li>${esc(f)}</li>`).join('');
+  const box = $('#diagActions');
+  box.innerHTML = '';
+  for (const a of d.actions || []) {
+    if (!diagActions[a]) continue; // "router" is advice in the text, not a tool
+    const b = document.createElement('button');
+    b.className = 'ghost small';
+    b.dataset.action = a;
+    b.textContent = t(diagActions[a][0]);
+    b.onclick = diagActions[a][1];
+    box.appendChild(b);
+  }
+  box.classList.toggle('hidden', box.children.length === 0);
 }
 
 // ---- about ------------------------------------------------------------------
@@ -1672,7 +2052,9 @@ $('#aboutBtn').onclick = async () => {
     t('about.trafficDNS'),
     t('about.trafficDNSTest', (i.dnsServers || []).join(', ')),
     t('about.trafficMonitor'),
+    t('about.trafficRegions', (i.regions || []).join(', ')),
     t('about.trafficScan'),
+    t('about.trafficSignal'),
     t('about.trafficUpdate'),
   ].map(s => `<li>${esc(s)}</li>`).join('');
   $('#aboutHistory').textContent = i.historyPath || '';
@@ -1707,6 +2089,8 @@ bridge.listen((name, payload) => {
   else if (name === 'monitor') onMonitor(payload);
   else if (name === 'dns') onDNS(payload);
   else if (name === 'wifiscan') onScan(payload);
+  else if (name === 'signal') onSignal(payload);
+  else if (name === 'region') onRegion(payload);
 });
 
 // ---- init ---------------------------------------------------------------------
@@ -1738,6 +2122,7 @@ bridge.listen((name, payload) => {
 
 window.addEventListener('keydown', e => {
   if (e.key === 'Escape' && state.running) $('#cancelBtn').click();
+  if (e.key === 'Escape' && diag.running) $('#diagCancel').click();
   // Ctrl+1/2/3 switch tabs, like browser tabs.
   if (e.ctrlKey && !e.altKey && !e.shiftKey && /^[1-9]$/.test(e.key)) {
     const tab = $$('.tabs [role="tab"]')[+e.key - 1];

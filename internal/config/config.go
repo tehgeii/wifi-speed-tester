@@ -130,7 +130,10 @@ type Config struct {
 	ConnectivityHost  string       `json:"connectivityHost"`
 	ServerListURL     string       `json:"serverListUrl"` // public LibreSpeed list, fetched only on request
 	DNSServers        []PingTarget `json:"dnsServers"`    // public resolvers compared in the DNS test
-	PlanLowPct        float64      `json:"planLowPct"`    // below this % of the ISP plan a tip suggests action
+	// Regions are cloud endpoints for "ping to region" (TCP connect time to
+	// host, port 443 unless given as host:port).
+	Regions    []PingTarget `json:"regions"`
+	PlanLowPct float64      `json:"planLowPct"` // below this % of the ISP plan a tip suggests action
 	// Data saver: each direction runs at most this long and stops after
 	// this much data (megabytes).
 	DataSaverSeconds    float64            `json:"dataSaverSeconds"`
@@ -169,6 +172,17 @@ func Default() Config {
 			{Label: "Cloudflare", Host: "1.1.1.1"},
 			{Label: "Google", Host: "8.8.8.8"},
 			{Label: "Quad9", Host: "9.9.9.9"},
+		},
+		Regions: []PingTarget{
+			{Label: "Jakarta", Host: "dynamodb.ap-southeast-3.amazonaws.com"},
+			{Label: "Singapore", Host: "dynamodb.ap-southeast-1.amazonaws.com"},
+			{Label: "Kuala Lumpur", Host: "dynamodb.ap-southeast-5.amazonaws.com"},
+			{Label: "Hong Kong", Host: "dynamodb.ap-east-1.amazonaws.com"},
+			{Label: "Tokyo", Host: "dynamodb.ap-northeast-1.amazonaws.com"},
+			{Label: "Mumbai", Host: "dynamodb.ap-south-1.amazonaws.com"},
+			{Label: "Sydney", Host: "dynamodb.ap-southeast-2.amazonaws.com"},
+			{Label: "Frankfurt", Host: "dynamodb.eu-central-1.amazonaws.com"},
+			{Label: "California", Host: "dynamodb.us-west-1.amazonaws.com"},
 		},
 		PlanLowPct:          50,
 		DataSaverSeconds:    5,
@@ -291,6 +305,21 @@ func (c Config) Validate() error {
 	for _, d := range c.DNSServers {
 		if net.ParseIP(d.Host) == nil {
 			return fmt.Errorf("dnsServers: %q must be an IP address", d.Host)
+		}
+	}
+	if len(c.Regions) > 20 {
+		return fmt.Errorf("regions: at most 20")
+	}
+	for _, rg := range c.Regions {
+		h := rg.Host
+		if host, port, err := net.SplitHostPort(rg.Host); err == nil {
+			if n, err := strconv.Atoi(port); err != nil || n < 1 || n > 65535 {
+				return fmt.Errorf("regions: bad port in %q", rg.Host)
+			}
+			h = host
+		}
+		if rg.Label == "" || !ValidTargetHost(h) {
+			return fmt.Errorf("regions: %q needs a label and a valid host", rg.Host)
 		}
 	}
 	if c.PlanLowPct < 0 || c.PlanLowPct > 100 {

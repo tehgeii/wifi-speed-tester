@@ -55,8 +55,11 @@ Windows berbahasa Indonesia: **Info selengkapnya → Tetap jalankan**).
 | Satuan | Mbps (bawaan) atau MB/s (80 Mbps = 10 MB/s) |
 | Export | **Bagikan**: **Salin hasil** dan **Kartu PNG**, yang tidak pernah memuat nama Wi-Fi atau alamat IP. **Simpan sebagai file**: TXT, JSON dan CSV, yang menyamarkan data itu (`Ho*****`, `192.168.1.x`) kecuali kamu mencentang **Sertakan identitas jaringan**; keterangan di bawah tombol menunjukkan persis apa yang disembunyikan. TXT memuat nama Wi-Fi dan IP, JSON juga BSSID, CSV hanya nama Wi-Fi |
 | Riwayat | Disimpan di komputer sendiri sebagai JSON di samping file exe; grafik tren kecepatan dan ping dari waktu ke waktu, rata-rata per jenis koneksi (Wi-Fi vs Ethernet…), % dari paket, filter 7/30 hari, buka ulang hasil, export ke CSV, hapus |
+| Diagnosa otomatis | Tab **Diagnosa**: panduan langkah demi langkah untuk mencari tahu koneksi lambat karena **jangkauan Wi-Fi, Wi-Fi-nya, router, atau ISP**. Tes di posisi sekarang → tes dekat router (khusus Wi-Fi) → tes pakai kabel LAN (opsional), lalu kesimpulan yang jelas plus tombol ke alat yang cocok (Cek channel, Laporan ISP, Monitor). Langkah yang tidak perlu dilewati otomatis, dan tes diagnosa tidak masuk Riwayat |
 | Laporan ISP | **Riwayat → Laporan ISP** membuat ringkasan teks untuk dikirim ke ISP: rata-rata, % dari paket, hasil per jam, tes paling lambat, dan hasil monitor stabilitas |
 | Monitor stabilitas | **Alat** → ping ke satu target dan ke router setiap detik selama 5–30 menit untuk menangkap putus sesaat dan lonjakan lag, dengan grafik langsung, kesimpulan (stabil / ada lonjakan / putus; masalahnya di router atau setelahnya) dan laporan TXT. Hanya berjalan selama jendela aplikasi terbuka, dan berhenti saat kamu menekan Stop atau menutup aplikasi |
+| Pencari sinyal Wi-Fi | **Alat** → angka sinyal besar (%, dBm) yang **diperbarui tiap detik**, grafik 60 detik terakhir, dan bunyi seperti detektor logam (opsional, makin kuat makin cepat). Bawa laptop berkeliling untuk mencari posisi terbaik, lalu **simpan titik** ("Kamar", "Ruang tamu") untuk melihat peringkatnya. Tidak memakai kuota sama sekali, dan berhenti sendiri saat kamu keluar dari alat ini |
+| Ping ke region | **Alat** → latensi ke region cloud Jakarta, Singapura, Kuala Lumpur, Hong Kong, Tokyo, Mumbai, Sydney, Frankfurt dan California, muncul satu per satu begitu terukur, plus kesimpulan untuk game (sebagian besar server game Asia Tenggara ada di Singapura). Ini ping ke region-nya, bukan ke server game tertentu |
 | Tes DNS | **Alat** → membandingkan seberapa cepat DNS kamu sekarang, Cloudflare, Google dan Quad9 menjawab, lalu bilang perlu ganti atau tidak |
 | Cek channel Wi-Fi | **Alat** → menampilkan jaringan Wi-Fi di sekitar (hanya membaca, dari Windows) dan seberapa ramai tiap channel, plus saran channel untuk diatur di router |
 | Salin hasil | Ringkasan singkat untuk WhatsApp, Discord atau di mana saja, tanpa nama Wi-Fi atau alamat IP |
@@ -64,7 +67,7 @@ Windows berbahasa Indonesia: **Info selengkapnya → Tetap jalankan**).
 | Error | Penyebab dan saran dengan bahasa sederhana, detail teknisnya bisa dibuka kalau perlu |
 | Batal | Menghentikan semua aktivitas jaringan saat itu juga (tombol Esc juga bisa) |
 | Satu jendela | Kalau exe-nya dibuka lagi, jendela yang sudah terbuka langsung muncul ke depan, bukan membuka jendela kedua |
-| Tampilan | Navigasi tab **Tes · Riwayat · Alat** (juga lewat Ctrl+1/2/3), tema **Terang / Gelap / Ikuti Windows** di **Pengaturan ⚙** (title bar jendela ikut berubah), ukuran dan posisi jendela diingat, dan tombol taskbar berkedip saat tes atau monitor selesai sementara kamu membuka aplikasi lain |
+| Tampilan | Navigasi tab **Tes · Diagnosa · Riwayat · Alat** (juga lewat Ctrl+1/2/3/4), tema **Terang / Gelap / Ikuti Windows** di **Pengaturan ⚙** (title bar jendela ikut berubah), ukuran dan posisi jendela diingat, dan tombol taskbar berkedip saat tes, diagnosa atau monitor selesai sementara kamu membuka aplikasi lain |
 
 ## Kebutuhan sistem
 
@@ -89,14 +92,19 @@ dibutuhkan untuk mengukur koneksi:
   dan `9.9.9.9`;
 - hanya selama **Monitor stabilitas** berjalan: satu ping per detik ke target
   yang dipilih dan ke router;
+- hanya saat kamu menjalankan **Ping ke region**: 5 koneksi TCP singkat tanpa
+  data ke tiap region (bawaannya `dynamodb.<region>.amazonaws.com` port 443,
+  milik Amazon Web Services);
+- **Diagnosa otomatis** menjalankan speed test biasa ke server yang sama;
 - hanya saat kamu menekan **Cari server terdekat**: daftar server publik dari
   `librespeed.org` dan satu permintaan kecil ke tiap server di daftar itu;
 - hanya kalau **Cek update saat aplikasi dibuka** menyala (**Pengaturan ⚙**,
   menyala secara bawaan): satu permintaan ke `api.github.com` untuk melihat
   versi terbaru.
 
-**Cek channel Wi-Fi** tidak mengirim apa pun: fitur ini hanya meminta daftar
-jaringan yang memang sudah terlihat oleh Windows. Aplikasi ini tidak membaca
+**Cek channel Wi-Fi** dan **Pencari sinyal Wi-Fi** tidak mengirim apa pun:
+keduanya hanya membaca jaringan dan sinyal yang memang sudah terlihat oleh
+Windows. Aplikasi ini tidak membaca
 file, riwayat browser atau password, tidak punya telemetri, dan tidak berjalan
 di latar belakang. Dialog **Tentang** (tombol `?`) menampilkan ke mana saja
 lalu lintas dikirim sesuai pengaturan yang sedang dipakai.
@@ -107,8 +115,9 @@ File yang dibuat aplikasi:
   `settings.json` (bahasa, satuan, mode, tema, cek update, kecepatan paket),
   `window.json` (ukuran dan posisi jendela),
   `server.json` (server yang dipilih di aplikasi, kalau ada), `targets.json`
-  (target ping tambahanmu) dan `monitors.json` (20 ringkasan monitor
-  stabilitas terakhir). Kalau folder itu tidak bisa ditulisi, aplikasi
+  (target ping tambahanmu), `monitors.json` (20 ringkasan monitor
+  stabilitas terakhir) dan `spots.json` (titik sinyal yang kamu simpan,
+  maksimal 20). Kalau folder itu tidak bisa ditulisi, aplikasi
   memakai `%APPDATA%\WiFiSpeedTester`.
 - `%LOCALAPPDATA%\WiFiSpeedTester\WebView2` adalah cache mesin browser.
 
@@ -158,6 +167,16 @@ Cara mengukurnya:
   UDP biasa, jadi cache DNS Windows tidak ikut berpengaruh. Yang dibandingkan
   adalah waktu jawab biasanya (median). Server yang belum menjawab setelah 3
   kali dicoba dilewati.
+- **Pencari sinyal Wi-Fi**: aplikasi membaca sinyal tiap detik, tapi Windows
+  sendiri memperbarui nilainya kira-kira tiap 1–5 detik tergantung kartu
+  Wi-Fi, jadi angkanya kadang tetap selama beberapa detik. Titik yang disimpan
+  memakai rata-rata 5 bacaan terakhir. Sinyal 60% ke atas disebut kuat, 40–59%
+  cukup, di bawah 40% lemah.
+- **Ping ke region**: waktu membuka koneksi TCP (5 kali, diambil mediannya),
+  sama seperti cadangan ping saat ICMP diblokir. Angkanya mendekati ping ke
+  server game di region itu, tapi tiap game punya server dan rute sendiri.
+- **Diagnosa otomatis**: aturan kesimpulannya ada di
+  [docs/QUALITY.md](docs/QUALITY.md#automatic-diagnosis).
 - **Cek channel Wi-Fi**: jaringan tetangga dihitung berdasarkan kuat
   sinyalnya; di 2,4 GHz, channel yang saling tumpang-tindih dihitung
   sebagian. Di 2,4 GHz hanya channel 1, 6 dan 11 yang disarankan. Jaringan
@@ -194,6 +213,11 @@ aplikasi memberi tahu di layar dan kembali memakai pengaturan bawaan.
     { "label": "Cloudflare", "host": "1.1.1.1" },
     { "label": "Google",     "host": "8.8.8.8" },
     { "label": "Quad9",      "host": "9.9.9.9" }
+  ],
+  "regions": [                       // Ping ke region (port 443 kalau tidak ditulis host:port), maks. 20
+    { "label": "Jakarta",   "host": "dynamodb.ap-southeast-3.amazonaws.com" },
+    { "label": "Singapore", "host": "dynamodb.ap-southeast-1.amazonaws.com" }
+    // … Kuala Lumpur, Hong Kong, Tokyo, Mumbai, Sydney, Frankfurt, California
   ],
   "planLowPct": 50,                  // di bawah % paket ini, muncul saran yang bisa dilakukan
   "dataSaverSeconds": 5,             // Hemat kuota: lama maksimal tiap arah (detik)
@@ -271,11 +295,14 @@ go run ./cmd/wifispeedtester --serve 8088   # lalu buka http://127.0.0.1:8088
 ```
 
 Isi `WST_FAKE_WIFI_SCAN` dengan file JSON berisi daftar jaringan (contohnya
-`ui-tests/wifi-scan.json`) untuk mencoba Cek channel Wi-Fi tanpa Wi-Fi.
+`ui-tests/wifi-scan.json`) untuk mencoba Cek channel Wi-Fi tanpa Wi-Fi, dan
+`WST_FAKE_WIFI_SIGNAL` dengan daftar bacaan sinyal (contohnya
+`ui-tests/wifi-signal.json`, dipakai bergiliran tiap detik) untuk mencoba
+Pencari sinyal Wi-Fi.
 
 `scripts/ui-test.sh` melakukan semua itu secara otomatis dan menguji
 halamannya dengan Playwright (`ui-tests/run.cjs`): pengaturan, Ping Cepat dan
-tes lengkap, export, riwayat dan Laporan ISP, semua alat, kedua bahasa, tema
+tes lengkap, export, riwayat dan Laporan ISP, diagnosa, semua alat, kedua bahasa, tema
 terang dan gelap, serta jendela yang sempit. Instal Playwright sekali dengan
 `npm install --no-save playwright && npx playwright install chromium`.
 
@@ -298,7 +325,8 @@ internal/measure      ping (IcmpSendEcho), tes download/upload, hitungan jitter 
 internal/engine       menjalankan tes lengkap, mengirim progres, pembatalan, pesan error untuk pengguna
 internal/monitor      monitor stabilitas: ping tiap 1 detik, putus dan lonjakan
 internal/dnsbench     perbandingan server DNS lewat UDP
-internal/analysis     ConnectionQualityEngine: rating, catatan dan saran; kesimpulan DNS, channel Wi-Fi dan monitor
+internal/regions      ping ke region cloud lewat waktu koneksi TCP
+internal/analysis     ConnectionQualityEngine: rating, catatan dan saran; kesimpulan DNS, channel Wi-Fi, monitor, region dan diagnosa
 internal/i18n         teks Inggris / Indonesia untuk semua yang ditulis sisi Go
 internal/servers      daftar server LibreSpeed dan pengurutan latensi
 internal/update       cek rilis terbaru di GitHub
@@ -315,8 +343,10 @@ Ini aplikasi sederhana untuk mengetes koneksi. Aplikasi ini bukan platform
 monitoring, penganalisis paket, alat admin router, alat bobol Wi-Fi atau
 pemindai celah keamanan, dan memang tidak akan diarahkan ke sana. Monitor
 stabilitas adalah pengecekan berwaktu yang kamu mulai dan pantau sendiri;
-tidak ada mode latar belakang atau mode tray. Cek channel Wi-Fi hanya membaca
-apa yang sudah terlihat oleh Windows.
+tidak ada mode latar belakang atau mode tray. Cek channel Wi-Fi dan Pencari
+sinyal Wi-Fi hanya membaca apa yang sudah terlihat oleh Windows. Diagnosa
+otomatis hanya membandingkan hasil tes; aplikasi tidak pernah mengubah
+pengaturan router.
 
 ## Lisensi
 
