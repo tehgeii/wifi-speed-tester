@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/tehgeii/wifi-speed-tester/internal/measure"
+	"github.com/tehgeii/wifi-speed-tester/internal/model"
 	"github.com/tehgeii/wifi-speed-tester/internal/testutil"
 )
 
@@ -20,7 +21,7 @@ func TestDownloadMeasuresThrottledRate(t *testing.T) {
 	defer srv.Close()
 	var calls int
 	o := opts()
-	o.OnProgress = func(f, mbps float64) { calls++ }
+	o.OnProgress = func(f, mbps float64, n int64) { calls++ }
 	res, err := measure.Download(context.Background(), measure.NewHTTPClient(2), srv.DownloadFor, o)
 	if err != nil {
 		t.Fatal(err)
@@ -143,5 +144,52 @@ func TestUploadVerySlowLink(t *testing.T) {
 	}
 	if res.Mbps <= 0 || res.Mbps > 0.5 {
 		t.Fatalf("upload = %.3f Mbps, want about 0.13", res.Mbps)
+	}
+}
+
+// Data saver: with a 3 MB cap on a 16 Mbps link (2 MB/s), the run stops
+// once the cap is passed and a second of measurement has followed the
+// warm-up, instead of using the full duration.
+func TestDataCapEndsRunEarly(t *testing.T) {
+	srv := testutil.NewSpeedServer(1_000_000)
+	defer srv.Close()
+	for _, dir := range []string{"download", "upload"} {
+		o := opts()
+		o.Duration = 6 * time.Second
+		o.MaxBytes = 3_000_000
+		var last int64
+		o.OnProgress = func(f, mbps float64, n int64) {
+			if n < last {
+				t.Errorf("%s: progress bytes went down: %d < %d", dir, n, last)
+			}
+			last = n
+		}
+		start := time.Now()
+		run := func() (model.SpeedResult, error) {
+			return measure.Download(context.Background(), measure.NewHTTPClient(2), srv.DownloadFor, o)
+		}
+		if dir == "upload" {
+			run = func() (model.SpeedResult, error) {
+				return measure.Upload(context.Background(), measure.NewHTTPClient(2), srv.UploadURL(), o)
+			}
+		}
+		res, err := run()
+		data, mbps := res.DataBytes, res.Mbps
+		took := time.Since(start)
+		if err != nil {
+			t.Fatalf("%s: %v", dir, err)
+		}
+		if took > 4*time.Second {
+			t.Errorf("%s took %v, the cap should end it after about 1.5-2 s", dir, took)
+		}
+		if data < 3_000_000 || data > 7_000_000 {
+			t.Errorf("%s used %d bytes, want just over the 3 MB cap", dir, data)
+		}
+		if mbps < 8 || mbps > 24 {
+			t.Errorf("%s = %.1f Mbps, want about 16", dir, mbps)
+		}
+		if last == 0 {
+			t.Errorf("%s: no byte counts in progress", dir)
+		}
 	}
 }

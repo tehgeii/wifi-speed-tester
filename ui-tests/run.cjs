@@ -259,6 +259,45 @@ async function main() {
   check(about.includes('9.9.9.9') && about.includes('Game server'), 'About lists DNS-test servers and custom targets');
   await page.keyboard.press('Escape');
 
+  console.log('data saver and repeat');
+  const dataLine = () => page.textContent('#dataLine');
+  check(/This test used ≈ \d/.test(await dataLine()), 'the last test shows the data it used');
+  const single = await page.evaluate(() => state.history.find(h => h.mode !== 'quick').dataMB);
+  await page.click('#repeatBtn');
+  const est = (await dataLine()).match(/Estimated data: ≈ ([\d.]+) (MB|GB)/);
+  check(est && Math.abs((est[2] === 'GB' ? est[1] * 1000 : +est[1]) - single * 3) <= Math.max(1, single * 0.2), 'estimate for 3 runs from the last test on this connection');
+  await page.click('#saverBtn');
+  check(await page.getAttribute('#saverBtn', 'aria-pressed') === 'true' && /Data saver on: about 135 MB per test/.test(await dataLine()), 'data saver shows its cap (3 runs)');
+  await page.click('#saverBtn');
+  await page.evaluate(() => renderNetwork({ ...state.network, connection: 'Hotspot / Tethering' }));
+  check(await page.isVisible('#hotspotHint'), 'a phone hotspot suggests data saver');
+  await page.click('#hotspotOn');
+  check(await page.getAttribute('#saverBtn', 'aria-pressed') === 'true' && !(await page.isVisible('#hotspotHint')), 'one click turns data saver on');
+  check(await eventually(async () => {
+    const p = await page.evaluate(() => bridge.call('getPrefs'));
+    return p.dataSaver === 'on' && p.repeat === 'on';
+  }), 'data saver and repeat are remembered');
+  const histBefore = (await page.evaluate(() => bridge.call('history'))).length;
+  await page.click('#startBtn');
+  await page.waitForFunction(() => /Test 2 of 3/.test(document.querySelector('#gaugeLabel').textContent), null, { timeout: 60000 });
+  check(/Data used: \d/.test(await dataLine()), 'live data counter while testing');
+  await page.waitForSelector('#summaryCard:not(.hidden)', { timeout: 120000 });
+  await page.waitForSelector('#startBtn:not(.hidden)');
+  check(await page.isVisible('#runsBox') && await page.locator('#runsBox tbody tr').count() === 3, 'the 3 runs are listed');
+  check(/This test used ≈ \d/.test(await dataLine()), 'data used by the test is shown afterwards');
+  await shot(page, 'repeat-result');
+  const notes = await page.textContent('#notes');
+  check(notes.includes('3 times') && notes.includes('Data saver'), 'notes explain the median and data saver');
+  const hist = await page.evaluate(() => bridge.call('history'));
+  check(hist.length === histBefore + 1 && hist[0].runs === 3 && hist[0].dataSaver && hist[0].dataMB > 0, 'a repeated test is saved once, with its data use');
+  await page.click('#repeatBtn');
+  await page.click('#saverBtn');
+  await page.click('#tabHistory');
+  await page.waitForSelector('#histTable tbody tr');
+  check(/Data used by tests this month: .*\(\d+ tests\)/.test(await page.textContent('#histData')), 'history shows this month\'s data use');
+  check(await textMatches(page, '#histTable tbody tr:first-child', /3×/), 'history marks the repeated test');
+  await page.click('#tabTest');
+
   console.log('Indonesian');
   await page.click('#settingsBtn');
   await page.selectOption('#langSelect', 'id');

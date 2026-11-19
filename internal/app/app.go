@@ -122,10 +122,14 @@ func (a *App) Call(method string, params []json.RawMessage) (any, error) {
 		return nil, nil
 	case "startTest":
 		var mode string
+		var o TestOptions
 		if err := arg(0, &mode); err != nil {
 			return nil, err
 		}
-		return nil, a.StartTest(mode)
+		if err := arg(1, &o); err != nil {
+			return nil, err
+		}
+		return nil, a.StartTest(mode, o)
 	case "cancelTest":
 		a.CancelTest()
 		return nil, nil
@@ -306,6 +310,7 @@ func (a *App) info() map[string]any {
 		"downloadSec": a.cfg.DownloadSeconds,
 		"uploadSec":   a.cfg.UploadSeconds,
 		"profiles":    a.cfg.Profiles,
+		"dataSaverMB": a.cfg.DataSaverDownloadMB + a.cfg.DataSaverUploadMB,
 	}
 	if a.cfgErr != nil {
 		m["configError"] = a.cfgErr.Error()
@@ -324,8 +329,17 @@ func (a *App) detectNetwork() {
 	a.emit("network", map[string]any{"network": info})
 }
 
+// TestOptions are the per-test switches next to the Start button.
+type TestOptions struct {
+	Repeat    bool `json:"repeat"`    // run 3 times and keep the medians
+	DataSaver bool `json:"dataSaver"` // shorter, data-capped speed tests
+}
+
+// RepeatRuns is how many times a repeated test runs.
+const RepeatRuns = 3
+
 // StartTest begins a run in the background. Only one run at a time.
-func (a *App) StartTest(mode string) error {
+func (a *App) StartTest(mode string, o TestOptions) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	if err := a.claim("test", cancel); err != nil {
 		cancel()
@@ -333,8 +347,12 @@ func (a *App) StartTest(mode string) error {
 	}
 	go func() {
 		defer cancel()
-		opts := engine.Options{Mode: mode, Lang: a.lang(), Server: a.selectedServer(), ExtraTargets: a.customTargets(), Plan: a.plan()}
-		res := a.eng.Run(ctx, opts, func(ev engine.Event) {
+		opts := engine.Options{Mode: mode, Lang: a.lang(), Server: a.selectedServer(), ExtraTargets: a.customTargets(), Plan: a.plan(), DataSaver: o.DataSaver}
+		runs := 1
+		if o.Repeat {
+			runs = RepeatRuns
+		}
+		res := a.eng.RunRepeated(ctx, opts, runs, func(ev engine.Event) {
 			if ev.Type == "result" {
 				return // sent below, after it is stored
 			}
@@ -378,6 +396,9 @@ type HistoryEntry struct {
 	Quality    string    `json:"quality"`
 	PlanPct    float64   `json:"planPct"` // download as % of the plan at test time, 0 = no plan
 	Grade      string    `json:"grade"`   // bufferbloat grade, "" when not measured
+	DataMB     float64   `json:"dataMB"`  // data the test used
+	DataSaver  bool      `json:"dataSaver"`
+	Runs       int       `json:"runs"` // > 1 for a repeated test
 }
 
 func (a *App) historyList() ([]HistoryEntry, error) {
@@ -404,6 +425,9 @@ func (a *App) historyList() ([]HistoryEntry, error) {
 			e.PlanPct = model.PlanPercent(e.Download, r.Plan.DownMbps)
 		}
 		e.Grade = analysis.GradeOf(r)
+		e.DataMB = float64(r.DataUsed()) / 1e6
+		e.DataSaver = r.DataSaver
+		e.Runs = len(r.Runs)
 		out = append(out, e)
 	}
 	return out, nil
@@ -490,7 +514,7 @@ func (a *App) prefs() map[string]string {
 }
 
 func (a *App) savePrefs(p map[string]string) error {
-	allowed := map[string]bool{"unit": true, "mode": true, "lang": true, "updateCheck": true, "planDown": true, "planUp": true, "theme": true, "tool": true}
+	allowed := map[string]bool{"unit": true, "mode": true, "lang": true, "updateCheck": true, "planDown": true, "planUp": true, "theme": true, "tool": true, "dataSaver": true, "repeat": true}
 	clean := map[string]string{}
 	for k, v := range p {
 		if allowed[k] && len(v) < 32 {

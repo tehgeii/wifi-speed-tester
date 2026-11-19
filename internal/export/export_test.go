@@ -115,3 +115,18 @@ func TestTXTActivitiesAndGrade(t *testing.T) {
 		t.Error("grade printed without latency under load")
 	}
 }
+
+func TestTXTRuns(t *testing.T) {
+	r := sample()
+	r.Runs = []model.RunSummary{{DownMbps: 50, UpMbps: 10, PingMs: 18, JitterMs: 2, LossPct: 0}, {DownMbps: 48.6, UpMbps: 11.2, PingMs: 19, JitterMs: 3}, {DownMbps: 40, UpMbps: 12, PingMs: 25, JitterMs: 4}}
+	r.DataBytes, r.DataSaver = 123_000_000, true
+	txt := string(TXT(r, Options{Unit: "Mbps"}))
+	for _, want := range []string{"RUNS (the figures above are the medians of these 3)", "  1. ↓ 50.0 Mbps  ↑ 10.0 Mbps  ping 18 ms  jitter 2.0 ms  loss 0%", "Data used:", "≈ 123 MB (data saver)"} {
+		if !strings.Contains(txt, want) {
+			t.Errorf("TXT missing %q\n%s", want, txt)
+		}
+	}
+	if strings.Contains(txt, "ms ms") {
+		t.Errorf("doubled unit:\n%s", txt)
+	}
+}

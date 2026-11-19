@@ -127,6 +127,14 @@ const TEXT = {
     'grade.hint': 'How much ping rises while the connection is busy downloading or uploading. A+ and A are great for games and calls.',
     'settings.theme': 'Theme', 'theme.system': 'Follow Windows', 'theme.light': 'Light', 'theme.dark': 'Dark',
     'card.grade': 'Bufferbloat {0}',
+    saver: 'Data saver', 'saver.hint': 'Shorter test that stops early to save mobile data: about {0} MB per test.',
+    repeat: 'Repeat 3×', 'repeat.hint': 'Runs the test 3 times and shows the middle values: steadier results and better evidence for your ISP. Uses 3× the data.',
+    'data.live': 'Data used: {0}', 'data.used': 'This test used ≈ {0} of data', 'data.estimate': 'Estimated data: ≈ {0}',
+    'data.saverOn': 'Data saver on: about {0} per test', 'data.turnOn': 'Turn on',
+    'data.hotspot': "You're on a phone hotspot or mobile data. Turn on Data saver?",
+    'data.month': 'Data used by tests this month: {0} ({1} tests)', 'data.perTest': 'per test',
+    'run.label': 'Test {0} of {1}', 'runs.title': '{0} runs (the figures above are the middle values)', 'runs.col': 'Run',
+    'hist.saver': 'data saver',
     'history.report': 'ISP report', 'history.reportHint': 'A plain-text report of the selected tests that you can send to your ISP',
     'col.plan': '% of plan', 'plan.of': '{0}% of plan',
     'plan.title': 'Your internet plan', 'plan.intro': 'Optional. Results then show what share of your plan you actually get.',
@@ -256,6 +264,14 @@ const TEXT = {
     'grade.hint': 'Seberapa besar ping naik saat koneksi sibuk download atau upload. A+ dan A sangat bagus untuk game dan video call.',
     'settings.theme': 'Tema', 'theme.system': 'Ikuti Windows', 'theme.light': 'Terang', 'theme.dark': 'Gelap',
     'card.grade': 'Bufferbloat {0}',
+    saver: 'Hemat kuota', 'saver.hint': 'Tes lebih singkat yang berhenti lebih awal supaya hemat kuota: sekitar {0} MB per tes.',
+    repeat: 'Ulangi 3×', 'repeat.hint': 'Tes dijalankan 3 kali lalu diambil nilai tengahnya: hasil lebih stabil dan bukti lebih kuat untuk ISP. Memakai kuota 3×.',
+    'data.live': 'Kuota terpakai: {0}', 'data.used': 'Tes ini memakai kuota ≈ {0}', 'data.estimate': 'Perkiraan kuota: ≈ {0}',
+    'data.saverOn': 'Hemat kuota aktif: sekitar {0} per tes', 'data.turnOn': 'Nyalakan',
+    'data.hotspot': 'Kamu pakai hotspot HP atau data seluler. Nyalakan Hemat kuota?',
+    'data.month': 'Kuota terpakai untuk tes bulan ini: {0} ({1} tes)', 'data.perTest': 'per tes',
+    'run.label': 'Tes {0} dari {1}', 'runs.title': '{0} putaran (angka di atas adalah nilai tengahnya)', 'runs.col': 'Putaran',
+    'hist.saver': 'hemat kuota',
     'history.report': 'Laporan ISP', 'history.reportHint': 'Laporan teks dari tes yang dipilih, bisa dikirim ke ISP kamu',
     'col.plan': '% paket', 'plan.of': '{0}% dari paket',
     'plan.title': 'Paket internet kamu', 'plan.intro': 'Opsional. Hasil tes lalu menunjukkan berapa persen dari paket yang benar-benar kamu dapat.',
@@ -327,6 +343,11 @@ const state = {
   history: [],
   histConn: 'all',
   histRange: 0,
+  saver: false,
+  repeat: false,
+  run: 0,
+  runs: 0,
+  dataLive: 0,
 };
 
 // 80 Mbps = 10 MB/s (megabits vs megabytes).
@@ -399,6 +420,7 @@ function renderNetwork(n) {
   const nt = wifiNote(w);
   note.textContent = nt;
   note.classList.toggle('hidden', !nt);
+  renderTestOpts(); // the hotspot hint and data estimate depend on the connection
 }
 
 // ---- progress -----------------------------------------------------------
@@ -452,9 +474,11 @@ function setRunning(on) {
   $('#tabTools').disabled = on;
   $('#settingsBtn').disabled = on;
   if (!on) activeMetric('');
+  renderTestOpts();
 }
 
-const stageLabel = s => ({ connection: t('gauge.checking'), ping: t('stage.ping'), download: 'Download', upload: 'Upload' }[s] || '');
+const stageLabel = s => (state.runs > 1 && state.running ? t('run.label', state.run, state.runs) + ' · ' : '')
+  + ({ connection: t('gauge.checking'), ping: t('stage.ping'), download: 'Download', upload: 'Upload' }[s] || '');
 
 function onTestEvent(ev) {
   switch (ev.type) {
@@ -462,6 +486,11 @@ function onTestEvent(ev) {
       $$('.stage').forEach(s => s.classList.toggle('on', s.dataset.stage === ev.stage));
       activeMetric(ev.stage === 'ping' ? 'ping' : ev.stage);
       setGauge(stageLabel(ev.stage), '—', '', 0);
+      break;
+    case 'run':
+      state.run = ev.run;
+      state.runs = ev.runs;
+      if (ev.run > 1) resetStages();
       break;
     case 'check':
       renderCheck(ev.check);
@@ -471,6 +500,7 @@ function onTestEvent(ev) {
       break;
     case 'progress':
       stageProgress(ev.stage, ev.progress);
+      if (ev.dataBytes) { state.dataLive = ev.dataBytes; renderDataLine(); }
       if (ev.stage === 'ping' && ev.rttMs) {
         setGauge('Ping', ms(ev.rttMs), 'ms', 0);
         setMetric('ping', ms(ev.rttMs), t('live'));
@@ -495,7 +525,9 @@ function onTestEvent(ev) {
       break;
     case 'result':
       setRunning(false);
+      state.showUsed = true;
       renderResult(ev.result);
+      refreshHistoryList();
       bridge.call('attention').catch(() => {});
       break;
   }
@@ -600,6 +632,7 @@ function renderResult(r, fromHistory) {
     renderWhy(q);
     renderGaming(r);
     renderGrade(r);
+    renderRuns(r);
     renderPrivacyHint();
   }
   renderActivities(r.activities, r.mode);
@@ -763,11 +796,13 @@ function makeCard(r) {
 // ---- actions --------------------------------------------------------------
 async function start(mode) {
   state.runMode = mode;
+  state.run = state.runs = state.dataLive = 0;
   resetRun(mode);
   setRunning(true);
   setGauge(t('gauge.starting'), '—', '', 0);
+  renderDataLine();
   try {
-    await bridge.call('startTest', mode);
+    await bridge.call('startTest', mode, { repeat: state.repeat && mode !== 'quick', dataSaver: state.saver });
   } catch (e) {
     setRunning(false);
     toast(e.message);
@@ -860,6 +895,85 @@ function renderGrade(r) {
   $('#gradeText').textContent = t('grade.text', ms(Math.max(0, Math.max(...loaded) - r.pingMs)));
 }
 
+// ---- data saver, repeat & data usage ---------------------------------------
+// Quota is counted the way phone plans do (decimal MB/GB).
+function fmtBytes(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + ' GB';
+  if (n >= 10e6) return Math.round(n / 1e6) + ' MB';
+  return (n / 1e6).toFixed(1) + ' MB';
+}
+
+// Under the Start button: live usage while testing, the usage of the test
+// just finished, or an estimate for the next one.
+function renderDataLine() {
+  const el = $('#dataLine');
+  const r = state.result;
+  if (state.running) el.textContent = state.dataLive ? t('data.live', fmtBytes(state.dataLive)) : '';
+  else if (state.showUsed && r && r.mode !== 'quick' && r.dataBytes) el.textContent = t('data.used', fmtBytes(r.dataBytes));
+  else el.textContent = dataEstimate();
+}
+
+// The estimate comes from the last comparable test on this kind of
+// connection; data saver has a known cap.
+function dataEstimate() {
+  const runs = state.repeat ? 3 : 1;
+  if (state.saver) return t('data.saverOn', fmtBytes(((state.info && state.info.dataSaverMB) || 45) * 1e6 * runs));
+  const conn = state.network && state.network.connection;
+  const h = state.history.find(x => x.connection === conn && x.mode !== 'quick' && !x.dataSaver && !(x.runs > 1) && x.dataMB > 0);
+  return h ? t('data.estimate', fmtBytes(h.dataMB * 1e6 * runs)) : '';
+}
+
+const onMobileData = () => ['Hotspot / Tethering', 'Cellular'].includes(state.network && state.network.connection);
+function renderTestOpts() {
+  $('#saverBtn').setAttribute('aria-pressed', state.saver);
+  $('#repeatBtn').setAttribute('aria-pressed', state.repeat);
+  $('#saverBtn').title = t('saver.hint', Math.round((state.info && state.info.dataSaverMB) || 45));
+  $('#repeatBtn').title = t('repeat.hint');
+  $('#testOpts').classList.toggle('hidden', state.running);
+  $('#hotspotHint').classList.toggle('hidden', state.running || state.saver || !onMobileData());
+  renderDataLine();
+}
+function setSaver(on) {
+  state.saver = on;
+  state.showUsed = false;
+  store.set('dataSaver', on ? 'on' : 'off');
+  renderTestOpts();
+}
+$('#saverBtn').onclick = () => setSaver(!state.saver);
+$('#hotspotOn').onclick = () => setSaver(true);
+$('#repeatBtn').onclick = () => {
+  state.repeat = !state.repeat;
+  state.showUsed = false;
+  store.set('repeat', state.repeat ? 'on' : 'off');
+  renderTestOpts();
+};
+
+// Between rounds of a repeated test the stage bars start over.
+function resetStages() {
+  $$('.stage').forEach(s => {
+    s.classList.remove('on', 'err');
+    s.querySelector('i').style.width = '0';
+    s.querySelector('em').textContent = '0%';
+  });
+  $('#checks').innerHTML = '';
+}
+
+function renderRuns(r) {
+  const runs = r.runs || [];
+  $('#runsBox').classList.toggle('hidden', runs.length < 2);
+  if (runs.length < 2) return;
+  $('#runsTitle').textContent = t('runs.title', runs.length);
+  const sp = v => (v > 0 ? speed(v) + ' ' + state.unit : '—');
+  $('#runsBox tbody').innerHTML = runs.map((x, i) => `<tr><td>${i + 1}</td><td>${sp(x.downMbps)}</td><td>${sp(x.upMbps)}</td>
+    <td>${x.pingMs > 0 ? ms(x.pingMs) + ' ms' : '—'}</td><td>${x.pingMs > 0 ? ms(x.jitterMs) + ' ms' : '—'}</td>
+    <td>${x.pingMs > 0 ? pct(+x.lossPct.toFixed(1)) + '%' : '—'}</td></tr>`).join('');
+}
+
+async function refreshHistoryList() {
+  try { state.history = await bridge.call('history') || []; } catch { /* keep */ }
+  renderDataLine();
+}
+
 // ---- views & theme -------------------------------------------------------------
 const viewSel = { test: '#dashboard', history: '#historyView', tools: '#toolsView' };
 function showView(v) {
@@ -935,6 +1049,8 @@ function renderHistory() {
 
   const list = filteredHistory();
   const empty = all.length === 0;
+  const month = all.filter(h => { const d = new Date(h.date), n = new Date(); return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear() && h.dataMB > 0; });
+  $('#histData').textContent = month.length ? t('data.month', fmtBytes(month.reduce((a, h) => a + h.dataMB, 0) * 1e6), month.length) : '';
   $('#histEmpty').classList.toggle('hidden', !empty);
   ['#histTable', '#histFilters', '#trendBox', '#compareTable'].forEach(s => $(s).classList.toggle('hidden', empty));
   // The plan column only appears once a test was run with a plan set.
@@ -945,7 +1061,7 @@ function renderHistory() {
     <tr data-id="${esc(h.id)}" tabindex="0">
       <td>${esc(new Date(h.date).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' }))}${h.mode !== 'general' ? ` <span class="muted">(${esc(h.mode === 'quick' ? t('quick') : t('mode.' + h.mode))})</span>` : ''}</td>
       <td>${esc(connName(h.connection))}</td>
-      <td>${h.download ? speed(h.download) : '—'} / ${h.upload ? speed(h.upload) : '—'} ${state.unit}</td>
+      <td>${h.download ? speed(h.download) : '—'} / ${h.upload ? speed(h.upload) : '—'} ${state.unit}${h.dataMB >= 0.1 ? ` <span class="muted small">· ${esc(fmtBytes(h.dataMB * 1e6))}${h.dataSaver ? ' · ' + esc(t('hist.saver')) : ''}${h.runs > 1 ? ' · ' + h.runs + '×' : ''}</span>` : ''}</td>
       <td>${h.ping ? ms(h.ping) + ' ms' : '—'}${h.grade ? gradeBadge(h.grade, true) : ''}</td>
       <td>${h.ping ? ms(h.jitter) + ' ms' : '—'}</td>
       <td>${h.ping ? pct(h.loss) + '%' : '—'}</td>
@@ -1573,6 +1689,7 @@ function renderStatic() {
   if (!state.result && !state.running) setGauge(t('gauge.ready'), '—', '', 0);
   if (state.network) renderNetwork(state.network);
   renderPrivacyHint();
+  renderTestOpts();
   if (state.update && state.update.newer) $('#updateText').textContent = t('update.available', state.update.latest, state.update.current);
 }
 
@@ -1597,6 +1714,8 @@ bridge.listen((name, payload) => {
   try { Object.assign(prefs, await bridge.call('getPrefs')); } catch { /* defaults */ }
   if (prefs.unit === 'MB/s' || prefs.unit === 'Mbps') state.unit = prefs.unit;
   if (prefs.mode === 'gaming' || prefs.mode === 'general') state.mode = prefs.mode;
+  state.saver = prefs.dataSaver === 'on';
+  state.repeat = prefs.repeat === 'on';
   // First run: follow the Windows display language.
   lang = prefs.lang === 'id' || prefs.lang === 'en' ? prefs.lang : ((navigator.language || '').toLowerCase().startsWith('id') ? 'id' : 'en');
   if (prefs.lang !== lang) store.set('lang', lang);
@@ -1612,6 +1731,7 @@ bridge.listen((name, payload) => {
   } catch (e) { toast(e.message); }
   try { state.server = await bridge.call('getServer'); } catch { state.server = null; }
   renderStatic();
+  refreshHistoryList();
   bridge.call('detectNetwork').catch(() => {});
   if (prefs.updateCheck !== 'off') bridge.call('checkUpdate').catch(() => {});
 })();

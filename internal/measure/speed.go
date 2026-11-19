@@ -36,9 +36,14 @@ type SpeedOptions struct {
 	Duration time.Duration // measured duration, including warm-up
 	Warmup   time.Duration // initial period excluded from the result
 	Streams  int           // parallel TCP connections
-	// OnProgress receives the elapsed fraction (0..1) and the current
-	// throughput over roughly the last second, about four times per second.
-	OnProgress func(fraction, currentMbps float64)
+	// OnProgress receives the elapsed fraction (0..1), the current
+	// throughput over roughly the last second and the bytes transferred so
+	// far, about four times per second.
+	OnProgress func(fraction, currentMbps float64, bytes int64)
+	// MaxBytes, when set, ends the run once this much data was transferred
+	// (data saver), but never before one second past the warm-up, so there
+	// is always a window to measure.
+	MaxBytes int64
 }
 
 // NewHTTPClient returns a client tuned for throughput testing: HTTP/1.1 only
@@ -200,8 +205,9 @@ func Download(ctx context.Context, client *http.Client, urlFor func(n int) strin
 		}()
 	}
 
-	smp := runSampler(runCtx, &total, opts)
+	smp := runSampler(runCtx, &total, opts, cancel)
 	wg.Wait()
+	res.DataBytes = total.Load()
 	return finishSpeed(ctx, res, smp, opts, errs.first, total.Load())
 }
 
@@ -232,8 +238,8 @@ func downloadOnce(ctx context.Context, client *http.Client, url string, buf []by
 }
 
 // runSampler samples total until ctx ends and returns the samples. It also
-// drives the progress callback.
-func runSampler(ctx context.Context, total *atomic.Int64, opts SpeedOptions) *sampler {
+// drives the progress callback and calls stop when the data cap is reached.
+func runSampler(ctx context.Context, total *atomic.Int64, opts SpeedOptions, stop func()) *sampler {
 	s := &sampler{start: time.Now()}
 	s.add(0, 0, false)
 	t := time.NewTicker(sampleEvery)
@@ -245,13 +251,17 @@ func runSampler(ctx context.Context, total *atomic.Int64, opts SpeedOptions) *sa
 			return s
 		case <-t.C:
 			el := time.Since(s.start)
-			s.add(el, total.Load(), false)
+			n := total.Load()
+			s.add(el, n, false)
 			if opts.OnProgress != nil {
 				f := el.Seconds() / opts.Duration.Seconds()
 				if f > 1 {
 					f = 1
 				}
-				opts.OnProgress(f, s.recent(time.Second))
+				opts.OnProgress(f, s.recent(time.Second), n)
+			}
+			if opts.MaxBytes > 0 && n >= opts.MaxBytes && el >= opts.Warmup+time.Second {
+				stop()
 			}
 		}
 	}
@@ -360,6 +370,12 @@ func Upload(ctx context.Context, client *http.Client, uploadURL string, opts Spe
 		go func() {
 			defer wg.Done()
 			chunk := int64(uploadMinChunk)
+			maxChunk := int64(uploadMaxChunk)
+			if opts.MaxBytes > 0 {
+				// Small requests, so the ones still in flight when the cap
+				// is reached add little data.
+				maxChunk = max(uploadMinChunk, min(maxChunk, opts.MaxBytes/int64(4*max(opts.Streams, 1))))
+			}
 			for sendCtx.Err() == nil {
 				t0 := time.Since(start)
 				err := uploadOnce(reqCtx, client, uploadURL, chunk, &sent)
@@ -372,9 +388,9 @@ func Upload(ctx context.Context, client *http.Client, uploadURL string, opts Spe
 					// boundaries cut few requests. Requests that finish very
 					// fast grow up to 8x at once, so the small first chunk
 					// costs fast links only a few extra round trips.
-					if d := t1 - t0; d < 500*time.Millisecond && chunk < uploadMaxChunk {
+					if d := t1 - t0; d < 500*time.Millisecond && chunk < maxChunk {
 						grow := min(8, max(2, int64(500*time.Millisecond/max(d, time.Millisecond))))
-						chunk = min(chunk*grow, uploadMaxChunk)
+						chunk = min(chunk*grow, maxChunk)
 					} else if d > 2*time.Second && chunk > uploadMinChunk {
 						chunk /= 2
 					}
@@ -395,8 +411,9 @@ func Upload(ctx context.Context, client *http.Client, uploadURL string, opts Spe
 		}()
 	}
 
-	smp := runSampler(sendCtx, &sent, opts)
+	smp := runSampler(sendCtx, &sent, opts, stopSending)
 	wg.Wait()
+	res.DataBytes = sent.Load()
 	if ctx.Err() != nil {
 		return res, ctx.Err()
 	}

@@ -86,8 +86,11 @@ type PingStats struct {
 
 // SpeedResult is the outcome of a download or upload test.
 type SpeedResult struct {
-	Mbps          float64   `json:"mbps"`
-	Bytes         int64     `json:"bytes"`
+	Mbps  float64 `json:"mbps"`
+	Bytes int64   `json:"bytes"`
+	// DataBytes is all data the test moved over the network (for upload
+	// also requests that did not finish), i.e. what it cost in quota.
+	DataBytes     int64     `json:"dataBytes,omitempty"`
 	DurationSec   float64   `json:"durationSec"`
 	Streams       int       `json:"streams"`
 	Server        string    `json:"server"`
@@ -158,6 +161,37 @@ type TestResult struct {
 	// BloatGrade grades the latency increase under load (A+ to F), empty
 	// when latency under load was not measured.
 	BloatGrade string `json:"bloatGrade,omitempty"`
+	// DataBytes is the data the whole test used (quota).
+	DataBytes int64 `json:"dataBytes,omitempty"`
+	// DataSaver marks a shorter, data-capped test.
+	DataSaver bool `json:"dataSaver,omitempty"`
+	// Runs holds each round of a repeated test; the headline figures are
+	// their medians.
+	Runs []RunSummary `json:"runs,omitempty"`
+}
+
+// RunSummary is one round of a repeated test.
+type RunSummary struct {
+	DownMbps float64 `json:"downMbps"`
+	UpMbps   float64 `json:"upMbps"`
+	PingMs   float64 `json:"pingMs"`
+	JitterMs float64 `json:"jitterMs"`
+	LossPct  float64 `json:"lossPct"`
+}
+
+// DataUsed returns the data a test used. Results saved before 2.0 only
+// know the bytes counted for the speed figures, which is close enough.
+func (r *TestResult) DataUsed() int64 {
+	if r.DataBytes > 0 {
+		return r.DataBytes
+	}
+	var n int64
+	for _, s := range []*SpeedResult{r.Download, r.Upload} {
+		if s != nil {
+			n += max(s.DataBytes, s.Bytes)
+		}
+	}
+	return n
 }
 
 // Activity says how well the connection suits one everyday use.

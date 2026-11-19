@@ -48,6 +48,8 @@ Windows berbahasa Indonesia: **Info selengkapnya → Tetap jalankan**).
 | Paket ISP kamu | Isi kecepatan paket internetmu sekali saja (**Pengaturan ⚙**); hasil tes lalu menampilkan "62% dari paket", dan muncul saran kalau kecepatannya jauh di bawah paket |
 | Mode Gaming | Menilai ping, jitter, loss, dan kestabilan ping, bukan besar bandwidth |
 | Ping Cepat | Sekitar 5 detik: cek koneksi dan ping saja, untuk cek kilat sebelum main game |
+| Hemat kuota | Penghitung **kuota terpakai yang naik langsung** selama tes, perkiraan kuota sebelum tes (dari tes terakhir di koneksi yang sama), total kuota tes per bulan di Riwayat, dan tombol **💾 Hemat kuota**: download/upload dites lebih singkat dan berhenti setelah sekitar 30 MB + 15 MB. Kalau aplikasi mendeteksi hotspot HP atau data seluler, muncul saran untuk menyalakannya |
+| Ulangi 3× | Tombol **🔁 Ulangi 3×** menjalankan tes 3 kali berturut-turut lalu menampilkan nilai tengahnya (median) beserta tabel tiap putaran. Hasilnya lebih stabil dan jadi bukti yang lebih kuat untuk ISP. Disimpan sebagai satu entri riwayat |
 | Server tes | Bawaannya Cloudflare; **Cari server terdekat** mengurutkan server LibreSpeed publik berdasarkan latensi, server pilihanmu dipakai duluan dan Cloudflare jadi cadangan |
 | Bahasa | Bahasa Inggris dan Bahasa Indonesia (saat pertama dibuka mengikuti bahasa Windows; bisa diganti di **Pengaturan ⚙**) |
 | Satuan | Mbps (bawaan) atau MB/s (80 Mbps = 10 MB/s) |
@@ -194,6 +196,8 @@ aplikasi memberi tahu di layar dan kembali memakai pengaturan bawaan.
     { "label": "Quad9",      "host": "9.9.9.9" }
   ],
   "planLowPct": 50,                  // di bawah % paket ini, muncul saran yang bisa dilakukan
+  "dataSaverSeconds": 5,             // Hemat kuota: lama maksimal tiap arah (detik)
+  "dataSaverDownloadMB": 30, "dataSaverUploadMB": 15,   // dan batas kuota tiap arah
   "historyLimit": 200,
   "profiles": { "general": { ... }, "gaming": { ... }, "quick": { ... } }   // lihat docs/QUALITY.md
 }
@@ -215,6 +219,8 @@ WiFiSpeedTester.exe --cli --gaming  pakai profil gaming
 WiFiSpeedTester.exe --cli --quick   ping saja (sekitar 5 detik)
 WiFiSpeedTester.exe --cli --lang id laporan dalam Bahasa Indonesia
 WiFiSpeedTester.exe --cli --json    hasil lengkap dalam JSON (simpan dengan > hasil.json)
+WiFiSpeedTester.exe --cli --repeat 3  jalankan tes 3 kali dan tampilkan nilai tengahnya
+WiFiSpeedTester.exe --cli --data-saver  tes hemat kuota (lebih singkat, dibatasi kuotanya)
 WiFiSpeedTester.exe --list-servers  urutkan server LibreSpeed publik berdasarkan latensi
 WiFiSpeedTester.exe --dns           bandingkan server DNS
 WiFiSpeedTester.exe --wifi-scan     tampilkan jaringan Wi-Fi di sekitar dan saran channel

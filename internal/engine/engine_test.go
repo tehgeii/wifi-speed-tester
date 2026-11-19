@@ -328,3 +328,106 @@ func TestSuitabilityStreamsDuringRun(t *testing.T) {
 		t.Fatal("bufferbloat grade missing although latency under load was measured")
 	}
 }
+
+// Progress reports the data used by the whole test, and the result keeps
+// the total; data saver caps each direction and marks the result.
+func TestDataUsageAndDataSaver(t *testing.T) {
+	srv := testutil.NewSpeedServer(1_000_000)
+	defer srv.Close()
+	e := testEngine(srv, &testutil.Pinger{RTT: time.Millisecond})
+	e.Config.DownloadSeconds, e.Config.UploadSeconds = 4, 4
+	e.Config.DataSaverSeconds, e.Config.DataSaverDownloadMB, e.Config.DataSaverUploadMB = 3, 1, 1
+
+	var normalData int64
+	var normalTook time.Duration
+	for _, saver := range []bool{false, true} {
+		rec := &recorder{}
+		start := time.Now()
+		res := e.Run(context.Background(), Options{Mode: "general", DataSaver: saver}, rec.emit)
+		took := time.Since(start)
+		var maxSeen int64
+		for _, ev := range rec.events {
+			if ev.Type == "progress" && ev.DataBytes > 0 {
+				if ev.DataBytes < maxSeen && ev.Stage == StageDownload {
+					t.Errorf("saver=%v: data went down during download", saver)
+				}
+				maxSeen = max(maxSeen, ev.DataBytes)
+			}
+		}
+		if res.DataBytes <= 0 || maxSeen <= 0 || maxSeen > res.DataBytes+1 {
+			t.Fatalf("saver=%v: result %d bytes, progress up to %d", saver, res.DataBytes, maxSeen)
+		}
+		if res.DataBytes != res.Download.DataBytes+res.Upload.DataBytes {
+			t.Fatalf("saver=%v: total %d != download %d + upload %d", saver, res.DataBytes, res.Download.DataBytes, res.Upload.DataBytes)
+		}
+		if res.DataSaver != saver {
+			t.Fatalf("DataSaver = %v", res.DataSaver)
+		}
+		if !saver {
+			normalData, normalTook = res.DataBytes, took
+			continue
+		}
+		// The 1 MB caps are reached quickly at 2 MB/s, so each direction
+		// stops one second after the warm-up instead of running 4 s.
+		if res.DataBytes > normalData*6/10 || took >= normalTook {
+			t.Fatalf("data saver used %d bytes in %v; normal %d bytes in %v", res.DataBytes, took, normalData, normalTook)
+		}
+		if !strings.Contains(strings.Join(res.Quality.Notes, " "), "Data saver") {
+			t.Fatalf("notes = %v", res.Quality.Notes)
+		}
+	}
+}
+
+func TestRunRepeated(t *testing.T) {
+	srv := testutil.NewSpeedServer(1_000_000)
+	defer srv.Close()
+	rec := &recorder{}
+	res := testEngine(srv, &testutil.Pinger{RTT: 2 * time.Millisecond}).RunRepeated(context.Background(), Options{Mode: "general"}, 3, rec.emit)
+
+	var runs, results int
+	var lastData int64
+	for _, ev := range rec.events {
+		switch ev.Type {
+		case "run":
+			runs++
+			if ev.Run != runs || ev.Runs != 3 {
+				t.Fatalf("run event %+v", ev)
+			}
+		case "result":
+			results++
+		case "progress":
+			if ev.DataBytes > 0 && runs > 1 && ev.DataBytes < lastData && ev.Stage == StageDownload {
+				t.Fatalf("data counter restarted in run %d", runs)
+			}
+			lastData = max(lastData, ev.DataBytes)
+		}
+	}
+	if runs != 3 || results != 1 {
+		t.Fatalf("run events = %d, result events = %d", runs, results)
+	}
+	if len(res.Runs) != 3 || res.Quality == nil || len(res.Activities) != 7 {
+		t.Fatalf("combined result: runs=%d quality=%v activities=%d", len(res.Runs), res.Quality, len(res.Activities))
+	}
+	downs := []float64{res.Runs[0].DownMbps, res.Runs[1].DownMbps, res.Runs[2].DownMbps}
+	if want := measure.Median(downs); res.Download.Mbps != want {
+		t.Fatalf("download %.2f, want median %.2f of %v", res.Download.Mbps, want, downs)
+	}
+	if !strings.Contains(strings.Join(res.Quality.Notes, " "), "3 times") {
+		t.Fatalf("notes = %v", res.Quality.Notes)
+	}
+	if res.DataBytes < lastData {
+		t.Fatalf("total data %d < progress %d", res.DataBytes, lastData)
+	}
+
+	// Quick Ping is never repeated.
+	rec = &recorder{}
+	q := testEngine(srv, &testutil.Pinger{RTT: time.Millisecond}).RunRepeated(context.Background(), Options{Mode: "quick"}, 3, rec.emit)
+	for _, ev := range rec.events {
+		if ev.Type == "run" {
+			t.Fatal("quick ping was repeated")
+		}
+	}
+	if len(q.Runs) != 0 {
+		t.Fatalf("quick runs = %d", len(q.Runs))
+	}
+}

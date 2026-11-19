@@ -117,22 +117,27 @@ type Profile struct {
 
 // Config is the full application configuration.
 type Config struct {
-	Servers           []Server           `json:"servers"`
-	PingTargets       []PingTarget       `json:"pingTargets"`
-	PingCount         int                `json:"pingCount"`
-	PingIntervalMs    int                `json:"pingIntervalMs"`
-	PingTimeoutMs     int                `json:"pingTimeoutMs"`
-	DownloadSeconds   float64            `json:"downloadSeconds"`
-	UploadSeconds     float64            `json:"uploadSeconds"`
-	WarmupSeconds     float64            `json:"warmupSeconds"`
-	Streams           int                `json:"streams"`
-	MeasureLoadedPing bool               `json:"measureLoadedPing"`
-	ConnectivityHost  string             `json:"connectivityHost"`
-	ServerListURL     string             `json:"serverListUrl"` // public LibreSpeed list, fetched only on request
-	DNSServers        []PingTarget       `json:"dnsServers"`    // public resolvers compared in the DNS test
-	PlanLowPct        float64            `json:"planLowPct"`    // below this % of the ISP plan a tip suggests action
-	HistoryLimit      int                `json:"historyLimit"`
-	Profiles          map[string]Profile `json:"profiles"`
+	Servers           []Server     `json:"servers"`
+	PingTargets       []PingTarget `json:"pingTargets"`
+	PingCount         int          `json:"pingCount"`
+	PingIntervalMs    int          `json:"pingIntervalMs"`
+	PingTimeoutMs     int          `json:"pingTimeoutMs"`
+	DownloadSeconds   float64      `json:"downloadSeconds"`
+	UploadSeconds     float64      `json:"uploadSeconds"`
+	WarmupSeconds     float64      `json:"warmupSeconds"`
+	Streams           int          `json:"streams"`
+	MeasureLoadedPing bool         `json:"measureLoadedPing"`
+	ConnectivityHost  string       `json:"connectivityHost"`
+	ServerListURL     string       `json:"serverListUrl"` // public LibreSpeed list, fetched only on request
+	DNSServers        []PingTarget `json:"dnsServers"`    // public resolvers compared in the DNS test
+	PlanLowPct        float64      `json:"planLowPct"`    // below this % of the ISP plan a tip suggests action
+	// Data saver: each direction runs at most this long and stops after
+	// this much data (megabytes).
+	DataSaverSeconds    float64            `json:"dataSaverSeconds"`
+	DataSaverDownloadMB float64            `json:"dataSaverDownloadMB"`
+	DataSaverUploadMB   float64            `json:"dataSaverUploadMB"`
+	HistoryLimit        int                `json:"historyLimit"`
+	Profiles            map[string]Profile `json:"profiles"`
 }
 
 // Default returns the built-in configuration.
@@ -165,8 +170,11 @@ func Default() Config {
 			{Label: "Google", Host: "8.8.8.8"},
 			{Label: "Quad9", Host: "9.9.9.9"},
 		},
-		PlanLowPct:   50,
-		HistoryLimit: 200,
+		PlanLowPct:          50,
+		DataSaverSeconds:    5,
+		DataSaverDownloadMB: 30,
+		DataSaverUploadMB:   15,
+		HistoryLimit:        200,
 		Profiles: map[string]Profile{
 			"general": {
 				Use:                []string{"ping", "jitter", "packetLoss", "download", "upload"},
@@ -217,9 +225,10 @@ func (c Config) PingTimeout() time.Duration {
 
 func secs(f float64) time.Duration { return time.Duration(f * float64(time.Second)) }
 
-func (c Config) DownloadDuration() time.Duration { return secs(c.DownloadSeconds) }
-func (c Config) UploadDuration() time.Duration   { return secs(c.UploadSeconds) }
-func (c Config) Warmup() time.Duration           { return secs(c.WarmupSeconds) }
+func (c Config) DownloadDuration() time.Duration  { return secs(c.DownloadSeconds) }
+func (c Config) UploadDuration() time.Duration    { return secs(c.UploadSeconds) }
+func (c Config) Warmup() time.Duration            { return secs(c.WarmupSeconds) }
+func (c Config) DataSaverDuration() time.Duration { return secs(c.DataSaverSeconds) }
 
 // Profile returns the named profile, falling back to "general".
 func (c Config) Profile(name string) Profile {
@@ -286,6 +295,12 @@ func (c Config) Validate() error {
 	}
 	if c.PlanLowPct < 0 || c.PlanLowPct > 100 {
 		return fmt.Errorf("planLowPct must be between 0 and 100")
+	}
+	if c.DataSaverSeconds < c.WarmupSeconds+1 || c.DataSaverSeconds > 120 {
+		return fmt.Errorf("dataSaverSeconds must be at least warmupSeconds + 1 and at most 120")
+	}
+	if c.DataSaverDownloadMB < 1 || c.DataSaverUploadMB < 1 || c.DataSaverDownloadMB > 1000 || c.DataSaverUploadMB > 1000 {
+		return fmt.Errorf("dataSaverDownloadMB/dataSaverUploadMB must be between 1 and 1000")
 	}
 	if _, ok := c.Profiles["general"]; !ok {
 		return fmt.Errorf(`a "general" profile is required`)
