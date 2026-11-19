@@ -104,7 +104,8 @@ async function main() {
   await page.waitForSelector('#problemDlg[open]');
   const report = await page.textContent('#problemInfo');
   console.log(report.split('\n').map(l => '  | ' + l).join('\n'));
-  check(/System: Windows 1[01] \(10\.0\.\d+\)/.test(report), 'the report names the Windows release');
+  // Desktop PCs report Windows 10 or 11; hosted runners run Windows Server.
+  check(/System: Windows (10|11|Server) \(10\.0\.\d+\)/.test(report), 'the report names the Windows release');
   await page.keyboard.press('Escape');
 
   check(errors.length === 0, 'no page errors ' + errors.join(' | '));
