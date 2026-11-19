@@ -189,6 +189,16 @@ jobs:
           WST_DEBUG: "1"
         run: |
           Expand-Archive (Get-ChildItem *win-x64.zip).FullName -DestinationPath app
+          # The WebView2 Runtime ignored the environment variable above (its
+          # browser started without --remote-debugging-port), so also set
+          # the documented per-app policy that adds browser arguments.
+          foreach ($hive in 'HKCU', 'HKLM') {
+            $k = "${hive}:\Software\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArguments"
+            try {
+              New-Item -Path $k -Force | Out-Null
+              New-ItemProperty -Path $k -Name 'WiFiSpeedTester.exe' -Value '--remote-debugging-port=9222' -PropertyType String -Force | Out-Null
+            } catch { Write-Host "could not set $k : $_" }
+          }
           $p = Start-Process app\WiFiSpeedTester.exe -PassThru
           node ui-tests/windows.cjs
           $code = $LASTEXITCODE
