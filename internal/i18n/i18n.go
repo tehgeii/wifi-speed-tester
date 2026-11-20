@@ -365,6 +365,7 @@ var catalog = map[string][2]string{
 	"app.runFirst":     {"run a test first", "jalankan tes dulu"},
 	"app.historyEmpty": {"history is empty", "riwayat masih kosong"},
 	"app.busy":         {"a test is already running", "tes sedang berjalan"},
+	"app.noUpdate":     {"no update is ready to install; check for updates first", "belum ada update yang bisa dipasang; cek update dulu"},
 	"app.monBusy":      {"the stability monitor is running", "monitor stabilitas sedang berjalan"},
 	"app.badSpot":      {"Give the spot a name.", "Beri nama untuk titik ini."},
 	"app.badTarget":    {"invalid host: use an IP address or a name like game.example.com", "host tidak valid: pakai alamat IP atau nama seperti game.example.com"},

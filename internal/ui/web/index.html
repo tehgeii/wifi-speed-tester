@@ -33,6 +33,8 @@
 
 <div class="banner hidden" id="updateBanner" role="status">
   <span id="updateText"></span>
+  <button class="primary small hidden" id="updateInstall" data-i18n="update.install">Update now</button>
+  <button class="primary small hidden" id="updateRestart" data-i18n="update.restart">Restart now</button>
   <button class="primary small" id="updateOpen" data-i18n="update.download">Download</button>
   <button class="ghost small" id="updateClose" data-i18n-aria="close">✕</button>
 </div>
@@ -448,7 +450,7 @@
   </div>
   <h3 data-i18n="settings.other">Other</h3>
   <label class="chk big"><input type="checkbox" id="updateToggle"> <span data-i18n="settings.update">Check for updates when the app starts</span></label>
-  <p class="small muted" data-i18n="settings.updateHint">Asks GitHub for the latest release. Nothing else is sent.</p>
+  <p class="small muted" data-i18n="settings.updateHint">Asks GitHub for the latest release. Nothing else is sent. Update now downloads the new version from GitHub and replaces this program; your history and settings stay.</p>
   <div class="dlg-actions">
     <button class="ghost small" id="checkNow" data-i18n="settings.checkNow">Check now</button>
     <span class="small muted" id="updateStatus"></span>

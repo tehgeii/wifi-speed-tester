@@ -484,6 +484,27 @@ async function main() {
   check(await textMatches(page, '#histTable tbody tr:first-child', /3×/), 'history marks the repeated test');
   await page.click('#tabTest');
 
+  console.log('update banner');
+  // The dev server cannot restart itself: only the release page is offered.
+  await page.evaluate(() => onUpdate({ info: { newer: true, latest: '9.9.9', current: '2.1.0', url: state.info.releasesUrl, canInstall: false } }));
+  check(await page.isVisible('#updateBanner') && await page.isVisible('#updateOpen') && !(await page.isVisible('#updateInstall')),
+    'without a window that can restart, the update is downloaded by hand');
+  await page.evaluate(() => onUpdate({ info: { newer: true, latest: '9.9.9', current: '2.1.0', url: state.info.releasesUrl, canInstall: true } }));
+  check(await page.isVisible('#updateInstall') && await page.getAttribute('#updateOpen', 'class') === 'small ghost', 'Update now is offered first');
+  await page.click('#updateInstall');
+  check(await textMatches(page, '#updateText', /^Update failed: no update is ready to install; .*release page\.$/) && await page.isVisible('#updateOpen'),
+    'a failed install is explained and the release page stays: ' + await page.textContent('#updateText'));
+  // Progress as the window reports it.
+  await page.evaluate(() => onUpdateInstall({ stage: 'download', done: 1.75e6, total: 3.5e6 }));
+  check(await page.textContent('#updateText') === 'Downloading version 9.9.9… 50%' && !(await page.isVisible('#updateInstall')) && !(await page.isVisible('#updateOpen')),
+    'download progress, no buttons meanwhile');
+  await page.evaluate(() => onUpdateInstall({ stage: 'done', version: '9.9.9' }));
+  check(/Version 9\.9\.9 is installed/.test(await page.textContent('#updateText')) && await page.isVisible('#updateRestart'), 'Restart now after the install');
+  await shot(page, 'update');
+  const restartMsg = await toastAfter(page, () => page.click('#updateRestart'), /Update failed/);
+  check(/not supported/.test(restartMsg), 'restart needs the desktop window');
+  await page.evaluate(() => { state.update = null; state.install = null; $('#updateBanner').classList.add('hidden'); });
+
   console.log('Indonesian');
   await page.click('#settingsBtn');
   await page.selectOption('#langSelect', 'id');

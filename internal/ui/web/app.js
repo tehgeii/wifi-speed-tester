@@ -35,6 +35,11 @@ const TEXT = {
     'update.latest': 'You have the latest version ({0}).',
     'update.error': 'Could not check for updates: {0}',
     'update.checking': 'Checking…',
+    'update.install': 'Update now', 'update.restart': 'Restart now',
+    'update.downloading': 'Downloading version {0}… {1}', 'update.verifying': 'Checking the download…', 'update.installing': 'Installing…',
+    'update.ready': 'Version {0} is installed. Restart the app to start using it.',
+    'update.failed': 'Update failed: {0}. You can still download it from the release page.',
+    'update.done': 'Updated to version {0}.',
     'net.connection': 'Connection', 'net.network': 'Network', 'net.detecting': 'Detecting…',
     'net.signal': 'Signal', 'net.link': 'Wi-Fi Link Speed',
     'net.linkHint': 'Radio rate between this device and the router. Not your internet speed.',
@@ -84,7 +89,7 @@ const TEXT = {
     'server.error': 'Could not get the server list: {0}', 'server.saved': 'Test server set to {0}.',
     'server.default': '{0} (default)',
     'settings.lang': 'Language', 'settings.update': 'Check for updates when the app starts',
-    'settings.updateHint': 'Asks GitHub for the latest release. Nothing else is sent.', 'settings.checkNow': 'Check now',
+    'settings.updateHint': 'Asks GitHub for the latest release. Nothing else is sent. Update now downloads the new version from GitHub and replaces this program; your history and settings stay.', 'settings.checkNow': 'Check now',
     'about.copyright': '© 2026–present tehgeii. All rights reserved. See LICENSE.txt for what you may do with the app.',
     'about.title': 'About and privacy', 'about.privacy': 'Privacy', 'about.accuracy': 'Accuracy', 'about.config': 'Configuration',
     'about.intro': 'WiFi Speed + Ping Tester — a portable utility that measures download, upload, ping, jitter and packet loss.',
@@ -93,7 +98,7 @@ const TEXT = {
     'about.accuracyText': 'Results depend on the test server, routing, Wi-Fi signal, other traffic, VPNs and this device. They show what was measured now, not a guaranteed ISP speed.',
     'about.configText': 'Place this file next to the .exe to change test servers, ping targets, durations and quality thresholds:',
     'about.trafficSpeed': 'Speed test data to: {0}', 'about.trafficPing': 'Ping (ICMP, or TCP if ICMP is blocked) to: {0}',
-    'about.trafficDNS': 'A DNS lookup of the test server name', 'about.trafficUpdate': 'If enabled in Settings: an update check to api.github.com',
+    'about.trafficDNS': 'A DNS lookup of the test server name', 'about.trafficUpdate': 'If enabled in Settings: an update check to api.github.com; when you press Update now: the new version from github.com',
     'about.trafficDNSTest': 'Only when you run the DNS test: lookups of popular site names to your DNS and {0}',
     'about.trafficMonitor': 'Only while the stability monitor runs: one ping per second to the chosen target and your router',
     'about.trafficScan': 'The Wi-Fi channel check sends nothing; it reads the networks Windows already sees',
@@ -205,6 +210,11 @@ const TEXT = {
     'update.latest': 'Kamu sudah memakai versi terbaru ({0}).',
     'update.error': 'Gagal mengecek update: {0}',
     'update.checking': 'Mengecek…',
+    'update.install': 'Update sekarang', 'update.restart': 'Mulai ulang sekarang',
+    'update.downloading': 'Mengunduh versi {0}… {1}', 'update.verifying': 'Memeriksa unduhan…', 'update.installing': 'Memasang…',
+    'update.ready': 'Versi {0} sudah terpasang. Mulai ulang aplikasi untuk memakainya.',
+    'update.failed': 'Update gagal: {0}. Kamu tetap bisa download dari halaman rilis.',
+    'update.done': 'Sudah diperbarui ke versi {0}.',
     'net.connection': 'Koneksi', 'net.network': 'Jaringan', 'net.detecting': 'Mendeteksi…',
     'net.signal': 'Sinyal', 'net.link': 'Wi-Fi Link Speed',
     'net.linkHint': 'Kecepatan radio antara perangkat ini dan router. Bukan kecepatan internet kamu.',
@@ -254,7 +264,7 @@ const TEXT = {
     'server.error': 'Gagal mengambil daftar server: {0}', 'server.saved': 'Server tes diganti ke {0}.',
     'server.default': '{0} (bawaan)',
     'settings.lang': 'Bahasa', 'settings.update': 'Cek update saat aplikasi dibuka',
-    'settings.updateHint': 'Menanyakan rilis terbaru ke GitHub. Tidak ada data lain yang dikirim.', 'settings.checkNow': 'Cek sekarang',
+    'settings.updateHint': 'Menanyakan rilis terbaru ke GitHub. Tidak ada data lain yang dikirim. Tombol Update sekarang mengunduh versi baru dari GitHub dan mengganti program ini; riwayat dan pengaturanmu tetap aman.', 'settings.checkNow': 'Cek sekarang',
     'about.copyright': '© 2026–sekarang tehgeii. Seluruh hak dilindungi. Lihat LICENSE.txt untuk apa saja yang boleh dilakukan dengan aplikasi ini.',
     'about.title': 'Tentang dan privasi', 'about.privacy': 'Privasi', 'about.accuracy': 'Akurasi', 'about.config': 'Konfigurasi',
     'about.intro': 'WiFi Speed + Ping Tester — aplikasi portable untuk mengukur download, upload, ping, jitter dan packet loss.',
@@ -263,7 +273,7 @@ const TEXT = {
     'about.accuracyText': 'Hasil dipengaruhi server tes, rute jaringan, sinyal Wi-Fi, pemakaian lain, VPN dan perangkat ini. Angkanya menunjukkan hasil pengukuran saat ini, bukan jaminan kecepatan dari ISP.',
     'about.configText': 'Taruh file ini di samping .exe untuk mengubah server tes, target ping, durasi dan batas rating:',
     'about.trafficSpeed': 'Data speed test ke: {0}', 'about.trafficPing': 'Ping (ICMP, atau TCP kalau ICMP diblokir) ke: {0}',
-    'about.trafficDNS': 'Pencarian DNS untuk nama server tes', 'about.trafficUpdate': 'Kalau diaktifkan di Pengaturan: cek update ke api.github.com',
+    'about.trafficDNS': 'Pencarian DNS untuk nama server tes', 'about.trafficUpdate': 'Kalau diaktifkan di Pengaturan: cek update ke api.github.com; saat kamu menekan Update sekarang: versi baru dari github.com',
     'about.trafficDNSTest': 'Hanya saat kamu menjalankan tes DNS: pencarian nama situs populer ke DNS kamu dan {0}',
     'about.trafficMonitor': 'Hanya selama monitor stabilitas berjalan: satu ping per detik ke target yang dipilih dan router kamu',
     'about.trafficScan': 'Cek channel Wi-Fi tidak mengirim apa pun; hanya membaca jaringan yang sudah terlihat oleh Windows',
@@ -405,7 +415,7 @@ const state = {
   network: null,
   info: null,
   server: null,
-  update: null,
+  update: null, install: null, updateError: '', // update check and "Update now" progress
   history: [],
   histConn: 'all',
   histRange: 0,
@@ -1526,15 +1536,50 @@ $('#checkNow').onclick = () => {
 function onUpdate(p) {
   const manual = state.manualUpdate;
   state.manualUpdate = false;
+  state.updateError = p.error || '';
   if (p.error) { if (manual) $('#updateStatus').textContent = t('update.error', p.error); return; }
   const i = p.info;
   state.update = i;
+  if (p.installed) state.install = { stage: 'done', version: p.installed };
   if (i.newer) {
-    $('#updateText').textContent = t('update.available', i.latest, i.current);
+    renderUpdateBanner();
     $('#updateBanner').classList.remove('hidden');
   }
   if (manual) $('#updateStatus').textContent = i.newer ? t('update.available', i.latest, i.current) : t('update.latest', i.current);
 }
+
+// The banner walks through "Update now": download (with %), check, install,
+// then "Restart now". Without a window that can restart (or a zip for this
+// build) only the release page is offered.
+function renderUpdateBanner() {
+  const i = state.update;
+  if (!i || !i.newer) return;
+  const s = state.install || {};
+  const busy = ['download', 'verify', 'install'].includes(s.stage);
+  const got = s.total > 0 ? Math.round(s.done / s.total * 100) + '%' : s.done > 0 ? fmtBytes(s.done) : '';
+  $('#updateText').textContent = {
+    download: () => t('update.downloading', i.latest, got),
+    verify: () => t('update.verifying'),
+    install: () => t('update.installing'),
+    done: () => t('update.ready', s.version),
+    error: () => t('update.failed', s.error),
+  }[s.stage]?.() || t('update.available', i.latest, i.current);
+  const offer = !!i.canInstall && !busy && s.stage !== 'done';
+  $('#updateInstall').classList.toggle('hidden', !offer);
+  $('#updateRestart').classList.toggle('hidden', s.stage !== 'done');
+  $('#updateOpen').classList.toggle('hidden', busy || s.stage === 'done');
+  $('#updateOpen').classList.toggle('primary', !offer);
+  $('#updateOpen').classList.toggle('ghost', offer);
+}
+function onUpdateInstall(p) {
+  state.install = p;
+  renderUpdateBanner();
+}
+$('#updateInstall').onclick = async () => {
+  onUpdateInstall({ stage: 'download', done: 0, total: 0 });
+  try { await bridge.call('installUpdate'); } catch (e) { onUpdateInstall({ stage: 'error', error: e.message }); }
+};
+$('#updateRestart').onclick = () => bridge.call('restartApp').catch(e => toast(t('update.failed', e.message)));
 $('#updateOpen').onclick = () => {
   const url = (state.update && state.update.url) || (state.info && state.info.releasesUrl);
   if (!url) return;
@@ -2202,7 +2247,7 @@ function renderStatic() {
   if (state.network) renderNetwork(state.network);
   renderPrivacyHint();
   renderTestOpts();
-  if (state.update && state.update.newer) $('#updateText').textContent = t('update.available', state.update.latest, state.update.current);
+  renderUpdateBanner();
 }
 
 // ---- events -----------------------------------------------------------------
@@ -2216,6 +2261,7 @@ bridge.listen((name, payload) => {
     else if (payload.path) toast(t('toast.saved', payload.path), 6000);
   } else if (name === 'servers') onServers(payload);
   else if (name === 'update') onUpdate(payload);
+  else if (name === 'updateInstall') onUpdateInstall(payload);
   else if (name === 'monitor') onMonitor(payload);
   else if (name === 'dns') onDNS(payload);
   else if (name === 'wifiscan') onScan(payload);
@@ -2242,6 +2288,7 @@ bridge.listen((name, payload) => {
   try {
     state.info = await bridge.call('info');
     if (state.info.configError) toast(t('toast.configError', state.info.configError), 8000);
+    else if (state.info.justUpdated) toast(t('update.done', state.info.version), 6000);
   } catch (e) { toast(e.message); }
   try { state.server = await bridge.call('getServer'); } catch { state.server = null; }
   renderStatic();

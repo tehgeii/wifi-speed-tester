@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"unsafe"
 
@@ -21,7 +22,8 @@ import (
 var ErrNoWebView2 = errors.New("Microsoft Edge WebView2 Runtime not found")
 
 // RunWindow opens the desktop window and blocks until it is closed.
-func RunWindow(exeDir string, logf func(string, ...any)) error {
+// updated is true when the app restarted itself after an update.
+func RunWindow(exeDir string, updated bool, logf func(string, ...any)) error {
 	// WebView2 keeps a browser profile; put it in the per-user cache rather
 	// than next to the portable executable.
 	dataPath := filepath.Join(os.TempDir(), "WiFiSpeedTester-WebView2")
@@ -98,7 +100,20 @@ func RunWindow(exeDir string, logf func(string, ...any)) error {
 	host.OpenURL = func(url string) error { OpenURL(url); return nil }
 	host.Attention = func() { w.Dispatch(func() { flashTaskbar(hwnd) }) }
 	host.SetDarkTitleBar = func(dark bool) { w.Dispatch(func() { setDarkTitleBar(hwnd, dark) }) }
+	host.Restart = func(exe string) error {
+		cmd := exec.Command(exe, "--updated")
+		cmd.Dir = filepath.Dir(exe)
+		if err := cmd.Start(); err != nil {
+			return err
+		}
+		_ = cmd.Process.Release()
+		// Close as if the user pressed ✕, so the window placement is saved;
+		// the new process waits until this one has let go of the window.
+		w.Dispatch(func() { procPostMessageW.Call(hwnd, wmClose, 0, 0) })
+		return nil
+	}
 	a := app.New(exeDir, host, logf)
+	a.JustUpdated = updated
 	if err := w.Bind("wstCall", func(method string, params []json.RawMessage) (any, error) {
 		return a.Call(method, params)
 	}); err != nil {
@@ -116,6 +131,7 @@ var (
 	procCommDlgExtError  = modComdlg32.NewProc("CommDlgExtendedError")
 	modUser32            = windows.NewLazySystemDLL("user32.dll")
 	procMessageBoxW      = modUser32.NewProc("MessageBoxW")
+	procPostMessageW     = modUser32.NewProc("PostMessageW")
 )
 
 type openFileName struct {
