@@ -1,3 +1,16 @@
+## Yang baru di 2.1
+
+- **Hotspot HP dikenali dengan benar.** Hotspot Android sekarang memakai alamat acak (misalnya 10.54.x.x), jadi dulu terbaca sebagai Wi-Fi rumah. Sekarang aplikasi membaca status *berkuota* yang dikirim HP ke Windows, lalu menampilkannya sebagai **Hotspot / Tethering**. Hasilnya:
+  - ping ke HP sampai 60 ms dianggap wajar (HP menghemat daya di antara paket), jadi tidak ada lagi "router bermasalah, restart router";
+  - saran khusus HP: taruh HP di tempat sinyal 4G/5G kuat, ubah hotspot ke 5 GHz, pakai USB tethering supaya ping stabil;
+  - **Diagnosa** langsung menyimpulkan "Lewat hotspot HP" setelah langkah 1, tanpa menyuruh jalan ke router;
+  - **Hemat kuota** disarankan, dan hasilnya tidak dibandingkan dengan paket internet rumah;
+  - Riwayat dan Laporan ISP memisahkan tes hotspot dari Wi-Fi rumah.
+
+  Kalau hotspot-mu masih terbaca Wi-Fi, tandai sendiri di **Pengaturan Windows → Jaringan → Wi-Fi → (nama hotspot) → Koneksi berkuota**.
+- **Dibanding tes sebelumnya**: di bawah hasil ada baris seperti "Download +18% · Upload −5% · Ping +12 ms" terhadap tes terakhir di koneksi yang sama. Hijau lebih baik, merah lebih buruk.
+- **Update sekarang**: kalau ada versi baru, cukup klik **Update sekarang** lalu **Mulai ulang sekarang**. Aplikasi mengunduh zip dari rilis GitHub, mencocokkan checksum-nya, lalu mengganti exe; riwayat dan pengaturanmu tetap. Fitur ini dipakai mulai update **dari 2.1 ke versi berikutnya**; versi 2.1 sendiri di-download manual seperti biasa.
+
 ## Yang baru di 2.0.1
 
 Perbaikan kecil hasil tes di laptop asli:

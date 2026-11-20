@@ -58,6 +58,8 @@ PRIVACY
   regions). The Wi-Fi channel check and the signal finder send nothing.
   If "Check for updates" is on (Settings,
   on by default): one request to api.github.com for the latest version.
+  Only when you press "Update now": the new version's zip and
+  SHA256SUMS.txt from this project's release page on github.com.
   The app does not read your files, browser history or passwords.
 
 FILES IT CREATES

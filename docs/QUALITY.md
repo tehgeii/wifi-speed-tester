@@ -89,6 +89,31 @@ healthy connection gets no tips.
 | Contact your ISP with a report | problems appear beyond the router, or loss on a wired link |
 | Speed is well below your plan (test with a cable, then use the ISP report) | a plan is set in Settings and download or upload is below `planLowPct` (default 50 %) of it |
 
+### Over a phone hotspot
+
+A Wi-Fi link counts as a phone hotspot (connection type *Hotspot /
+Tethering*) when Windows reports it as metered (Android phones announce their
+hotspot as metered over DHCP; Windows 10 2004 and later expose it per
+interface) or when the gateway is a fixed hotspot address (iPhone
+172.20.10.1, older Android 192.168.43.1 and 192.168.49.1). USB tethering is
+recognised from the adapter name. A home Wi-Fi the user set as metered is
+treated the same way, since it has a data limit too.
+
+Router advice does not apply to a phone, so these tips replace it:
+
+| Tip | When |
+|---|---|
+| Put the phone where its 4G/5G signal is strongest | any graded problem: slow, jitter, loss or ping rising under load |
+| Move the laptop closer to the phone | Wi-Fi signal to the phone below 60 % |
+| Switch the phone's hotspot to 5 GHz | the hotspot is on 2.4 GHz |
+| Use USB tethering for a steadier ping | Wi-Fi hotspot with delay/loss to the phone, jitter graded FAIR/POOR, or any packet loss |
+| Ping rising while downloading is common on mobile networks | latency under load above the profile's `good` value |
+| Try a nearer server / pause other downloads | as above |
+| Another operator's SIM may do better | problems appear beyond the phone, or loss |
+
+Tests over a phone or mobile data are not compared with the home internet
+plan.
+
 ## Notes the app adds
 
 - **Latency increases significantly under load** when the increase is above
@@ -98,7 +123,10 @@ healthy connection gets no tips.
 - **Where the problem is.** The app compares the router (gateway) ping with
   the internet ping:
   - loss, more than 20 ms average or more than 10 ms jitter to the router →
-    likely a local network or Wi-Fi problem;
+    likely a local network or Wi-Fi problem. Over a phone hotspot the limits
+    are 60 ms and 30 ms: a phone saves power between packets, so it answers
+    more slowly than a router, and the notes speak of the phone and the
+    mobile network instead of the router and the ISP;
   - a healthy router but more than 80 ms of extra latency, or loss, on the internet
     target → added beyond the router (ISP or route);
   - no reply from the router → many routers block ping, so this alone is not
@@ -175,6 +203,7 @@ near-router step), or a good result near the router.
 | The router answers but the internet does not | No internet beyond the router | ISP report |
 | The router does not answer | Not connected to the router | (advice in the text) |
 | Every measured step is healthy | Healthy | Stability monitor |
+| Over a phone hotspot, not healthy | Via a phone hotspot: the limit is the phone's mobile signal (plus a note when the link to the phone itself is slow). Ends after step 1 | Stability monitor |
 | Cable healthy, where you were not | The problem is the Wi-Fi | Wi-Fi channel check |
 | Near the router healthy, where you were not | Weak Wi-Fi coverage | Wi-Fi channel check |
 | Delay or loss already to the router | The router or local Wi-Fi is struggling | Wi-Fi channel check (unless found on a cable) |
