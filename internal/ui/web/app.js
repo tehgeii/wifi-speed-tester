@@ -126,6 +126,8 @@ const TEXT = {
     'act.title': 'What is it good for?', 'act.quickNote': 'Quick Ping only checks latency, so activities that need speed are left out.',
     'act.s.ok': 'Smooth', 'act.s.warn': 'Usable, may stutter', 'act.s.bad': 'Not enough', 'act.s.pending': 'Measuring', 'act.s.na': 'Not measured',
     'grade.title': 'Bufferbloat grade', 'grade.text': 'ping rises {0} ms while the connection is busy',
+    'cmp.head': 'Compared with the previous test ({0}):', 'cmp.same': '{0} about the same',
+    'cmp.hint': 'The previous test of the same kind on the same connection. Green is better, red is worse; small changes (under 5%) count as the same.',
     'grade.hint': 'How much ping rises while the connection is busy downloading or uploading. A+ and A are great for games and calls.',
     'settings.theme': 'Theme', 'theme.system': 'Follow Windows', 'theme.light': 'Light', 'theme.dark': 'Dark',
     'card.grade': 'Bufferbloat {0}',
@@ -294,6 +296,8 @@ const TEXT = {
     'act.title': 'Cocok untuk apa?', 'act.quickNote': 'Ping Cepat hanya mengecek ping, jadi aktivitas yang butuh kecepatan tidak ditampilkan.',
     'act.s.ok': 'Lancar', 'act.s.warn': 'Bisa, kadang tersendat', 'act.s.bad': 'Kurang', 'act.s.pending': 'Mengukur', 'act.s.na': 'Tidak terukur',
     'grade.title': 'Nilai bufferbloat', 'grade.text': 'ping naik {0} ms saat koneksi sedang sibuk',
+    'cmp.head': 'Dibanding tes sebelumnya ({0}):', 'cmp.same': '{0} hampir sama',
+    'cmp.hint': 'Tes sebelumnya dengan jenis tes dan koneksi yang sama. Hijau berarti lebih baik, merah lebih buruk; perubahan kecil (di bawah 5%) dianggap sama.',
     'grade.hint': 'Seberapa besar ping naik saat koneksi sibuk download atau upload. A+ dan A sangat bagus untuk game dan video call.',
     'settings.theme': 'Tema', 'theme.system': 'Ikuti Windows', 'theme.light': 'Terang', 'theme.dark': 'Gelap',
     'card.grade': 'Bufferbloat {0}',
@@ -693,6 +697,7 @@ function renderResult(r, fromHistory) {
     renderWhy(q);
     renderGaming(r);
     renderGrade(r);
+    renderVsPrevious(r);
     renderRuns(r);
     renderPrivacyHint();
   }
@@ -954,6 +959,57 @@ function renderGrade(r) {
   badge.className = 'grade ' + gradeClass(g);
   const loaded = [r.download, r.upload].filter(s => s && s.loadedSamples).map(s => s.loadedPingMs);
   $('#gradeText').textContent = t('grade.text', ms(Math.max(0, Math.max(...loaded) - r.pingMs)));
+}
+
+// ---- compared with the previous test ------------------------------------------
+// The latest earlier test of the same kind (Quick Ping with Quick Ping) on
+// the same connection, so a phone hotspot is never compared with home Wi-Fi.
+function previousTest(r) {
+  const conn = r.network && r.network.connection;
+  const quick = r.mode === 'quick';
+  const at = new Date(r.startedAt).getTime();
+  let prev = null;
+  for (const h of state.history || []) {
+    const d = new Date(h.date).getTime();
+    if (h.id === r.id || d >= at || h.connection !== conn || (h.mode === 'quick') !== quick) continue;
+    if (!prev || d > new Date(prev.date).getTime()) prev = h;
+  }
+  return prev;
+}
+
+// compareParts lists the changes: speeds in %, ping in ms (lower is better).
+// Changes under 5% (or 3 ms) are noise between two tests and count as the same.
+function compareParts(r, prev) {
+  const parts = [];
+  const signed = (v, unit) => (v > 0 ? '+' : '−') + Math.abs(v) + unit;
+  const speedPart = (label, now, before) => {
+    if (!(now > 0 && before > 0)) return;
+    const change = Math.round((now - before) / before * 100);
+    if (Math.abs(change) < 5) parts.push({ cls: 'same', text: t('cmp.same', label) });
+    else parts.push({ cls: change > 0 ? 'better' : 'worse', text: label + ' ' + signed(change, '%') });
+  };
+  if (r.mode !== 'quick') {
+    speedPart('Download', r.download && r.download.mbps, prev.download);
+    speedPart('Upload', r.upload && r.upload.mbps, prev.upload);
+  }
+  if (r.pingMs > 0 && prev.ping > 0) {
+    const diff = Math.round(r.pingMs - prev.ping);
+    if (Math.abs(diff) < Math.max(3, prev.ping * 0.05)) parts.push({ cls: 'same', text: t('cmp.same', 'Ping') });
+    else parts.push({ cls: diff < 0 ? 'better' : 'worse', text: 'Ping ' + signed(diff, ' ms') });
+  }
+  return parts;
+}
+
+function renderVsPrevious(r) {
+  const box = $('#cmpLine');
+  const prev = r.cancelled ? null : previousTest(r);
+  const parts = prev ? compareParts(r, prev) : [];
+  box.classList.toggle('hidden', parts.length === 0);
+  if (!parts.length) return;
+  const when = new Date(prev.date).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' });
+  box.title = t('cmp.hint');
+  box.innerHTML = `<span class="muted">${esc(t('cmp.head', when))}</span> `
+    + parts.map(p => `<span class="cmp-${p.cls}">${esc(p.text)}</span>`).join(' · ');
 }
 
 // ---- data saver, repeat & data usage ---------------------------------------

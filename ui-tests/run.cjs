@@ -143,6 +143,7 @@ async function main() {
   check(!(await page.textContent('#qualityLevel')).includes('—'), 'quick ping gives a rating');
   check((await page.textContent('#m-download .sub')) === 'not part of Quick Ping', 'quick ping skips download');
   check(await page.locator('#actList .act').count() === 3 && await page.isVisible('#actQuickNote'), 'quick ping judges only latency-based activities');
+  check(!(await page.isVisible('#cmpLine')), 'the first test has nothing to compare with');
 
   console.log('full test');
   await page.click('#startBtn');
@@ -167,6 +168,16 @@ async function main() {
   }
   await page.setViewportSize({ width: 1100, height: 900 });
   check(await page.isVisible('#gradeRow') && /^(A\+|A|B|C|D|F)$/.test(await page.textContent('#gradeBadge')), 'bufferbloat grade is shown');
+  check(!(await page.isVisible('#cmpLine')), 'a full test is not compared with a Quick Ping');
+  // The comparison rules, with fixed numbers.
+  const parts = await page.evaluate(() => [
+    compareParts({ mode: 'general', download: { mbps: 118 }, upload: { mbps: 9.5 }, pingMs: 30 }, { download: 100, upload: 10, ping: 18 }),
+    compareParts({ mode: 'general', download: { mbps: 102 }, upload: { mbps: 7 }, pingMs: 20 }, { download: 100, upload: 10, ping: 30 }),
+    compareParts({ mode: 'quick', pingMs: 41 }, { download: 0, upload: 0, ping: 40 }),
+  ].map(ps => ps.map(p => p.cls + ':' + p.text).join(' | ')));
+  check(parts[0] === 'better:Download +18% | worse:Upload −5% | worse:Ping +12 ms', 'faster, slower and higher ping are told apart: ' + parts[0]);
+  check(parts[1] === 'same:Download about the same | worse:Upload −30% | better:Ping −10 ms', 'small changes count as the same, lower ping is better: ' + parts[1]);
+  check(parts[2] === 'same:Ping about the same', 'Quick Ping compares only the ping: ' + parts[2]);
   check(/% of plan/.test(await page.textContent('#m-download .sub')), 'download shows the share of the plan');
   await page.click('#detailsBtn');
   check((await page.textContent('#pingTable')).includes('Game server'), 'the custom target was pinged');
@@ -458,6 +469,8 @@ async function main() {
   await page.waitForSelector('#startBtn:not(.hidden)');
   check(await page.isVisible('#runsBox') && await page.locator('#runsBox tbody tr').count() === 3, 'the 3 runs are listed');
   check(/This test used ≈ \d/.test(await dataLine()), 'data used by the test is shown afterwards');
+  check(await page.isVisible('#cmpLine') && /^Compared with the previous test \(.+\): Download /.test(await page.textContent('#cmpLine')),
+    'the second full test is compared with the first: ' + await page.textContent('#cmpLine'));
   await shot(page, 'repeat-result');
   const notes = await page.textContent('#notes');
   check(notes.includes('3 times') && notes.includes('Data saver'), 'notes explain the median and data saver');
@@ -487,6 +500,7 @@ async function main() {
   await page.waitForSelector('#summaryCard:not(.hidden)');
   check((await page.textContent('#pingTable')).includes('Gateway Lokal'), 'ping target labels in Indonesian');
   check((await page.textContent('#actList')).includes('Game online'), 'activities in Indonesian');
+  check(/^Dibanding tes sebelumnya \(.+\): Ping /.test(await page.textContent('#cmpLine')), 'the second Quick Ping is compared with the first, in Indonesian');
   if (SHOTS) {
     // The website shows the app in Indonesian.
     await page.click('#tabHistory');

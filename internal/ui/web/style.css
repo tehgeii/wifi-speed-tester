@@ -354,6 +354,10 @@ dialog h3 + p.small { margin-top: 0; }
 
 .grade-row { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding-bottom: 12px; border-bottom: 1px dashed var(--line); }
 .grade-row b { display: block; }
+.summary p.cmp { font-size: 13px; margin: 0 0 10px; }
+.cmp-better { color: var(--ok); font-weight: 600; }
+.cmp-worse { color: var(--bad); font-weight: 600; }
+.cmp-same { color: var(--muted); }
 .grade { display: inline-grid; place-items: center; min-width: 46px; height: 46px; padding: 0 8px; border-radius: 12px; font-size: 22px; font-weight: 800; color: #fff; background: var(--muted); }
 .grade.sm { min-width: 0; height: auto; padding: 0 6px; border-radius: 6px; font-size: 11px; vertical-align: 1px; margin-left: 4px; }
 .g-Ap, .g-A { background: var(--ok); }
