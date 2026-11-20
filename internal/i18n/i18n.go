@@ -84,6 +84,8 @@ var catalog = map[string][2]string{
 	"note.tcpPing":         {"This network blocks ICMP ping, so latency was measured with TCP connections to the test server. These values can read slightly higher than a normal ping.", "Jaringan ini memblokir ping ICMP, jadi ping diukur lewat koneksi TCP ke server tes. Nilainya bisa sedikit lebih tinggi dari ping biasa."},
 	"note.routerNoPing":    {"The router did not answer ping. Many routers block ping, so this alone is not a fault.", "Router tidak membalas ping. Banyak router memang memblokir ping, jadi ini saja belum tentu masalah."},
 	"note.localProblem":    {"Delay or loss already appears between this device and the router (%s avg, %s loss). The local network or Wi-Fi is a likely cause.", "Delay atau loss sudah muncul antara perangkat ini dan router (rata-rata %s, loss %s). Kemungkinan penyebabnya jaringan lokal atau Wi-Fi."},
+	"note.hotspotLocal":    {"Delay or loss already appears between this device and the phone (%s avg, %s loss). The Wi-Fi link to the phone is a likely cause.", "Delay atau loss sudah muncul antara perangkat ini dan HP (rata-rata %s, loss %s). Kemungkinan penyebabnya koneksi Wi-Fi ke HP."},
+	"note.hotspotBeyond":   {"The link to the phone looks healthy; the extra latency or loss comes from the mobile network (the phone's 4G/5G signal or the operator).", "Koneksi ke HP terlihat sehat; tambahan ping atau loss datang dari jaringan seluler (sinyal 4G/5G di HP atau operatornya)."},
 	"note.beyondRouter":    {"The local network looks healthy; the extra latency or loss is added beyond the router (ISP or internet route).", "Jaringan lokal terlihat sehat; tambahan ping atau loss terjadi setelah router (ISP atau rute internet)."},
 	"note.weakSignal":      {"Wi-Fi signal is weak (%d%%).", "Sinyal Wi-Fi lemah (%d%%)."},
 	"note.linkSpeed":       {"Wi-Fi link speed (%.0f Mbps) is the radio rate to the router, not your internet speed.", "Wi-Fi link speed (%.0f Mbps) adalah kecepatan radio ke router, bukan kecepatan internet kamu."},
@@ -97,6 +99,12 @@ var catalog = map[string][2]string{
 	"tip.vpn":           {"A VPN is active. VPNs usually lower speed and add latency; disconnect it to compare.", "VPN sedang aktif. VPN biasanya menurunkan kecepatan dan menambah ping; matikan dulu untuk membandingkan."},
 	"tip.isp":           {"If this keeps happening, contact your ISP and send them an exported report.", "Kalau ini terus terjadi, hubungi ISP kamu dan kirimkan laporan hasil export."},
 	"tip.nearerServer":  {"Latency to this test server is high. Try a nearer server (Server → Find nearby servers).", "Ping ke server tes ini tinggi. Coba server yang lebih dekat (Server → Cari server terdekat)."},
+	"tip.hotspotPlace":  {"Put the phone where its 4G/5G signal is strongest (near a window, higher up, not in a pocket or bag), and keep it from getting hot.", "Taruh HP di tempat sinyal 4G/5G-nya paling kuat (dekat jendela, lebih tinggi, jangan di saku atau tas), dan jaga supaya tidak panas."},
+	"tip.hotspotNear":   {"Move this laptop closer to the phone; the Wi-Fi signal to it is weak.", "Dekatkan laptop ini ke HP; sinyal Wi-Fi ke HP lemah."},
+	"tip.hotspot5GHz":   {"The phone's hotspot uses 2.4 GHz. If its hotspot settings offer 5 GHz, switch to it for more speed.", "Hotspot HP memakai 2,4 GHz. Kalau di pengaturan hotspot HP ada pilihan 5 GHz, pakai itu agar lebih cepat."},
+	"tip.usbTether":     {"For a steadier ping, connect the phone with a USB cable and turn on USB tethering instead of the Wi-Fi hotspot.", "Supaya ping lebih stabil, sambungkan HP pakai kabel USB dan nyalakan USB tethering, bukan hotspot Wi-Fi."},
+	"tip.cellularLoad":  {"Ping rising while downloading is common on mobile networks. Avoid big downloads while gaming or on calls.", "Ping naik saat sedang download itu biasa di jaringan seluler. Hindari download besar saat main game atau video call."},
+	"tip.operator":      {"If it stays slow in different places and at different times, the operator's network is busy here; another operator's SIM may do better.", "Kalau tetap lambat di tempat dan jam yang berbeda, jaringan operatornya sedang padat di sini; SIM operator lain mungkin lebih bagus."},
 	"tip.otherTraffic":  {"Pause other downloads, streaming or cloud sync on this and other devices, then test again.", "Hentikan dulu download, streaming atau sinkronisasi cloud di perangkat ini dan perangkat lain, lalu tes ulang."},
 
 	// Ping target labels
@@ -123,6 +131,9 @@ var catalog = map[string][2]string{
 	"diag.router.detail":       {"Delay or loss already appears between this device and the router. Restart the router; if it keeps happening, the Wi-Fi channel may be crowded or the router overloaded.", "Delay atau loss sudah muncul antara perangkat ini dan router. Restart router; kalau terus terjadi, channel Wi-Fi mungkin ramai atau routernya kewalahan."},
 	"diag.isp":                 {"Most likely the ISP or the route", "Kemungkinan besar dari ISP atau rutenya"},
 	"diag.isp.detail":          {"The router answers normally, but the connection is slow or unstable beyond it. Test at different times of day and send the ISP report to your ISP.", "Router menjawab normal, tapi koneksi setelah router lambat atau tidak stabil. Tes di jam yang berbeda lalu kirim Laporan ISP ke ISP kamu."},
+	"diag.hotspot":             {"Via a phone hotspot: the limit is the phone's mobile signal", "Lewat hotspot HP: batasnya di sinyal seluler HP"},
+	"diag.hotspot.detail":      {"This laptop connects through a phone, so speed and ping depend on the phone's 4G/5G signal and the operator's network, not on a router. Put the phone where its signal is strongest (near a window, higher up), keep it charged and cool, and test again at another time. USB tethering usually gives a steadier ping than a Wi-Fi hotspot.", "Laptop ini tersambung lewat HP, jadi kecepatan dan ping tergantung sinyal 4G/5G di HP dan jaringan operator, bukan router. Taruh HP di tempat sinyalnya paling kuat (dekat jendela, lebih tinggi), jaga baterai dan jangan sampai panas, lalu tes lagi di jam lain. USB tethering biasanya memberi ping lebih stabil daripada hotspot Wi-Fi."},
+	"diag.hotspotLink":         {"Delay already appears between this laptop and the phone (%s avg): move closer to the phone or use USB tethering.", "Delay sudah muncul antara laptop ini dan HP (rata-rata %s): dekatkan ke HP atau pakai USB tethering."},
 	"diag.unclear":             {"Not clear yet", "Belum bisa dipastikan"},
 	"diag.unclear.detail":      {"The connection is not great, but one test cannot tell whether Wi-Fi or the ISP is the cause. Run the diagnosis again with the near-router step (and a cable if you have one).", "Koneksinya kurang bagus, tapi satu tes belum bisa memastikan penyebabnya Wi-Fi atau ISP. Jalankan diagnosa lagi dengan langkah dekat router (dan kabel kalau ada)."},
 	"diag.fact":                {"%s: download %s, upload %s, ping %s", "%s: download %s, upload %s, ping %s"},
@@ -299,7 +310,7 @@ var catalog = map[string][2]string{
 	"err.other.s":       {"Try again. If the problem continues, try another network or test server.", "Coba lagi. Kalau masalahnya berlanjut, coba jaringan atau server tes lain."},
 
 	// Wi-Fi notes (model.WiFiInfo.NoteKey)
-	"wifi.hotspot":     {"Gateway address is typical of a phone hotspot.", "Alamat gateway ini biasanya milik hotspot HP."},
+	"wifi.hotspot":     {"Looks like a phone hotspot (a metered connection or a typical hotspot address).", "Sepertinya hotspot HP (koneksi berkuota atau alamat khas hotspot)."},
 	"wifi.ssidHidden":  {"Windows hides the Wi-Fi name. On Windows 11, turn on Settings → Privacy & security → Location → Let desktop apps access your location.", "Windows menyembunyikan nama Wi-Fi. Di Windows 11, nyalakan Settings → Privacy & security → Location → Let desktop apps access your location."},
 	"wifi.unavailable": {"Wi-Fi details unavailable: %s", "Detail Wi-Fi tidak tersedia: %s"},
 

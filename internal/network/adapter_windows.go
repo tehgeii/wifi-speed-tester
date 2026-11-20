@@ -90,6 +90,7 @@ func detectAdapter() (*model.NetworkInfo, error) {
 		base = model.ConnVPN
 	}
 	info.Connection = classify(base, info.Description)
+	info.Metered = metered(chosen.IfIndex)
 	if chosen.IfType == ifTypeIEEE80211 {
 		info.Connection = model.ConnWiFi // a Wi-Fi radio is always reported as Wi-Fi
 	}
@@ -134,4 +135,31 @@ func adapterGUID(friendlyName string) (windows.GUID, bool) {
 		}
 	}
 	return windows.GUID{}, false
+}
+
+// NL_NETWORK_CONNECTIVITY_HINT (netioapi.h).
+type connectivityHint struct {
+	level, cost                          uint32
+	approachingLimit, overLimit, roaming uint8
+	_                                    uint8
+}
+
+const (
+	costHintFixed    = 2 // a data limit, e.g. a phone hotspot or a capped plan
+	costHintVariable = 3 // pay per use
+)
+
+var procConnectivityHint = windows.NewLazySystemDLL("iphlpapi.dll").NewProc("GetNetworkConnectivityHintForInterface")
+
+// metered reports whether Windows treats the interface as metered. The call
+// exists from Windows 10 2004; on older systems the answer is simply false.
+func metered(ifIndex uint32) bool {
+	if procConnectivityHint.Find() != nil {
+		return false
+	}
+	var h connectivityHint
+	if r, _, _ := procConnectivityHint.Call(uintptr(ifIndex), uintptr(unsafe.Pointer(&h))); r != 0 {
+		return false
+	}
+	return h.cost == costHintFixed || h.cost == costHintVariable
 }

@@ -116,7 +116,7 @@ const TEXT = {
     'card.general': 'CONNECTION', 'card.gaming': 'GAMING CONNECTION', 'card.quick': 'QUICK PING',
     'level.EXCELLENT': 'EXCELLENT', 'level.GOOD': 'GOOD', 'level.FAIR': 'FAIR', 'level.POOR': 'POOR', 'level.UNSTABLE': 'UNSTABLE', 'level.UNKNOWN': 'UNKNOWN',
     'profile.general': 'General profile', 'profile.gaming': 'Gaming profile', 'profile.quick': 'Quick Ping',
-    'wifi.hotspot': 'Gateway address is typical of a phone hotspot.',
+    'wifi.hotspot': 'Looks like a phone hotspot (a metered connection or a typical hotspot address).',
     'wifi.ssidHidden': 'Windows hides the Wi-Fi name. On Windows 11, turn on Settings → Privacy & security → Location → Let desktop apps access your location.',
     'wifi.unavailable': 'Wi-Fi details unavailable: {0}',
     'conn.Wi-Fi': 'Wi-Fi', 'conn.Ethernet': 'Ethernet', 'conn.Hotspot / Tethering': 'Hotspot / Tethering', 'conn.Cellular': 'Cellular',
@@ -134,6 +134,7 @@ const TEXT = {
     'data.live': 'Data used: {0}', 'data.used': 'This test used ≈ {0} of data', 'data.estimate': 'Estimated data: ≈ {0}',
     'data.saverOn': 'Data saver on: about {0} per test', 'data.turnOn': 'Turn on',
     'data.hotspot': "You're on a phone hotspot or mobile data. Turn on Data saver?",
+    'data.metered': 'Windows marks this connection as metered (it has a data limit). Turn on Data saver?',
     'data.month': 'Data used by tests this month: {0} ({1} tests)', 'data.perTest': 'per test',
     'run.label': 'Test {0} of {1}', 'runs.title': '{0} runs (the figures above are the middle values)', 'runs.col': 'Run',
     'hist.saver': 'data saver',
@@ -283,7 +284,7 @@ const TEXT = {
     'card.general': 'KONEKSI', 'card.gaming': 'KONEKSI GAMING', 'card.quick': 'PING CEPAT',
     'level.EXCELLENT': 'SANGAT BAGUS', 'level.GOOD': 'BAGUS', 'level.FAIR': 'CUKUP', 'level.POOR': 'BURUK', 'level.UNSTABLE': 'TIDAK STABIL', 'level.UNKNOWN': 'TIDAK DIKETAHUI',
     'profile.general': 'Profil Umum', 'profile.gaming': 'Profil Gaming', 'profile.quick': 'Ping Cepat',
-    'wifi.hotspot': 'Alamat gateway ini biasanya milik hotspot HP.',
+    'wifi.hotspot': 'Sepertinya hotspot HP (koneksi berkuota atau alamat khas hotspot).',
     'wifi.ssidHidden': 'Windows menyembunyikan nama Wi-Fi. Di Windows 11, nyalakan Settings → Privacy & security → Location → Let desktop apps access your location.',
     'wifi.unavailable': 'Detail Wi-Fi tidak tersedia: {0}',
     'conn.Wi-Fi': 'Wi-Fi', 'conn.Ethernet': 'Ethernet (kabel)', 'conn.Hotspot / Tethering': 'Hotspot / Tethering', 'conn.Cellular': 'Seluler',
@@ -301,6 +302,7 @@ const TEXT = {
     'data.live': 'Kuota terpakai: {0}', 'data.used': 'Tes ini memakai kuota ≈ {0}', 'data.estimate': 'Perkiraan kuota: ≈ {0}',
     'data.saverOn': 'Hemat kuota aktif: sekitar {0} per tes', 'data.turnOn': 'Nyalakan',
     'data.hotspot': 'Kamu pakai hotspot HP atau data seluler. Nyalakan Hemat kuota?',
+    'data.metered': 'Windows menandai koneksi ini berkuota (ada batas data). Nyalakan Hemat kuota?',
     'data.month': 'Kuota terpakai untuk tes bulan ini: {0} ({1} tes)', 'data.perTest': 'per tes',
     'run.label': 'Tes {0} dari {1}', 'runs.title': '{0} putaran (angka di atas adalah nilai tengahnya)', 'runs.col': 'Putaran',
     'hist.saver': 'hemat kuota',
@@ -982,7 +984,9 @@ function dataEstimate() {
   return h ? t('data.estimate', fmtBytes(h.dataMB * 1e6 * runs)) : '';
 }
 
-const onMobileData = () => ['Hotspot / Tethering', 'Cellular'].includes(state.network && state.network.connection);
+const viaPhone = () => ['Hotspot / Tethering', 'Cellular'].includes(state.network && state.network.connection);
+// A metered link (as Windows reports it) has a data limit too.
+const onMobileData = () => viaPhone() || !!(state.network && state.network.metered);
 function renderTestOpts() {
   $('#saverBtn').setAttribute('aria-pressed', state.saver);
   $('#repeatBtn').setAttribute('aria-pressed', state.repeat);
@@ -990,6 +994,7 @@ function renderTestOpts() {
   $('#repeatBtn').title = t('repeat.hint');
   $('#testOpts').classList.toggle('hidden', state.running);
   $('#hotspotHint').classList.toggle('hidden', state.running || state.saver || !onMobileData());
+  $('#hotspotMsg').textContent = t(viaPhone() ? 'data.hotspot' : 'data.metered');
   renderDataLine();
 }
 function setSaver(on) {
@@ -2027,7 +2032,8 @@ async function diagStepDone(r) {
   diag.marks[kind] = 'done';
   let d = null;
   try { d = await bridge.call('diagnose', diag.steps); } catch (e) { toast(e.message); }
-  const clear = !d || kind === 'cable' || ['healthy', 'offline', 'offlineLocal', 'coverage'].includes(d.kind)
+  // Over a phone hotspot there is no router to walk to or cable to plug.
+  const clear = !d || kind === 'cable' || ['healthy', 'offline', 'offlineLocal', 'coverage', 'hotspot'].includes(d.kind)
     || (kind === 'now' && !wireless(r));
   if (clear) { diagConclude(d); return; }
   if (kind === 'now' && wifiSignal(r) >= STRONG_SIGNAL) {

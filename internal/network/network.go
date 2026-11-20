@@ -20,14 +20,32 @@ func Detect(ctx context.Context) (*model.NetworkInfo, error) {
 	if info.Connection == model.ConnWiFi {
 		if wifi, err := wifiInfo(info); err == nil && wifi != nil {
 			info.WiFi = wifi
-			if hotspotGateway(info.Gateway) {
-				wifi.NoteKey = "wifi.hotspot"
-			}
 		} else if err != nil {
 			info.WiFi = &model.WiFiInfo{NoteKey: "wifi.unavailable", Note: err.Error()}
 		}
 	}
+	markHotspot(info)
 	return info, nil
+}
+
+// markHotspot labels a Wi-Fi link to a phone as a hotspot. Modern Android
+// phones pick a random address range, so the gateway alone no longer gives
+// them away; but they tell Windows the network is metered (DHCP option
+// ANDROID_METERED), which Windows reports for the interface. iPhones and
+// older Android phones are still recognised by their fixed gateway. A home
+// Wi-Fi the user set as metered is treated the same way: it has a data limit.
+// The Wi-Fi details are kept, since the link to the phone is still Wi-Fi.
+func markHotspot(info *model.NetworkInfo) {
+	if info.Connection != model.ConnWiFi || !(info.Metered || hotspotGateway(info.Gateway)) {
+		return
+	}
+	info.Connection = model.ConnTethering
+	if info.WiFi == nil {
+		info.WiFi = &model.WiFiInfo{}
+	}
+	if info.WiFi.NoteKey == "" {
+		info.WiFi.NoteKey = "wifi.hotspot"
+	}
 }
 
 // classify infers the connection type from the adapter description.

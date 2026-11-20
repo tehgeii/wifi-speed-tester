@@ -376,6 +376,20 @@ async function main() {
   await page.waitForSelector('#diagResult:not(.hidden)');
   check(/ISP/.test(await page.textContent('#diagTitle')) && /already strong \(85%\)/.test(await page.textContent('#diagFacts')), 'a slow test on a strong signal points to the ISP');
   await page.click('#diagAgain');
+
+  // Over a phone hotspot (the user's realme: phone answers in 22 ms) there
+  // is no router to walk to: the diagnosis ends after step 1.
+  await page.evaluate(() => {
+    diagReset();
+    return diagStepDone({ mode: 'general', pingMs: 40, jitterMs: 6, download: { mbps: 8 }, upload: { mbps: 6 },
+      network: { connection: 'Hotspot / Tethering', metered: true, wifi: { signalPercent: 95 } }, quality: { level: 'POOR' },
+      pings: [{ isGateway: true, sent: 20, received: 20, avgMs: 22 }, { primaryTarget: true, sent: 20, received: 20, avgMs: 40 }] });
+  });
+  await page.waitForSelector('#diagResult:not(.hidden)');
+  check(/phone hotspot/.test(await page.textContent('#diagTitle')) && !/router/i.test(await page.textContent('#diagTitle')), 'a slow hotspot test concludes "via a phone hotspot": ' + await page.textContent('#diagTitle'));
+  check(await textMatches(page, '#diagSteps [data-step="near"] .ds-state', /skipped/), 'no walk to a router over a hotspot');
+  await shot(page, 'diag-hotspot');
+  await page.click('#diagAgain');
   await page.click('#tabTest');
 
   console.log('theme');
@@ -423,8 +437,13 @@ async function main() {
   await page.click('#saverBtn');
   check(await page.getAttribute('#saverBtn', 'aria-pressed') === 'true' && /Data saver on: about 135 MB per test/.test(await dataLine()), 'data saver shows its cap (3 runs)');
   await page.click('#saverBtn');
+  // Home Wi-Fi that Windows reports as metered gets the hint too.
+  await page.evaluate(() => renderNetwork({ ...state.network, connection: 'Wi-Fi', metered: true }));
+  check(await page.isVisible('#hotspotHint') && /metered/.test(await page.textContent('#hotspotMsg')), 'a metered connection suggests data saver');
+  await page.evaluate(() => renderNetwork({ ...state.network, metered: false }));
+  check(!(await page.isVisible('#hotspotHint')), 'no hint on unmetered Wi-Fi');
   await page.evaluate(() => renderNetwork({ ...state.network, connection: 'Hotspot / Tethering' }));
-  check(await page.isVisible('#hotspotHint'), 'a phone hotspot suggests data saver');
+  check(await page.isVisible('#hotspotHint') && /phone hotspot/.test(await page.textContent('#hotspotMsg')), 'a phone hotspot suggests data saver');
   await page.click('#hotspotOn');
   check(await page.getAttribute('#saverBtn', 'aria-pressed') === 'true' && !(await page.isVisible('#hotspotHint')), 'one click turns data saver on');
   check(await eventually(async () => {

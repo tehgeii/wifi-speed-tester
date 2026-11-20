@@ -210,3 +210,62 @@ func TestQuickProfile(t *testing.T) {
 		t.Fatalf("quick ping must not complain about missing speed: %v", q.Notes)
 	}
 }
+
+// The user's realme hotspot: the phone answers in 22 ms, which is normal for
+// a phone but would count as a struggling router on home Wi-Fi.
+func TestHotspot(t *testing.T) {
+	p := config.Default().Profile("general")
+	hotspot := func(gwMs float64) *model.TestResult {
+		r := result(8, 6, 40, 6, 0)
+		r.Network = &model.NetworkInfo{Connection: model.ConnTethering, Metered: true, WiFi: &model.WiFiInfo{SignalPercent: 95, Band: "2.4 GHz"}}
+		r.Download.LoadedPingMs, r.Download.LoadedSamples = 250, 10
+		r.Pings = []model.PingStats{
+			{IsGateway: true, Sent: 20, Received: 20, AvgMs: gwMs, JitterMs: 8},
+			{PrimaryTarget: true, Sent: 20, Received: 20, AvgMs: 40},
+		}
+		return r
+	}
+	r := hotspot(22)
+	if locate(r).gatewayIssue {
+		t.Error("22 ms to a phone counted as a problem")
+	}
+	q := Evaluate(r, "general", p, i18n.EN)
+	tips := strings.Join(q.Tips, " | ")
+	for _, want := range []string{"4G/5G signal is strongest", "hotspot settings offer 5 GHz", "common on mobile networks"} {
+		if !strings.Contains(tips, want) {
+			t.Errorf("missing hotspot tip %q in %v", want, q.Tips)
+		}
+	}
+	for _, bad := range []string{"SQM", "LAN cable", "Restart the router", "also has a 5 GHz", "contact your ISP"} {
+		if strings.Contains(tips, bad) {
+			t.Errorf("router tip %q given for a phone hotspot: %v", bad, q.Tips)
+		}
+	}
+	if strings.Contains(strings.Join(q.Notes, " "), "router") {
+		t.Errorf("notes talk about a router: %v", q.Notes)
+	}
+
+	// The same 22 ms on home Wi-Fi is still a router problem.
+	r.Network.Connection = model.ConnWiFi
+	if !locate(r).gatewayIssue {
+		t.Error("22 ms to a home router not flagged")
+	}
+
+	// A really slow link to the phone: notes and USB tethering.
+	r = hotspot(90)
+	if !locate(r).gatewayIssue {
+		t.Error("90 ms to the phone not flagged")
+	}
+	q = Evaluate(r, "general", p, i18n.EN)
+	if !strings.Contains(strings.Join(q.Notes, " "), "and the phone") || !strings.Contains(strings.Join(q.Tips, " "), "USB tethering") {
+		t.Errorf("slow link to the phone: notes %v tips %v", q.Notes, q.Tips)
+	}
+
+	// Indonesian texts exist for every hotspot tip.
+	q = Evaluate(hotspot(90), "general", p, i18n.ID)
+	for _, s := range append(q.Tips, q.Notes...) {
+		if strings.HasPrefix(s, "tip.") || strings.HasPrefix(s, "note.") {
+			t.Errorf("untranslated: %s", s)
+		}
+	}
+}
