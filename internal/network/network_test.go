@@ -42,3 +42,40 @@ func TestClassify(t *testing.T) {
 		t.Error("hotspotGateway")
 	}
 }
+
+func TestMarkHotspot(t *testing.T) {
+	wifi := func(gw string, metered bool) *model.NetworkInfo {
+		return &model.NetworkInfo{Connection: model.ConnWiFi, Gateway: gw, Metered: metered, WiFi: &model.WiFiInfo{SSID: "realme 16 Pro 5G", SignalPercent: 90}}
+	}
+	// A modern Android hotspot: random range, but metered.
+	n := wifi("10.54.188.181", true)
+	markHotspot(n)
+	if n.Connection != model.ConnTethering || n.WiFi.SSID != "realme 16 Pro 5G" || n.WiFi.SignalPercent != 90 || n.WiFi.NoteKey != "wifi.hotspot" {
+		t.Errorf("metered Wi-Fi: %+v %+v", n, n.WiFi)
+	}
+	// An iPhone: not reported as metered, but its fixed gateway.
+	n = wifi("172.20.10.1", false)
+	markHotspot(n)
+	if n.Connection != model.ConnTethering {
+		t.Errorf("iPhone gateway: %s", n.Connection)
+	}
+	// A home router stays Wi-Fi.
+	n = wifi("192.168.1.1", false)
+	markHotspot(n)
+	if n.Connection != model.ConnWiFi || n.WiFi.NoteKey != "" {
+		t.Errorf("home Wi-Fi: %s %q", n.Connection, n.WiFi.NoteKey)
+	}
+	// A note about missing Wi-Fi details is kept.
+	n = wifi("10.0.0.1", true)
+	n.WiFi.NoteKey = "wifi.unavailable"
+	markHotspot(n)
+	if n.Connection != model.ConnTethering || n.WiFi.NoteKey != "wifi.unavailable" {
+		t.Errorf("unavailable note: %s %q", n.Connection, n.WiFi.NoteKey)
+	}
+	// A metered cable stays a cable (the flag still tells the app).
+	n = &model.NetworkInfo{Connection: model.ConnEthernet, Gateway: "192.168.1.1", Metered: true}
+	markHotspot(n)
+	if n.Connection != model.ConnEthernet || !n.Metered || n.WiFi != nil {
+		t.Errorf("metered Ethernet: %+v", n)
+	}
+}

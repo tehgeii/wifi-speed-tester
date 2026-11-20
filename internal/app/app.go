@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -48,6 +49,9 @@ type Host struct {
 	Attention func()
 	// SetDarkTitleBar matches the window frame to the page theme. Optional.
 	SetDarkTitleBar func(dark bool)
+	// Restart starts the program at exePath (the updated one) and closes
+	// this window. Optional: without it updates are downloaded by hand.
+	Restart func(exePath string) error
 }
 
 // App holds the state of one window.
@@ -71,6 +75,16 @@ type App struct {
 	monitorUnit time.Duration      // one "minute" of monitoring; shortened in tests
 	sigCancel   context.CancelFunc // set while the signal finder runs
 	signalEvery time.Duration      // signal finder interval; shortened in tests
+
+	updMu      sync.Mutex
+	update     *update.Info // from the last update check
+	installing bool
+	installed  string // version installed by "Update now", waiting for a restart
+	exe        string // this program, as started (an update renames it to .old)
+
+	// JustUpdated is set when this run was started by "Restart now" after
+	// an update; the page then confirms the new version.
+	JustUpdated bool
 }
 
 // New loads configuration from exeDir and prepares the data directory.
@@ -84,6 +98,7 @@ func New(exeDir string, host Host, logf func(string, ...any)) *App {
 	}
 	a := &App{host: host, cfg: cfg, cfgPath: path, cfgErr: err, logf: logf, monitorUnit: time.Minute, signalEvery: time.Second}
 	a.dataDir = DataDir(exeDir)
+	a.exe, _ = exePath()
 	a.hist = history.Open(filepath.Join(a.dataDir, "history.json"), cfg.HistoryLimit)
 	a.eng = engine.New(cfg)
 	return a
@@ -194,6 +209,10 @@ func (a *App) Call(method string, params []json.RawMessage) (any, error) {
 			return nil, err
 		}
 		return nil, a.setServer(srv)
+	case "installUpdate":
+		return nil, a.installUpdate()
+	case "restartApp":
+		return nil, a.restartApp()
 	case "checkUpdate":
 		go a.checkUpdate()
 		return nil, nil
@@ -351,6 +370,7 @@ func (a *App) info() map[string]any {
 		"historyPath": a.hist.Path(),
 		"releasesUrl": update.ReleasesPage,
 		"canOpenUrl":  a.host.OpenURL != nil,
+		"justUpdated": a.JustUpdated,
 		"downloadSec": a.cfg.DownloadSeconds,
 		"uploadSec":   a.cfg.UploadSeconds,
 		"profiles":    a.cfg.Profiles,
@@ -665,12 +685,17 @@ func (a *App) httpClient() *http.Client {
 }
 
 func (a *App) checkUpdate() {
-	info, err := update.Check(context.Background(), a.httpClient(), "https://api.github.com", Version)
+	info, err := update.Check(context.Background(), a.httpClient(), "https://api.github.com", Version, runtime.GOARCH)
 	if err != nil {
 		a.emit("update", map[string]any{"error": err.Error()})
 		return
 	}
-	a.emit("update", map[string]any{"info": info})
+	a.updMu.Lock()
+	info.CanInstall = a.host.Restart != nil && info.Installable() && a.installed == ""
+	a.update = &info
+	installed := a.installed
+	a.updMu.Unlock()
+	a.emit("update", map[string]any{"info": info, "installed": installed})
 }
 
 // openURL only opens this project's GitHub pages, so the page cannot be

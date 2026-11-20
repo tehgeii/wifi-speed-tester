@@ -39,14 +39,14 @@ func TestCheck(t *testing.T) {
 		w.Write([]byte(`{"tag_name":"v1.1.0","html_url":"https://github.com/` + Repo + `/releases/tag/v1.1.0"}`))
 	}))
 	defer srv.Close()
-	info, err := Check(context.Background(), srv.Client(), srv.URL, "1.0.0")
+	info, err := Check(context.Background(), srv.Client(), srv.URL, "1.0.0", "amd64")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !info.Newer || info.Latest != "1.1.0" || info.URL != "https://github.com/"+Repo+"/releases/tag/v1.1.0" {
 		t.Fatalf("info = %+v", info)
 	}
-	if info, _ := Check(context.Background(), srv.Client(), srv.URL, "1.1.0"); info.Newer {
+	if info, _ := Check(context.Background(), srv.Client(), srv.URL, "1.1.0", "amd64"); info.Newer {
 		t.Fatal("same version must not be newer")
 	}
 }

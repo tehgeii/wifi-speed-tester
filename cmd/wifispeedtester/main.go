@@ -54,6 +54,7 @@ func main() {
 	writeCfg := flag.Bool("write-config", false, "write "+config.FileName+" with the defaults next to the executable")
 	printCfg := flag.Bool("print-config", false, "print the default configuration as JSON")
 	version := flag.Bool("version", false, "print the version")
+	updated := flag.Bool("updated", false, "set by the app when it restarts after installing an update")
 	prepareConsole()
 	flag.Parse()
 
@@ -90,7 +91,7 @@ func main() {
 	case *serve > 0:
 		runServer(exeDir, *serve)
 	default:
-		runGUI(exeDir)
+		runGUI(exeDir, *updated)
 	}
 }
 

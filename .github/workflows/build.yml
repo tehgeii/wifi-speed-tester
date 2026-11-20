@@ -231,7 +231,8 @@ jobs:
               Write-Host 'desktop screenshot saved to the ui-windows artifact'
             } catch { Write-Host "no desktop screenshot: $_" }
           }
-          Stop-Process -Id $p.Id -ErrorAction SilentlyContinue
+          # "Restart now" in the test starts a new process.
+          Get-Process WiFiSpeedTester -ErrorAction SilentlyContinue | Stop-Process -Force
           exit $code
       - uses: actions/upload-artifact@v4
         if: always()

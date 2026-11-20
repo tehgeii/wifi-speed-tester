@@ -27,6 +27,9 @@ type NetworkInfo struct {
 	Gateway     string         `json:"gateway"`
 	DNS         []string       `json:"dns"`
 	WiFi        *WiFiInfo      `json:"wifi,omitempty"`
+	// Metered is true when Windows treats the link as metered (data limit or
+	// pay per use): phones mark their hotspot so, and users can set it.
+	Metered bool `json:"metered,omitempty"`
 }
 
 // WiFiInfo is extra detail for a Wi-Fi link, when the OS provides it.

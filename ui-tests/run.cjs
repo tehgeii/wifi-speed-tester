@@ -143,6 +143,7 @@ async function main() {
   check(!(await page.textContent('#qualityLevel')).includes('—'), 'quick ping gives a rating');
   check((await page.textContent('#m-download .sub')) === 'not part of Quick Ping', 'quick ping skips download');
   check(await page.locator('#actList .act').count() === 3 && await page.isVisible('#actQuickNote'), 'quick ping judges only latency-based activities');
+  check(!(await page.isVisible('#cmpLine')), 'the first test has nothing to compare with');
 
   console.log('full test');
   await page.click('#startBtn');
@@ -167,6 +168,16 @@ async function main() {
   }
   await page.setViewportSize({ width: 1100, height: 900 });
   check(await page.isVisible('#gradeRow') && /^(A\+|A|B|C|D|F)$/.test(await page.textContent('#gradeBadge')), 'bufferbloat grade is shown');
+  check(!(await page.isVisible('#cmpLine')), 'a full test is not compared with a Quick Ping');
+  // The comparison rules, with fixed numbers.
+  const parts = await page.evaluate(() => [
+    compareParts({ mode: 'general', download: { mbps: 118 }, upload: { mbps: 9.5 }, pingMs: 30 }, { download: 100, upload: 10, ping: 18 }),
+    compareParts({ mode: 'general', download: { mbps: 102 }, upload: { mbps: 7 }, pingMs: 20 }, { download: 100, upload: 10, ping: 30 }),
+    compareParts({ mode: 'quick', pingMs: 41 }, { download: 0, upload: 0, ping: 40 }),
+  ].map(ps => ps.map(p => p.cls + ':' + p.text).join(' | ')));
+  check(parts[0] === 'better:Download +18% | worse:Upload −5% | worse:Ping +12 ms', 'faster, slower and higher ping are told apart: ' + parts[0]);
+  check(parts[1] === 'same:Download about the same | worse:Upload −30% | better:Ping −10 ms', 'small changes count as the same, lower ping is better: ' + parts[1]);
+  check(parts[2] === 'same:Ping about the same', 'Quick Ping compares only the ping: ' + parts[2]);
   check(/% of plan/.test(await page.textContent('#m-download .sub')), 'download shows the share of the plan');
   await page.click('#detailsBtn');
   check((await page.textContent('#pingTable')).includes('Game server'), 'the custom target was pinged');
@@ -376,6 +387,20 @@ async function main() {
   await page.waitForSelector('#diagResult:not(.hidden)');
   check(/ISP/.test(await page.textContent('#diagTitle')) && /already strong \(85%\)/.test(await page.textContent('#diagFacts')), 'a slow test on a strong signal points to the ISP');
   await page.click('#diagAgain');
+
+  // Over a phone hotspot (the user's realme: phone answers in 22 ms) there
+  // is no router to walk to: the diagnosis ends after step 1.
+  await page.evaluate(() => {
+    diagReset();
+    return diagStepDone({ mode: 'general', pingMs: 40, jitterMs: 6, download: { mbps: 8 }, upload: { mbps: 6 },
+      network: { connection: 'Hotspot / Tethering', metered: true, wifi: { signalPercent: 95 } }, quality: { level: 'POOR' },
+      pings: [{ isGateway: true, sent: 20, received: 20, avgMs: 22 }, { primaryTarget: true, sent: 20, received: 20, avgMs: 40 }] });
+  });
+  await page.waitForSelector('#diagResult:not(.hidden)');
+  check(/phone hotspot/.test(await page.textContent('#diagTitle')) && !/router/i.test(await page.textContent('#diagTitle')), 'a slow hotspot test concludes "via a phone hotspot": ' + await page.textContent('#diagTitle'));
+  check(await textMatches(page, '#diagSteps [data-step="near"] .ds-state', /skipped/), 'no walk to a router over a hotspot');
+  await shot(page, 'diag-hotspot');
+  await page.click('#diagAgain');
   await page.click('#tabTest');
 
   console.log('theme');
@@ -423,8 +448,13 @@ async function main() {
   await page.click('#saverBtn');
   check(await page.getAttribute('#saverBtn', 'aria-pressed') === 'true' && /Data saver on: about 135 MB per test/.test(await dataLine()), 'data saver shows its cap (3 runs)');
   await page.click('#saverBtn');
+  // Home Wi-Fi that Windows reports as metered gets the hint too.
+  await page.evaluate(() => renderNetwork({ ...state.network, connection: 'Wi-Fi', metered: true }));
+  check(await page.isVisible('#hotspotHint') && /metered/.test(await page.textContent('#hotspotMsg')), 'a metered connection suggests data saver');
+  await page.evaluate(() => renderNetwork({ ...state.network, metered: false }));
+  check(!(await page.isVisible('#hotspotHint')), 'no hint on unmetered Wi-Fi');
   await page.evaluate(() => renderNetwork({ ...state.network, connection: 'Hotspot / Tethering' }));
-  check(await page.isVisible('#hotspotHint'), 'a phone hotspot suggests data saver');
+  check(await page.isVisible('#hotspotHint') && /phone hotspot/.test(await page.textContent('#hotspotMsg')), 'a phone hotspot suggests data saver');
   await page.click('#hotspotOn');
   check(await page.getAttribute('#saverBtn', 'aria-pressed') === 'true' && !(await page.isVisible('#hotspotHint')), 'one click turns data saver on');
   check(await eventually(async () => {
@@ -439,6 +469,8 @@ async function main() {
   await page.waitForSelector('#startBtn:not(.hidden)');
   check(await page.isVisible('#runsBox') && await page.locator('#runsBox tbody tr').count() === 3, 'the 3 runs are listed');
   check(/This test used ≈ \d/.test(await dataLine()), 'data used by the test is shown afterwards');
+  check(await page.isVisible('#cmpLine') && /^Compared with the previous test \(.+\): Download /.test(await page.textContent('#cmpLine')),
+    'the second full test is compared with the first: ' + await page.textContent('#cmpLine'));
   await shot(page, 'repeat-result');
   const notes = await page.textContent('#notes');
   check(notes.includes('3 times') && notes.includes('Data saver'), 'notes explain the median and data saver');
@@ -451,6 +483,27 @@ async function main() {
   check(/Data used by tests this month: .*\(\d+ tests\)/.test(await page.textContent('#histData')), 'history shows this month\'s data use');
   check(await textMatches(page, '#histTable tbody tr:first-child', /3×/), 'history marks the repeated test');
   await page.click('#tabTest');
+
+  console.log('update banner');
+  // The dev server cannot restart itself: only the release page is offered.
+  await page.evaluate(() => onUpdate({ info: { newer: true, latest: '9.9.9', current: '2.1.0', url: state.info.releasesUrl, canInstall: false } }));
+  check(await page.isVisible('#updateBanner') && await page.isVisible('#updateOpen') && !(await page.isVisible('#updateInstall')),
+    'without a window that can restart, the update is downloaded by hand');
+  await page.evaluate(() => onUpdate({ info: { newer: true, latest: '9.9.9', current: '2.1.0', url: state.info.releasesUrl, canInstall: true } }));
+  check(await page.isVisible('#updateInstall') && await page.getAttribute('#updateOpen', 'class') === 'small ghost', 'Update now is offered first');
+  await page.click('#updateInstall');
+  check(await textMatches(page, '#updateText', /^Update failed: no update is ready to install; .*release page\.$/) && await page.isVisible('#updateOpen'),
+    'a failed install is explained and the release page stays: ' + await page.textContent('#updateText'));
+  // Progress as the window reports it.
+  await page.evaluate(() => onUpdateInstall({ stage: 'download', done: 1.75e6, total: 3.5e6 }));
+  check(await page.textContent('#updateText') === 'Downloading version 9.9.9… 50%' && !(await page.isVisible('#updateInstall')) && !(await page.isVisible('#updateOpen')),
+    'download progress, no buttons meanwhile');
+  await page.evaluate(() => onUpdateInstall({ stage: 'done', version: '9.9.9' }));
+  check(/Version 9\.9\.9 is installed/.test(await page.textContent('#updateText')) && await page.isVisible('#updateRestart'), 'Restart now after the install');
+  await shot(page, 'update');
+  const restartMsg = await toastAfter(page, () => page.click('#updateRestart'), /Update failed/);
+  check(/not supported/.test(restartMsg), 'restart needs the desktop window');
+  await page.evaluate(() => { state.update = null; state.install = null; $('#updateBanner').classList.add('hidden'); });
 
   console.log('Indonesian');
   await page.click('#settingsBtn');
@@ -468,6 +521,7 @@ async function main() {
   await page.waitForSelector('#summaryCard:not(.hidden)');
   check((await page.textContent('#pingTable')).includes('Gateway Lokal'), 'ping target labels in Indonesian');
   check((await page.textContent('#actList')).includes('Game online'), 'activities in Indonesian');
+  check(/^Dibanding tes sebelumnya \(.+\): Ping /.test(await page.textContent('#cmpLine')), 'the second Quick Ping is compared with the first, in Indonesian');
   if (SHOTS) {
     // The website shows the app in Indonesian.
     await page.click('#tabHistory');

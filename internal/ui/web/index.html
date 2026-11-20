@@ -33,6 +33,8 @@
 
 <div class="banner hidden" id="updateBanner" role="status">
   <span id="updateText"></span>
+  <button class="primary small hidden" id="updateInstall" data-i18n="update.install">Update now</button>
+  <button class="primary small hidden" id="updateRestart" data-i18n="update.restart">Restart now</button>
   <button class="primary small" id="updateOpen" data-i18n="update.download">Download</button>
   <button class="ghost small" id="updateClose" data-i18n-aria="close">✕</button>
 </div>
@@ -80,7 +82,7 @@
       </div>
       <p class="data-line" id="dataLine" aria-live="polite"></p>
       <div class="hotspot-hint hidden" id="hotspotHint">
-        <span data-i18n="data.hotspot">You're on a phone hotspot or mobile data. Turn on Data saver?</span>
+        <span id="hotspotMsg">You're on a phone hotspot or mobile data. Turn on Data saver?</span>
         <button class="primary small" id="hotspotOn" data-i18n="data.turnOn">Turn on</button>
       </div>
     </div>
@@ -123,6 +125,7 @@
       <span class="grade" id="gradeBadge">A</span>
       <div><b data-i18n="grade.title">Bufferbloat grade</b><span class="small muted" id="gradeText"></span></div>
     </div>
+    <p class="cmp hidden" id="cmpLine"></p>
     <div class="gaming hidden" id="gamingPanel">
       <h2 data-i18n="gaming.title">Gaming Connection</h2>
       <ul class="gamelist" id="gameList"></ul>
@@ -447,7 +450,7 @@
   </div>
   <h3 data-i18n="settings.other">Other</h3>
   <label class="chk big"><input type="checkbox" id="updateToggle"> <span data-i18n="settings.update">Check for updates when the app starts</span></label>
-  <p class="small muted" data-i18n="settings.updateHint">Asks GitHub for the latest release. Nothing else is sent.</p>
+  <p class="small muted" data-i18n="settings.updateHint">Asks GitHub for the latest release. Nothing else is sent. Update now downloads the new version from GitHub and replaces this program; your history and settings stay.</p>
   <div class="dlg-actions">
     <button class="ghost small" id="checkNow" data-i18n="settings.checkNow">Check now</button>
     <span class="small muted" id="updateStatus"></span>

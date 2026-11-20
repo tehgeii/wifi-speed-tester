@@ -38,19 +38,21 @@ Windows berbahasa Indonesia: **Info selengkapnya → Tetap jalankan**).
 | Bagian | Isinya |
 |--------|--------|
 | Deteksi jaringan | Adapter yang aktif, jenis koneksi (Wi-Fi / Ethernet / hotspot-tethering / seluler / VPN), IPv4, IPv6, gateway, DNS |
+| Hotspot HP | Wi-Fi dari hotspot HP dikenali sebagai **Hotspot / Tethering**: Android menandai hotspot-nya *berkuota* (metered), dan Windows meneruskan status itu (Windows 10 versi 2004 ke atas); iPhone dan Android lama dikenali dari alamat gateway-nya. Lewat HP, ping ke HP sampai 60 ms dianggap wajar, sarannya khusus HP (posisi HP, hotspot 5 GHz, USB tethering), Diagnosa langsung menyimpulkan "Lewat hotspot HP", hasilnya tidak dibandingkan dengan paket internet rumah, dan Hemat kuota disarankan. Hotspot yang tidak dikenali bisa ditandai sendiri: **Pengaturan Windows → Jaringan → Wi-Fi → (nama hotspot) → Koneksi berkuota** |
 | Detail Wi-Fi | SSID, BSSID, sinyal %, RSSI, band, channel, frekuensi, standar Wi-Fi, link speed (diberi keterangan bahwa ini *bukan* kecepatan internet) |
 | Cek internet | Adapter ✓ → Gateway ✓ → DNS ✓ → Internet ✓; berhenti dengan pesan yang jelas kalau internet tidak bisa dijangkau |
 | Ping | Bawaannya ke router, Cloudflare DNS dan Google DNS, ditambah sampai 5 target pilihanmu sendiri (misalnya server game, di **Pengaturan ⚙**): terkirim/diterima, min/rata-rata/maks, jitter, loss |
 | Download / Upload | Tes HTTP dengan beberapa koneksi sekaligus, masa pemanasan tidak dihitung, gauge langsung, grafik throughput, coba ulang dan pindah ke server cadangan kalau gagal |
 | Ping saat sibuk | Ping diukur selama download dan upload, dengan petunjuk bufferbloat yang hati-hati (tidak langsung memvonis) |
 | Rating | SANGAT BAGUS / BAGUS / CUKUP / BURUK / TIDAK STABIL, berdasarkan batas nilai yang terdokumentasi dan bisa diatur ([docs/QUALITY.md](docs/QUALITY.md)). **Kenapa rating-nya segini?** menampilkan nilai dan batas tiap metrik |
-| Saran | Langkah nyata sesuai hasil yang terukur (nyalakan SQM/QoS, pakai 5 GHz, coba kabel LAN, restart router, VPN aktif, hubungi ISP…) |
+| Saran | Langkah nyata sesuai hasil yang terukur (nyalakan SQM/QoS, pakai 5 GHz, coba kabel LAN, restart router, VPN aktif, hubungi ISP…; lewat hotspot HP: posisi HP, hotspot 5 GHz, USB tethering) |
+| Dibanding tes sebelumnya | Di bawah hasil: "Dibanding tes sebelumnya: Download +18% · Upload −5% · Ping +12 ms" terhadap tes terakhir dengan jenis koneksi dan jenis tes yang sama. Hijau lebih baik, merah lebih buruk, perubahan di bawah 5% ditulis "hampir sama". Juga muncul saat membuka hasil dari Riwayat |
 | Cocok untuk apa? | Daftar aktivitas sehari-hari (browsing & chat, YouTube 1080p, YouTube/Netflix 4K, video call HD, game online, live streaming, download besar) dengan status **Lancar / Bisa, kadang tersendat / Kurang** dan alasannya. Daftarnya terisi **selama tes berjalan**, setelah tiap tahap, plus perkiraan waktu download game 50 GB |
 | Nilai bufferbloat | Nilai **A+ sampai F** untuk seberapa besar ping naik saat koneksi sibuk, seperti di situs tes untuk gamer. Tampil di hasil, panel Gaming, Riwayat, dan kartu PNG |
 | Paket ISP kamu | Isi kecepatan paket internetmu sekali saja (**Pengaturan ⚙**); hasil tes lalu menampilkan "62% dari paket", dan muncul saran kalau kecepatannya jauh di bawah paket |
 | Mode Gaming | Menilai ping, jitter, loss, dan kestabilan ping, bukan besar bandwidth |
 | Ping Cepat | Sekitar 5 detik: cek koneksi dan ping saja, untuk cek kilat sebelum main game |
-| Hemat kuota | Penghitung **kuota terpakai yang naik langsung** selama tes, perkiraan kuota sebelum tes (dari tes terakhir di koneksi yang sama), total kuota tes per bulan di Riwayat, dan tombol **💾 Hemat kuota**: download/upload dites lebih singkat dan berhenti setelah sekitar 30 MB + 15 MB. Kalau aplikasi mendeteksi hotspot HP atau data seluler, muncul saran untuk menyalakannya |
+| Hemat kuota | Penghitung **kuota terpakai yang naik langsung** selama tes, perkiraan kuota sebelum tes (dari tes terakhir di koneksi yang sama), total kuota tes per bulan di Riwayat, dan tombol **💾 Hemat kuota**: download/upload dites lebih singkat dan berhenti setelah sekitar 30 MB + 15 MB. Kalau aplikasi mendeteksi hotspot HP, data seluler, atau koneksi yang ditandai berkuota oleh Windows, muncul saran untuk menyalakannya |
 | Ulangi 3× | Tombol **🔁 Ulangi 3×** menjalankan tes 3 kali berturut-turut lalu menampilkan nilai tengahnya (median) beserta tabel tiap putaran. Hasilnya lebih stabil dan jadi bukti yang lebih kuat untuk ISP. Disimpan sebagai satu entri riwayat |
 | Server tes | Bawaannya Cloudflare; **Cari server terdekat** mengurutkan server LibreSpeed publik berdasarkan latensi, server pilihanmu dipakai duluan dan Cloudflare jadi cadangan |
 | Bahasa | Bahasa Inggris dan Bahasa Indonesia (saat pertama dibuka mengikuti bahasa Windows; bisa diganti di **Pengaturan ⚙**) |
@@ -65,7 +67,7 @@ Windows berbahasa Indonesia: **Info selengkapnya → Tetap jalankan**).
 | Tes DNS | **Alat** → membandingkan seberapa cepat DNS kamu sekarang, Cloudflare, Google dan Quad9 menjawab, lalu bilang perlu ganti atau tidak |
 | Cek channel Wi-Fi | **Alat** → menampilkan jaringan Wi-Fi di sekitar (hanya membaca, dari Windows) dan seberapa ramai tiap channel, plus saran channel untuk diatur di router |
 | Salin hasil | Ringkasan singkat untuk WhatsApp, Discord atau di mana saja, tanpa nama Wi-Fi atau alamat IP |
-| Update | Cek versi baru saat aplikasi dibuka (bisa dimatikan di **Pengaturan ⚙**), dengan link ke halaman download |
+| Update | Cek versi baru saat aplikasi dibuka (bisa dimatikan di **Pengaturan ⚙**). Mulai 2.1: tombol **Update sekarang** mengunduh versi baru dari rilis GitHub, mencocokkan SHA-256-nya dengan `SHA256SUMS.txt`, lalu mengganti exe; **Mulai ulang sekarang** membuka versi barunya. Riwayat, pengaturan, dan `WiFiSpeedTester.config.json` tidak disentuh. Kalau gagal (misalnya folder tidak bisa ditulisi), program lama tetap utuh dan link halaman download tetap ada |
 | Error | Penyebab dan saran dengan bahasa sederhana, detail teknisnya bisa dibuka kalau perlu |
 | Laporkan masalah | Di dialog **Tentang** dan di kartu error: **Buka GitHub Issues** dengan info aplikasi yang sudah terisi (versi aplikasi dan Windows, jenis koneksi, error terakhir), atau **Salin info** untuk dikirim lewat WhatsApp/email. Infonya ditampilkan dulu sebelum dikirim, dan tidak memuat alamat IP, nama Wi-Fi, atau nama perangkat |
 | Batal | Menghentikan semua aktivitas jaringan saat itu juga (tombol Esc juga bisa) |
@@ -106,7 +108,11 @@ dibutuhkan untuk mengukur koneksi:
   kamu lihat di dialog;
 - hanya kalau **Cek update saat aplikasi dibuka** menyala (**Pengaturan ⚙**,
   menyala secara bawaan): satu permintaan ke `api.github.com` untuk melihat
-  versi terbaru.
+  versi terbaru;
+- hanya saat kamu menekan **Update sekarang**: unduhan zip versi baru dan
+  `SHA256SUMS.txt` dari halaman rilis proyek ini di `github.com`.
+  Checksum-nya melindungi dari unduhan yang rusak atau tidak lengkap; karena
+  kedua file berasal dari rilis yang sama, ini bukan tanda tangan digital.
 
 **Cek channel Wi-Fi** dan **Pencari sinyal Wi-Fi** tidak mengirim apa pun:
 keduanya hanya membaca jaringan dan sinyal yang memang sudah terlihat oleh
@@ -343,7 +349,7 @@ internal/regions      ping ke region cloud lewat waktu koneksi TCP
 internal/analysis     ConnectionQualityEngine: rating, catatan dan saran; kesimpulan DNS, channel Wi-Fi, monitor, region dan diagnosa
 internal/i18n         teks Inggris / Indonesia untuk semua yang ditulis sisi Go
 internal/servers      daftar server LibreSpeed dan pengurutan latensi
-internal/update       cek rilis terbaru di GitHub
+internal/update       cek rilis terbaru di GitHub, Update sekarang (unduh, cek SHA-256, ganti exe)
 internal/export       TXT / JSON / CSV, Laporan ISP (TXT dan PDF, penulis PDF sendiri tanpa library) dan laporan monitor, dengan penyamaran data identitas
 internal/history      riwayat lokal dalam JSON
 internal/config       konfigurasi dan nilai bawaan

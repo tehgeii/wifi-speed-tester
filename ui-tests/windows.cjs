@@ -8,6 +8,7 @@
 // expected to report that.
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 const { chromium } = require('playwright');
 
 const SHOTS = process.env.UI_SHOTS || 'ui-windows-shots';
@@ -26,8 +27,8 @@ async function eventually(fn, timeout = 10000) {
   }
 }
 
-async function main() {
-  fs.mkdirSync(SHOTS, { recursive: true });
+// connect attaches to the app window's WebView2 and returns its page.
+async function connect() {
   let browser = null;
   let lastErr = null;
   for (let i = 0; i < 60 && !browser; i++) {
@@ -48,11 +49,17 @@ async function main() {
     return false;
   }, 30000);
   if (!page) throw new Error('the app page did not load');
+  return { browser, page };
+}
+
+async function main() {
+  fs.mkdirSync(SHOTS, { recursive: true });
+  let { browser, page } = await connect();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   page.setDefaultTimeout(20000);
-  const shot = name => page.screenshot({ path: path.join(SHOTS, name + '.png') });
+  const shot = (name, p = page) => p.screenshot({ path: path.join(SHOTS, name + '.png') });
 
   console.log('window and bridge');
   const info = await page.evaluate(() => state.info);
@@ -62,6 +69,8 @@ async function main() {
   check(await page.evaluate(() => bridge.call('setTitleBar', false).then(() => true)), 'light title bar call succeeds');
   check(await page.evaluate(() => bridge.call('attention').then(() => true)), 'taskbar flash call succeeds');
   check(await eventually(async () => !/Detecting/.test(await page.textContent('#netConn')), 20000), 'network detected: ' + await page.textContent('#netConn'));
+  // Hosted runners are on a cable; on a phone hotspot Windows reports metered.
+  console.log('  metered:', await page.evaluate(() => !!(state.network && state.network.metered)));
   await shot('start');
 
   console.log('tabs and theme');
@@ -109,6 +118,41 @@ async function main() {
   await page.keyboard.press('Escape');
 
   check(errors.length === 0, 'no page errors ' + errors.join(' | '));
+
+  // A CI build (0.0.0-<commit>) is older than any release, so the app's own
+  // update check at start offers the latest release from GitHub.
+  console.log('update now (latest release from GitHub)');
+  await eventually(() => page.evaluate(() => !!state.update || !!state.updateError), 20000);
+  const upd = await page.evaluate(() => ({ update: state.update, error: state.updateError }));
+  console.log('  check: ' + JSON.stringify(upd));
+  if (!upd.update || !upd.update.canInstall) {
+    // e.g. GitHub's rate limit for anonymous API calls from shared runners.
+    console.log('  skipped: no installable release (' + (upd.error || 'none newer') + ')');
+  } else {
+    const exe = path.resolve('app', 'WiFiSpeedTester.exe');
+    const version = () => execFileSync(exe, ['--version'], { encoding: 'utf8', timeout: 20000 }).trim();
+    const before = version();
+    await page.click('#updateInstall');
+    check(await eventually(async () => /is installed|failed/.test(await page.textContent('#updateText')), 120000) &&
+      /is installed/.test(await page.textContent('#updateText')), 'Update now downloads, checks and installs: ' + await page.textContent('#updateText'));
+    await shot('update');
+    check(fs.existsSync(exe + '.old'), 'the running version was moved aside to .old');
+    const after = version();
+    check(after.endsWith(' ' + upd.update.latest), `the program is now version ${upd.update.latest} (was "${before}", now "${after}")`);
+
+    // Restart into this build again: the release may predate --updated.
+    fs.copyFileSync(exe + '.old', exe);
+    await page.click('#updateRestart').catch(() => {}); // the window closes under the click
+    await browser.close().catch(() => {});
+    await sleep(2000);
+    ({ browser, page } = await connect());
+    const info = await page.evaluate(() => state.info);
+    check(info.justUpdated === true && info.version === before.split(' ').pop(), 'Restart now opens the program again, which knows it was just updated');
+    check(await eventually(async () => /Updated to version/.test(await page.textContent('#toast')), 5000), 'it confirms the update');
+    check(await eventually(async () => !fs.existsSync(exe + '.old'), 15000), 'the previous version is removed after the restart');
+    await shot('restarted', page);
+  }
+
   console.log(failures ? `\n${failures} check(s) failed` : '\nall Windows UI checks passed');
   await browser.close().catch(() => {});
   process.exit(failures ? 1 : 0);

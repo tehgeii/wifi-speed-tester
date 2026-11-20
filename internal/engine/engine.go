@@ -235,6 +235,11 @@ func (r *runner) connectivity(ctx context.Context) bool {
 		return r.fail(r.t("fail.noNetwork.title"), r.t("fail.noNetwork.reason"), r.t("fail.noNetwork.suggestion"), err)
 	}
 	r.res.Network = info
+	if info.Connection == model.ConnTethering || info.Connection == model.ConnCellular {
+		// The plan is the home internet plan; a test over a phone or mobile
+		// data does not measure it, so it is not compared with it.
+		r.res.Plan = nil
+	}
 	r.emit(Event{Type: "network", Stage: StageConnection, Network: info})
 	r.check("adapter", model.CheckOK, adapterText(info))
 

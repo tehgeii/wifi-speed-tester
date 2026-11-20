@@ -450,3 +450,21 @@ func TestAdapterText(t *testing.T) {
 		}
 	}
 }
+
+// The plan is the home internet plan: a test over a phone is not compared
+// with it, a test on home Wi-Fi is.
+func TestPlanSkippedOverPhone(t *testing.T) {
+	srv := testutil.NewSpeedServer(0)
+	defer srv.Close()
+	plan := &model.Plan{DownMbps: 100, UpMbps: 20}
+	e := testEngine(srv, &testutil.Pinger{RTT: time.Millisecond})
+	if res := e.Run(context.Background(), Options{Mode: "quick", Plan: plan}, func(Event) {}); res.Plan == nil {
+		t.Fatal("home Wi-Fi test lost the plan")
+	}
+	e.Detect = func(context.Context) (*model.NetworkInfo, error) {
+		return &model.NetworkInfo{Connection: model.ConnTethering, AdapterName: "Wi-Fi", Gateway: "10.54.188.1", Metered: true}, nil
+	}
+	if res := e.Run(context.Background(), Options{Mode: "quick", Plan: plan}, func(Event) {}); res.Plan != nil {
+		t.Fatalf("hotspot test compared with the home plan: %+v", res.Plan)
+	}
+}

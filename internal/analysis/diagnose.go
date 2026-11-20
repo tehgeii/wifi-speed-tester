@@ -69,6 +69,13 @@ func Diagnose(steps []model.DiagStep, lang i18n.Lang) model.Diagnosis {
 		}
 	case healthy(now):
 		set("healthy", "monitor")
+	case viaPhone(now):
+		// Walking to a router or plugging a cable does not apply: the limit
+		// is the phone's mobile signal or the link to the phone.
+		set("hotspot", "monitor")
+		if loc := locate(now); loc.gatewayIssue {
+			d.Facts = append(d.Facts, T("diag.hotspotLink", FormatMs(loc.gw.AvgMs)))
+		}
 	case locate(now).gatewayIssue:
 		set("router", "channel", "router")
 	case wifi && signalOf(now) >= StrongSignal:

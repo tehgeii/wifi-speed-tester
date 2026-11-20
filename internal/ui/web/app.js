@@ -35,6 +35,11 @@ const TEXT = {
     'update.latest': 'You have the latest version ({0}).',
     'update.error': 'Could not check for updates: {0}',
     'update.checking': 'Checking…',
+    'update.install': 'Update now', 'update.restart': 'Restart now',
+    'update.downloading': 'Downloading version {0}… {1}', 'update.verifying': 'Checking the download…', 'update.installing': 'Installing…',
+    'update.ready': 'Version {0} is installed. Restart the app to start using it.',
+    'update.failed': 'Update failed: {0}. You can still download it from the release page.',
+    'update.done': 'Updated to version {0}.',
     'net.connection': 'Connection', 'net.network': 'Network', 'net.detecting': 'Detecting…',
     'net.signal': 'Signal', 'net.link': 'Wi-Fi Link Speed',
     'net.linkHint': 'Radio rate between this device and the router. Not your internet speed.',
@@ -84,7 +89,7 @@ const TEXT = {
     'server.error': 'Could not get the server list: {0}', 'server.saved': 'Test server set to {0}.',
     'server.default': '{0} (default)',
     'settings.lang': 'Language', 'settings.update': 'Check for updates when the app starts',
-    'settings.updateHint': 'Asks GitHub for the latest release. Nothing else is sent.', 'settings.checkNow': 'Check now',
+    'settings.updateHint': 'Asks GitHub for the latest release. Nothing else is sent. Update now downloads the new version from GitHub and replaces this program; your history and settings stay.', 'settings.checkNow': 'Check now',
     'about.copyright': '© 2026–present tehgeii. All rights reserved. See LICENSE.txt for what you may do with the app.',
     'about.title': 'About and privacy', 'about.privacy': 'Privacy', 'about.accuracy': 'Accuracy', 'about.config': 'Configuration',
     'about.intro': 'WiFi Speed + Ping Tester — a portable utility that measures download, upload, ping, jitter and packet loss.',
@@ -93,7 +98,7 @@ const TEXT = {
     'about.accuracyText': 'Results depend on the test server, routing, Wi-Fi signal, other traffic, VPNs and this device. They show what was measured now, not a guaranteed ISP speed.',
     'about.configText': 'Place this file next to the .exe to change test servers, ping targets, durations and quality thresholds:',
     'about.trafficSpeed': 'Speed test data to: {0}', 'about.trafficPing': 'Ping (ICMP, or TCP if ICMP is blocked) to: {0}',
-    'about.trafficDNS': 'A DNS lookup of the test server name', 'about.trafficUpdate': 'If enabled in Settings: an update check to api.github.com',
+    'about.trafficDNS': 'A DNS lookup of the test server name', 'about.trafficUpdate': 'If enabled in Settings: an update check to api.github.com; when you press Update now: the new version from github.com',
     'about.trafficDNSTest': 'Only when you run the DNS test: lookups of popular site names to your DNS and {0}',
     'about.trafficMonitor': 'Only while the stability monitor runs: one ping per second to the chosen target and your router',
     'about.trafficScan': 'The Wi-Fi channel check sends nothing; it reads the networks Windows already sees',
@@ -116,7 +121,7 @@ const TEXT = {
     'card.general': 'CONNECTION', 'card.gaming': 'GAMING CONNECTION', 'card.quick': 'QUICK PING',
     'level.EXCELLENT': 'EXCELLENT', 'level.GOOD': 'GOOD', 'level.FAIR': 'FAIR', 'level.POOR': 'POOR', 'level.UNSTABLE': 'UNSTABLE', 'level.UNKNOWN': 'UNKNOWN',
     'profile.general': 'General profile', 'profile.gaming': 'Gaming profile', 'profile.quick': 'Quick Ping',
-    'wifi.hotspot': 'Gateway address is typical of a phone hotspot.',
+    'wifi.hotspot': 'Looks like a phone hotspot (a metered connection or a typical hotspot address).',
     'wifi.ssidHidden': 'Windows hides the Wi-Fi name. On Windows 11, turn on Settings → Privacy & security → Location → Let desktop apps access your location.',
     'wifi.unavailable': 'Wi-Fi details unavailable: {0}',
     'conn.Wi-Fi': 'Wi-Fi', 'conn.Ethernet': 'Ethernet', 'conn.Hotspot / Tethering': 'Hotspot / Tethering', 'conn.Cellular': 'Cellular',
@@ -126,6 +131,8 @@ const TEXT = {
     'act.title': 'What is it good for?', 'act.quickNote': 'Quick Ping only checks latency, so activities that need speed are left out.',
     'act.s.ok': 'Smooth', 'act.s.warn': 'Usable, may stutter', 'act.s.bad': 'Not enough', 'act.s.pending': 'Measuring', 'act.s.na': 'Not measured',
     'grade.title': 'Bufferbloat grade', 'grade.text': 'ping rises {0} ms while the connection is busy',
+    'cmp.head': 'Compared with the previous test ({0}):', 'cmp.same': '{0} about the same',
+    'cmp.hint': 'The previous test of the same kind on the same connection. Green is better, red is worse; small changes (under 5%) count as the same.',
     'grade.hint': 'How much ping rises while the connection is busy downloading or uploading. A+ and A are great for games and calls.',
     'settings.theme': 'Theme', 'theme.system': 'Follow Windows', 'theme.light': 'Light', 'theme.dark': 'Dark',
     'card.grade': 'Bufferbloat {0}',
@@ -134,6 +141,7 @@ const TEXT = {
     'data.live': 'Data used: {0}', 'data.used': 'This test used ≈ {0} of data', 'data.estimate': 'Estimated data: ≈ {0}',
     'data.saverOn': 'Data saver on: about {0} per test', 'data.turnOn': 'Turn on',
     'data.hotspot': "You're on a phone hotspot or mobile data. Turn on Data saver?",
+    'data.metered': 'Windows marks this connection as metered (it has a data limit). Turn on Data saver?',
     'data.month': 'Data used by tests this month: {0} ({1} tests)', 'data.perTest': 'per test',
     'run.label': 'Test {0} of {1}', 'runs.title': '{0} runs (the figures above are the middle values)', 'runs.col': 'Run',
     'hist.saver': 'data saver',
@@ -202,6 +210,11 @@ const TEXT = {
     'update.latest': 'Kamu sudah memakai versi terbaru ({0}).',
     'update.error': 'Gagal mengecek update: {0}',
     'update.checking': 'Mengecek…',
+    'update.install': 'Update sekarang', 'update.restart': 'Mulai ulang sekarang',
+    'update.downloading': 'Mengunduh versi {0}… {1}', 'update.verifying': 'Memeriksa unduhan…', 'update.installing': 'Memasang…',
+    'update.ready': 'Versi {0} sudah terpasang. Mulai ulang aplikasi untuk memakainya.',
+    'update.failed': 'Update gagal: {0}. Kamu tetap bisa download dari halaman rilis.',
+    'update.done': 'Sudah diperbarui ke versi {0}.',
     'net.connection': 'Koneksi', 'net.network': 'Jaringan', 'net.detecting': 'Mendeteksi…',
     'net.signal': 'Sinyal', 'net.link': 'Wi-Fi Link Speed',
     'net.linkHint': 'Kecepatan radio antara perangkat ini dan router. Bukan kecepatan internet kamu.',
@@ -251,7 +264,7 @@ const TEXT = {
     'server.error': 'Gagal mengambil daftar server: {0}', 'server.saved': 'Server tes diganti ke {0}.',
     'server.default': '{0} (bawaan)',
     'settings.lang': 'Bahasa', 'settings.update': 'Cek update saat aplikasi dibuka',
-    'settings.updateHint': 'Menanyakan rilis terbaru ke GitHub. Tidak ada data lain yang dikirim.', 'settings.checkNow': 'Cek sekarang',
+    'settings.updateHint': 'Menanyakan rilis terbaru ke GitHub. Tidak ada data lain yang dikirim. Tombol Update sekarang mengunduh versi baru dari GitHub dan mengganti program ini; riwayat dan pengaturanmu tetap aman.', 'settings.checkNow': 'Cek sekarang',
     'about.copyright': '© 2026–sekarang tehgeii. Seluruh hak dilindungi. Lihat LICENSE.txt untuk apa saja yang boleh dilakukan dengan aplikasi ini.',
     'about.title': 'Tentang dan privasi', 'about.privacy': 'Privasi', 'about.accuracy': 'Akurasi', 'about.config': 'Konfigurasi',
     'about.intro': 'WiFi Speed + Ping Tester — aplikasi portable untuk mengukur download, upload, ping, jitter dan packet loss.',
@@ -260,7 +273,7 @@ const TEXT = {
     'about.accuracyText': 'Hasil dipengaruhi server tes, rute jaringan, sinyal Wi-Fi, pemakaian lain, VPN dan perangkat ini. Angkanya menunjukkan hasil pengukuran saat ini, bukan jaminan kecepatan dari ISP.',
     'about.configText': 'Taruh file ini di samping .exe untuk mengubah server tes, target ping, durasi dan batas rating:',
     'about.trafficSpeed': 'Data speed test ke: {0}', 'about.trafficPing': 'Ping (ICMP, atau TCP kalau ICMP diblokir) ke: {0}',
-    'about.trafficDNS': 'Pencarian DNS untuk nama server tes', 'about.trafficUpdate': 'Kalau diaktifkan di Pengaturan: cek update ke api.github.com',
+    'about.trafficDNS': 'Pencarian DNS untuk nama server tes', 'about.trafficUpdate': 'Kalau diaktifkan di Pengaturan: cek update ke api.github.com; saat kamu menekan Update sekarang: versi baru dari github.com',
     'about.trafficDNSTest': 'Hanya saat kamu menjalankan tes DNS: pencarian nama situs populer ke DNS kamu dan {0}',
     'about.trafficMonitor': 'Hanya selama monitor stabilitas berjalan: satu ping per detik ke target yang dipilih dan router kamu',
     'about.trafficScan': 'Cek channel Wi-Fi tidak mengirim apa pun; hanya membaca jaringan yang sudah terlihat oleh Windows',
@@ -283,7 +296,7 @@ const TEXT = {
     'card.general': 'KONEKSI', 'card.gaming': 'KONEKSI GAMING', 'card.quick': 'PING CEPAT',
     'level.EXCELLENT': 'SANGAT BAGUS', 'level.GOOD': 'BAGUS', 'level.FAIR': 'CUKUP', 'level.POOR': 'BURUK', 'level.UNSTABLE': 'TIDAK STABIL', 'level.UNKNOWN': 'TIDAK DIKETAHUI',
     'profile.general': 'Profil Umum', 'profile.gaming': 'Profil Gaming', 'profile.quick': 'Ping Cepat',
-    'wifi.hotspot': 'Alamat gateway ini biasanya milik hotspot HP.',
+    'wifi.hotspot': 'Sepertinya hotspot HP (koneksi berkuota atau alamat khas hotspot).',
     'wifi.ssidHidden': 'Windows menyembunyikan nama Wi-Fi. Di Windows 11, nyalakan Settings → Privacy & security → Location → Let desktop apps access your location.',
     'wifi.unavailable': 'Detail Wi-Fi tidak tersedia: {0}',
     'conn.Wi-Fi': 'Wi-Fi', 'conn.Ethernet': 'Ethernet (kabel)', 'conn.Hotspot / Tethering': 'Hotspot / Tethering', 'conn.Cellular': 'Seluler',
@@ -293,6 +306,8 @@ const TEXT = {
     'act.title': 'Cocok untuk apa?', 'act.quickNote': 'Ping Cepat hanya mengecek ping, jadi aktivitas yang butuh kecepatan tidak ditampilkan.',
     'act.s.ok': 'Lancar', 'act.s.warn': 'Bisa, kadang tersendat', 'act.s.bad': 'Kurang', 'act.s.pending': 'Mengukur', 'act.s.na': 'Tidak terukur',
     'grade.title': 'Nilai bufferbloat', 'grade.text': 'ping naik {0} ms saat koneksi sedang sibuk',
+    'cmp.head': 'Dibanding tes sebelumnya ({0}):', 'cmp.same': '{0} hampir sama',
+    'cmp.hint': 'Tes sebelumnya dengan jenis tes dan koneksi yang sama. Hijau berarti lebih baik, merah lebih buruk; perubahan kecil (di bawah 5%) dianggap sama.',
     'grade.hint': 'Seberapa besar ping naik saat koneksi sibuk download atau upload. A+ dan A sangat bagus untuk game dan video call.',
     'settings.theme': 'Tema', 'theme.system': 'Ikuti Windows', 'theme.light': 'Terang', 'theme.dark': 'Gelap',
     'card.grade': 'Bufferbloat {0}',
@@ -301,6 +316,7 @@ const TEXT = {
     'data.live': 'Kuota terpakai: {0}', 'data.used': 'Tes ini memakai kuota ≈ {0}', 'data.estimate': 'Perkiraan kuota: ≈ {0}',
     'data.saverOn': 'Hemat kuota aktif: sekitar {0} per tes', 'data.turnOn': 'Nyalakan',
     'data.hotspot': 'Kamu pakai hotspot HP atau data seluler. Nyalakan Hemat kuota?',
+    'data.metered': 'Windows menandai koneksi ini berkuota (ada batas data). Nyalakan Hemat kuota?',
     'data.month': 'Kuota terpakai untuk tes bulan ini: {0} ({1} tes)', 'data.perTest': 'per tes',
     'run.label': 'Tes {0} dari {1}', 'runs.title': '{0} putaran (angka di atas adalah nilai tengahnya)', 'runs.col': 'Putaran',
     'hist.saver': 'hemat kuota',
@@ -399,7 +415,7 @@ const state = {
   network: null,
   info: null,
   server: null,
-  update: null,
+  update: null, install: null, updateError: '', // update check and "Update now" progress
   history: [],
   histConn: 'all',
   histRange: 0,
@@ -691,6 +707,7 @@ function renderResult(r, fromHistory) {
     renderWhy(q);
     renderGaming(r);
     renderGrade(r);
+    renderVsPrevious(r);
     renderRuns(r);
     renderPrivacyHint();
   }
@@ -954,6 +971,57 @@ function renderGrade(r) {
   $('#gradeText').textContent = t('grade.text', ms(Math.max(0, Math.max(...loaded) - r.pingMs)));
 }
 
+// ---- compared with the previous test ------------------------------------------
+// The latest earlier test of the same kind (Quick Ping with Quick Ping) on
+// the same connection, so a phone hotspot is never compared with home Wi-Fi.
+function previousTest(r) {
+  const conn = r.network && r.network.connection;
+  const quick = r.mode === 'quick';
+  const at = new Date(r.startedAt).getTime();
+  let prev = null;
+  for (const h of state.history || []) {
+    const d = new Date(h.date).getTime();
+    if (h.id === r.id || d >= at || h.connection !== conn || (h.mode === 'quick') !== quick) continue;
+    if (!prev || d > new Date(prev.date).getTime()) prev = h;
+  }
+  return prev;
+}
+
+// compareParts lists the changes: speeds in %, ping in ms (lower is better).
+// Changes under 5% (or 3 ms) are noise between two tests and count as the same.
+function compareParts(r, prev) {
+  const parts = [];
+  const signed = (v, unit) => (v > 0 ? '+' : '−') + Math.abs(v) + unit;
+  const speedPart = (label, now, before) => {
+    if (!(now > 0 && before > 0)) return;
+    const change = Math.round((now - before) / before * 100);
+    if (Math.abs(change) < 5) parts.push({ cls: 'same', text: t('cmp.same', label) });
+    else parts.push({ cls: change > 0 ? 'better' : 'worse', text: label + ' ' + signed(change, '%') });
+  };
+  if (r.mode !== 'quick') {
+    speedPart('Download', r.download && r.download.mbps, prev.download);
+    speedPart('Upload', r.upload && r.upload.mbps, prev.upload);
+  }
+  if (r.pingMs > 0 && prev.ping > 0) {
+    const diff = Math.round(r.pingMs - prev.ping);
+    if (Math.abs(diff) < Math.max(3, prev.ping * 0.05)) parts.push({ cls: 'same', text: t('cmp.same', 'Ping') });
+    else parts.push({ cls: diff < 0 ? 'better' : 'worse', text: 'Ping ' + signed(diff, ' ms') });
+  }
+  return parts;
+}
+
+function renderVsPrevious(r) {
+  const box = $('#cmpLine');
+  const prev = r.cancelled ? null : previousTest(r);
+  const parts = prev ? compareParts(r, prev) : [];
+  box.classList.toggle('hidden', parts.length === 0);
+  if (!parts.length) return;
+  const when = new Date(prev.date).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' });
+  box.title = t('cmp.hint');
+  box.innerHTML = `<span class="muted">${esc(t('cmp.head', when))}</span> `
+    + parts.map(p => `<span class="cmp-${p.cls}">${esc(p.text)}</span>`).join(' · ');
+}
+
 // ---- data saver, repeat & data usage ---------------------------------------
 // Quota is counted the way phone plans do (decimal MB/GB).
 function fmtBytes(n) {
@@ -982,7 +1050,9 @@ function dataEstimate() {
   return h ? t('data.estimate', fmtBytes(h.dataMB * 1e6 * runs)) : '';
 }
 
-const onMobileData = () => ['Hotspot / Tethering', 'Cellular'].includes(state.network && state.network.connection);
+const viaPhone = () => ['Hotspot / Tethering', 'Cellular'].includes(state.network && state.network.connection);
+// A metered link (as Windows reports it) has a data limit too.
+const onMobileData = () => viaPhone() || !!(state.network && state.network.metered);
 function renderTestOpts() {
   $('#saverBtn').setAttribute('aria-pressed', state.saver);
   $('#repeatBtn').setAttribute('aria-pressed', state.repeat);
@@ -990,6 +1060,7 @@ function renderTestOpts() {
   $('#repeatBtn').title = t('repeat.hint');
   $('#testOpts').classList.toggle('hidden', state.running);
   $('#hotspotHint').classList.toggle('hidden', state.running || state.saver || !onMobileData());
+  $('#hotspotMsg').textContent = t(viaPhone() ? 'data.hotspot' : 'data.metered');
   renderDataLine();
 }
 function setSaver(on) {
@@ -1465,15 +1536,50 @@ $('#checkNow').onclick = () => {
 function onUpdate(p) {
   const manual = state.manualUpdate;
   state.manualUpdate = false;
+  state.updateError = p.error || '';
   if (p.error) { if (manual) $('#updateStatus').textContent = t('update.error', p.error); return; }
   const i = p.info;
   state.update = i;
+  if (p.installed) state.install = { stage: 'done', version: p.installed };
   if (i.newer) {
-    $('#updateText').textContent = t('update.available', i.latest, i.current);
+    renderUpdateBanner();
     $('#updateBanner').classList.remove('hidden');
   }
   if (manual) $('#updateStatus').textContent = i.newer ? t('update.available', i.latest, i.current) : t('update.latest', i.current);
 }
+
+// The banner walks through "Update now": download (with %), check, install,
+// then "Restart now". Without a window that can restart (or a zip for this
+// build) only the release page is offered.
+function renderUpdateBanner() {
+  const i = state.update;
+  if (!i || !i.newer) return;
+  const s = state.install || {};
+  const busy = ['download', 'verify', 'install'].includes(s.stage);
+  const got = s.total > 0 ? Math.round(s.done / s.total * 100) + '%' : s.done > 0 ? fmtBytes(s.done) : '';
+  $('#updateText').textContent = {
+    download: () => t('update.downloading', i.latest, got),
+    verify: () => t('update.verifying'),
+    install: () => t('update.installing'),
+    done: () => t('update.ready', s.version),
+    error: () => t('update.failed', s.error),
+  }[s.stage]?.() || t('update.available', i.latest, i.current);
+  const offer = !!i.canInstall && !busy && s.stage !== 'done';
+  $('#updateInstall').classList.toggle('hidden', !offer);
+  $('#updateRestart').classList.toggle('hidden', s.stage !== 'done');
+  $('#updateOpen').classList.toggle('hidden', busy || s.stage === 'done');
+  $('#updateOpen').classList.toggle('primary', !offer);
+  $('#updateOpen').classList.toggle('ghost', offer);
+}
+function onUpdateInstall(p) {
+  state.install = p;
+  renderUpdateBanner();
+}
+$('#updateInstall').onclick = async () => {
+  onUpdateInstall({ stage: 'download', done: 0, total: 0 });
+  try { await bridge.call('installUpdate'); } catch (e) { onUpdateInstall({ stage: 'error', error: e.message }); }
+};
+$('#updateRestart').onclick = () => bridge.call('restartApp').catch(e => toast(t('update.failed', e.message)));
 $('#updateOpen').onclick = () => {
   const url = (state.update && state.update.url) || (state.info && state.info.releasesUrl);
   if (!url) return;
@@ -2027,7 +2133,8 @@ async function diagStepDone(r) {
   diag.marks[kind] = 'done';
   let d = null;
   try { d = await bridge.call('diagnose', diag.steps); } catch (e) { toast(e.message); }
-  const clear = !d || kind === 'cable' || ['healthy', 'offline', 'offlineLocal', 'coverage'].includes(d.kind)
+  // Over a phone hotspot there is no router to walk to or cable to plug.
+  const clear = !d || kind === 'cable' || ['healthy', 'offline', 'offlineLocal', 'coverage', 'hotspot'].includes(d.kind)
     || (kind === 'now' && !wireless(r));
   if (clear) { diagConclude(d); return; }
   if (kind === 'now' && wifiSignal(r) >= STRONG_SIGNAL) {
@@ -2140,7 +2247,7 @@ function renderStatic() {
   if (state.network) renderNetwork(state.network);
   renderPrivacyHint();
   renderTestOpts();
-  if (state.update && state.update.newer) $('#updateText').textContent = t('update.available', state.update.latest, state.update.current);
+  renderUpdateBanner();
 }
 
 // ---- events -----------------------------------------------------------------
@@ -2154,6 +2261,7 @@ bridge.listen((name, payload) => {
     else if (payload.path) toast(t('toast.saved', payload.path), 6000);
   } else if (name === 'servers') onServers(payload);
   else if (name === 'update') onUpdate(payload);
+  else if (name === 'updateInstall') onUpdateInstall(payload);
   else if (name === 'monitor') onMonitor(payload);
   else if (name === 'dns') onDNS(payload);
   else if (name === 'wifiscan') onScan(payload);
@@ -2180,6 +2288,7 @@ bridge.listen((name, payload) => {
   try {
     state.info = await bridge.call('info');
     if (state.info.configError) toast(t('toast.configError', state.info.configError), 8000);
+    else if (state.info.justUpdated) toast(t('update.done', state.info.version), 6000);
   } catch (e) { toast(e.message); }
   try { state.server = await bridge.call('getServer'); } catch { state.server = null; }
   renderStatic();

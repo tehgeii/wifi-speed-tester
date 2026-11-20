@@ -8,11 +8,13 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"time"
 
 	"golang.org/x/sys/windows"
 
 	"github.com/tehgeii/wifi-speed-tester/internal/app"
 	"github.com/tehgeii/wifi-speed-tester/internal/ui"
+	"github.com/tehgeii/wifi-speed-tester/internal/update"
 )
 
 const webView2URL = "https://developer.microsoft.com/microsoft-edge/webview2/"
@@ -51,7 +53,8 @@ func prepareConsole() {
 	}
 }
 
-func runGUI(exeDir string) {
+// updated is set when the app restarted itself after installing an update.
+func runGUI(exeDir string, updated bool) {
 	// The GUI has no console, so a crash would vanish without a trace.
 	// Record it next to the history instead.
 	if f, err := os.OpenFile(filepath.Join(app.DataDir(exeDir), "crash.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644); err == nil {
@@ -65,12 +68,25 @@ func runGUI(exeDir string) {
 			logf = l.Printf
 		}
 	}
-	release, ok := ui.SingleInstance(app.DataDir(exeDir))
+	var wait time.Duration
+	if updated {
+		wait = 15 * time.Second // the previous version is still closing
+	}
+	release, ok := ui.SingleInstance(app.DataDir(exeDir), wait)
 	if !ok {
 		return // the open window was brought to the front
 	}
 	defer release()
-	err := ui.RunWindow(exeDir, logf)
+	if exe, err := os.Executable(); err == nil {
+		// Remove the previous version an update left behind. Windows keeps
+		// the file locked for a moment after that process exits.
+		go func() {
+			for i := 0; i < 50 && update.Cleanup(exe) != nil; i++ {
+				time.Sleep(200 * time.Millisecond)
+			}
+		}()
+	}
+	err := ui.RunWindow(exeDir, updated, logf)
 	if errors.Is(err, ui.ErrNoWebView2) {
 		const mbYesNo, mbIconWarning, idYes = 0x4, 0x30, 6
 		if ui.MessageBox("WiFi Speed + Ping Tester",

@@ -123,3 +123,22 @@ func TestDiagnoseStrongSignal(t *testing.T) {
 		t.Fatalf("with cable: kind = %s, want wifi", d.Kind)
 	}
 }
+
+func TestDiagnoseHotspot(t *testing.T) {
+	// Slow over a phone: no walk to a router, no "restart the router".
+	r := res(model.QualityPoor, model.ConnTethering, 5, 22)
+	d := Diagnose(steps("now", r), i18n.EN)
+	if d.Kind != "hotspot" || !strings.Contains(d.Title, "phone hotspot") || len(d.Facts) != 1 {
+		t.Fatalf("hotspot: %+v", d)
+	}
+	// A slow link to the phone itself is named.
+	r = res(model.QualityPoor, model.ConnTethering, 5, 90)
+	d = Diagnose(steps("now", r), i18n.ID)
+	if d.Kind != "hotspot" || len(d.Facts) != 2 || !strings.Contains(d.Facts[1], "USB tethering") {
+		t.Fatalf("slow link to the phone: %+v", d)
+	}
+	// A good test over a phone is simply healthy.
+	if d := Diagnose(steps("now", res(model.QualityGood, model.ConnTethering, 40, 22)), i18n.EN); d.Kind != "healthy" {
+		t.Fatalf("healthy hotspot: kind = %s", d.Kind)
+	}
+}

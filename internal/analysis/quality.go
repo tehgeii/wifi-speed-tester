@@ -196,8 +196,20 @@ type where struct {
 	routerNoReply bool
 }
 
+// viaPhone reports a test over a phone (Wi-Fi hotspot or USB tethering):
+// the "router" is then the phone, and the internet is its mobile network.
+func viaPhone(r *model.TestResult) bool {
+	return r.Network != nil && r.Network.Connection == model.ConnTethering
+}
+
 func locate(r *model.TestResult) where {
 	var w where
+	maxAvg, maxJitter := 20.0, 10.0
+	if viaPhone(r) {
+		// A phone saves power between packets, so it answers more slowly
+		// than a router: a few tens of ms is normal there.
+		maxAvg, maxJitter = 60, 30
+	}
 	for i := range r.Pings {
 		p := &r.Pings[i]
 		if p.IsGateway {
@@ -210,7 +222,7 @@ func locate(r *model.TestResult) where {
 		switch {
 		case gw.Received == 0:
 			w.routerNoReply = true
-		case gw.PacketLossPct > 0 || gw.AvgMs > 20 || gw.JitterMs > 10:
+		case gw.PacketLossPct > 0 || gw.AvgMs > maxAvg || gw.JitterMs > maxJitter:
 			w.gatewayIssue = true
 		case w.inet != nil && w.inet.Received > 0 && (w.inet.AvgMs-gw.AvgMs > 80 || w.inet.PacketLossPct > 0):
 			w.beyondRouter = true
@@ -222,11 +234,16 @@ func locate(r *model.TestResult) where {
 // locationNotes describes where a problem sits, plus Wi-Fi observations.
 func locationNotes(r *model.TestResult, loc where, T func(string, ...any) string) []string {
 	var notes []string
+	phone := viaPhone(r)
 	switch {
 	case loc.routerNoReply:
 		notes = append(notes, T("note.routerNoPing"))
+	case loc.gatewayIssue && phone:
+		notes = append(notes, T("note.hotspotLocal", FormatMs(loc.gw.AvgMs), FormatPct(loc.gw.PacketLossPct)))
 	case loc.gatewayIssue:
 		notes = append(notes, T("note.localProblem", FormatMs(loc.gw.AvgMs), FormatPct(loc.gw.PacketLossPct)))
+	case loc.beyondRouter && phone:
+		notes = append(notes, T("note.hotspotBeyond"))
 	case loc.beyondRouter:
 		notes = append(notes, T("note.beyondRouter"))
 	}
@@ -295,6 +312,36 @@ func tips(r *model.TestResult, q *model.Quality, p config.Profile, loc where, lo
 	jitterBad := weak(gradeOf(q, "jitter")) || r.JitterMs >= p.UnstableJitterMs
 	lossBad := r.PingMs > 0 && r.PacketLoss > 0
 
+	if viaPhone(r) {
+		// Router advice (SQM, cable, router restart) does not apply to a
+		// phone; its mobile signal is what can be improved.
+		slow := weak(gradeOf(q, "download")) || weak(gradeOf(q, "upload")) || weak(gradeOf(q, "ping"))
+		if slow || jitterBad || lossBad || loadedBad {
+			add("tip.hotspotPlace")
+		}
+		if w != nil && w.SignalPercent > 0 && w.SignalPercent < 60 {
+			add("tip.hotspotNear")
+		}
+		if w != nil && w.Band == "2.4 GHz" {
+			add("tip.hotspot5GHz")
+		}
+		if w != nil && (loc.gatewayIssue || jitterBad || lossBad) {
+			add("tip.usbTether")
+		}
+		if loadedBad {
+			add("tip.cellularLoad")
+		}
+		if weak(gradeOf(q, "ping")) && !loc.gatewayIssue {
+			add("tip.nearerServer")
+		}
+		if weak(gradeOf(q, "download")) || weak(gradeOf(q, "upload")) {
+			add("tip.otherTraffic")
+		}
+		if loc.beyondRouter || (lossBad && !loc.gatewayIssue) {
+			add("tip.operator")
+		}
+		return out
+	}
 	if loadedBad {
 		add("tip.sqm")
 	}

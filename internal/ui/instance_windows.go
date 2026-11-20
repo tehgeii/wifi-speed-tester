@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"strings"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -24,16 +25,24 @@ const windowTitle = "WiFi Speed + Ping Tester"
 // SingleInstance claims a named mutex per data folder, so two windows never
 // write the same history file. When another instance already holds it, that
 // window is brought to the front and ok is false.
-func SingleInstance(dataDir string) (release func(), ok bool) {
+//
+// wait > 0 is for a restart after an update: the previous window may still
+// be closing, so the claim is retried for up to wait before giving up.
+func SingleInstance(dataDir string, wait time.Duration) (release func(), ok bool) {
 	sum := sha256.Sum256([]byte(strings.ToLower(dataDir)))
 	name, _ := windows.UTF16PtrFromString(`Local\WiFiSpeedTester-` + hex.EncodeToString(sum[:8]))
+	deadline := time.Now().Add(wait)
 	h, err := windows.CreateMutex(nil, false, name)
-	if errors.Is(err, windows.ERROR_ALREADY_EXISTS) {
+	for errors.Is(err, windows.ERROR_ALREADY_EXISTS) {
 		if h != 0 {
 			windows.CloseHandle(h)
 		}
-		activateExisting()
-		return func() {}, false
+		if time.Now().After(deadline) {
+			activateExisting()
+			return func() {}, false
+		}
+		time.Sleep(200 * time.Millisecond)
+		h, err = windows.CreateMutex(nil, false, name)
 	}
 	if err != nil || h == 0 {
 		return func() {}, true // cannot tell; do not block the app

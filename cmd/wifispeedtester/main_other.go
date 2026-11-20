@@ -9,7 +9,7 @@ import (
 
 func prepareConsole() {}
 
-func runGUI(string) {
+func runGUI(string, bool) {
 	fmt.Fprintln(os.Stderr, "The desktop window is only available on Windows. Use --cli, or --serve 8080 to open the UI in a browser.")
 	os.Exit(2)
 }
