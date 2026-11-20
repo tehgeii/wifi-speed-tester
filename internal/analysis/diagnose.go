@@ -71,6 +71,11 @@ func Diagnose(steps []model.DiagStep, lang i18n.Lang) model.Diagnosis {
 		set("healthy", "monitor")
 	case locate(now).gatewayIssue:
 		set("router", "channel", "router")
+	case wifi && signalOf(now) >= StrongSignal:
+		// Moving closer cannot improve a strong signal, and the router
+		// answers normally, so the slowness is most likely past it.
+		set("isp", "ispReport", "monitor")
+		d.Facts = append(d.Facts, T("diag.strongSignal", signalOf(now)))
 	case wifi:
 		set("unclear", "monitor")
 	default:
@@ -81,6 +86,17 @@ func Diagnose(steps []model.DiagStep, lang i18n.Lang) model.Diagnosis {
 		d.Actions = append(d.Actions, "dns")
 	}
 	return d
+}
+
+// StrongSignal is the Wi-Fi signal (%) from which a test near the router is
+// skipped: it would not change the result.
+const StrongSignal = 70
+
+func signalOf(r *model.TestResult) int {
+	if w := wifiOf(r); w != nil {
+		return w.SignalPercent
+	}
+	return 0
 }
 
 func offline(r *model.TestResult) bool { return r.Failure != nil && r.Quality == nil }

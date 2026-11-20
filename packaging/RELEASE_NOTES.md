@@ -1,3 +1,12 @@
+## Yang baru di 2.0.1
+
+Perbaikan kecil hasil tes di laptop asli:
+
+- **Diagnosa** tidak lagi menyuruh kamu jalan ke dekat router kalau sinyal Wi-Fi di posisimu sudah kuat (70% ke atas), karena pindah lebih dekat tidak akan mengubah hasilnya. Langsung ke langkah kabel (opsional), dan kesimpulannya menjelaskan kenapa.
+- Hasil tiap langkah diagnosa sekarang berwarna sesuai kualitasnya: hijau untuk bagus, kuning untuk cukup, merah untuk buruk. Sebelumnya selalu hijau.
+- Kartu **Cocok untuk apa?** tetap rapi saat jendela dimaksimalkan: statusnya ada di baris sendiri, di bawah nama aktivitas.
+- Daftar cek tidak lagi menulis "Wi-Fi — Wi-Fi" kalau nama adapter sama dengan jenis koneksinya.
+
 ## Yang baru di 2.0
 
 Versi besar: tampilannya dirombak dan ada banyak alat baru. Semuanya tetap portable, tanpa install, dan tidak ada yang berjalan di latar belakang.

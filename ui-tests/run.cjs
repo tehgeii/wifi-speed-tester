@@ -154,6 +154,18 @@ async function main() {
   await page.waitForSelector('#startBtn:not(.hidden)');
   check(await page.locator('#actList .act').count() === 7 && await page.locator('#actList .act-pending').count() === 0, 'all 7 activities are judged at the end');
   check(/50 GB/.test(await page.textContent('#actList [data-key="bigdl"] .ar')), 'large download shows an estimated time');
+  // A maximised window fits all 7 cards in one row; each status must still
+  // sit on its own line under the name, never squeezed beside it.
+  for (const width of [1100, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    const squeezed = await page.evaluate(() => [...document.querySelectorAll('#actList .act')].filter(c => {
+      const n = c.querySelector('.an').getBoundingClientRect(), s = c.querySelector('.as').getBoundingClientRect();
+      return s.top < n.bottom - 1;
+    }).map(c => c.dataset.key));
+    check(squeezed.length === 0, `activity status sits under the name at ${width} px ${squeezed.join(' ')}`);
+    if (width === 1920) await shot(page, 'activities-wide');
+  }
+  await page.setViewportSize({ width: 1100, height: 900 });
   check(await page.isVisible('#gradeRow') && /^(A\+|A|B|C|D|F)$/.test(await page.textContent('#gradeBadge')), 'bufferbloat grade is shown');
   check(/% of plan/.test(await page.textContent('#m-download .sub')), 'download shows the share of the plan');
   await page.click('#detailsBtn');
@@ -342,6 +354,28 @@ async function main() {
   await page.evaluate(() => { window.diagForSite = diag.steps; });
   await page.click('#diagAgain');
   check(await page.getAttribute('#diagSteps [data-step="now"]', 'class') === 'run' && await page.isVisible('#diagGo'), 'Run again starts over');
+
+  // A finished step is coloured by its rating, not always green.
+  await page.evaluate(() => {
+    Object.assign(diag, { steps: [{ kind: 'now', result: { quality: { level: 'POOR' }, download: { mbps: 4.8 } } }], marks: { now: 'done' }, step: 'near' });
+    renderDiag();
+  });
+  check(await page.getAttribute('#diagSteps [data-step="now"]', 'class') === 'done q-bad', 'a poor step result is shown in red');
+  await page.evaluate(() => { diag.steps[0].result.quality.level = 'GOOD'; renderDiag(); });
+  check(await page.getAttribute('#diagSteps [data-step="now"]', 'class') === 'done q-ok', 'a good step result is shown in green');
+
+  // A strong signal where the user is: no walk to the router.
+  await page.evaluate(() => {
+    diagReset();
+    return diagStepDone({ mode: 'general', pingMs: 15, jitterMs: 2, download: { mbps: 4.8 }, upload: { mbps: 4.9 },
+      network: { connection: 'Wi-Fi', wifi: { signalPercent: 85 } }, quality: { level: 'POOR' } });
+  });
+  check(await textMatches(page, '#diagSteps [data-step="near"] .ds-state', /not needed \(85% signal\)/), 'a strong signal skips the near-router step');
+  check(/already strong \(85%\)/.test(await page.textContent('#diagMsg')) && await page.textContent('#diagGo') === 'Test with the cable', 'the cable step explains why');
+  await page.click('#diagSkip');
+  await page.waitForSelector('#diagResult:not(.hidden)');
+  check(/ISP/.test(await page.textContent('#diagTitle')) && /already strong \(85%\)/.test(await page.textContent('#diagFacts')), 'a slow test on a strong signal points to the ISP');
+  await page.click('#diagAgain');
   await page.click('#tabTest');
 
   console.log('theme');

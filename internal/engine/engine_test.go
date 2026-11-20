@@ -431,3 +431,22 @@ func TestRunRepeated(t *testing.T) {
 		t.Fatalf("quick runs = %d", len(q.Runs))
 	}
 }
+
+func TestAdapterText(t *testing.T) {
+	cases := []struct {
+		conn model.ConnectionType
+		name string
+		want string
+	}{
+		{model.ConnWiFi, "Wi-Fi", "Wi-Fi"}, // Windows' default name: no "Wi-Fi — Wi-Fi"
+		{model.ConnWiFi, " wi-fi ", "Wi-Fi"},
+		{model.ConnWiFi, "", "Wi-Fi"},
+		{model.ConnEthernet, "Ethernet 2", "Ethernet — Ethernet 2"},
+		{model.ConnWiFi, "Intel(R) Wi-Fi 6 AX201", "Wi-Fi — Intel(R) Wi-Fi 6 AX201"},
+	}
+	for _, c := range cases {
+		if got := adapterText(&model.NetworkInfo{Connection: c.conn, AdapterName: c.name}); got != c.want {
+			t.Errorf("adapterText(%q, %q) = %q, want %q", c.conn, c.name, got, c.want)
+		}
+	}
+}

@@ -160,13 +160,15 @@ normally (no loss and no unusual delay to the gateway), and the download is
 not below `planLowPct` of the plan when one is set.
 
 1. **Where you are** (always).
-2. **Near the router**, about 2 m away (only offered on a wireless link).
+2. **Near the router**, about 2 m away (only offered on a wireless link
+   whose signal is below 70% where the user is: a stronger signal cannot be
+   improved by moving closer).
 3. **On a LAN cable** (optional). If Windows still reports Wi-Fi, the step is
    ignored and the conclusion says so.
 
 A step is skipped once the answer is already clear: a healthy or offline
-first test, a test that is already on a cable, or a good result near the
-router.
+first test, a test that is already on a cable, a strong Wi-Fi signal (no
+near-router step), or a good result near the router.
 
 | What the tests show | Conclusion | Offered next |
 |---|---|---|
@@ -177,7 +179,8 @@ router.
 | Near the router healthy, where you were not | Weak Wi-Fi coverage | Wi-Fi channel check |
 | Delay or loss already to the router | The router or local Wi-Fi is struggling | Wi-Fi channel check (unless found on a cable) |
 | Router normal, still slow or unstable (also on a cable or near the router) | Most likely the ISP or the route | ISP report, stability monitor |
-| Wi-Fi only, one test, not healthy | Not clear yet: run it with the near-router step | Stability monitor |
+| Wi-Fi only, one test, not healthy, signal 70% or more | Most likely the ISP or the route (a cable test would confirm it) | ISP report, stability monitor |
+| Wi-Fi only, one test, not healthy, weaker signal | Not clear yet: run it with the near-router step | Stability monitor |
 
 When the test server's name took more than 150 ms to look up, the conclusion
 also suggests the DNS test.
