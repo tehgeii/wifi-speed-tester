@@ -172,6 +172,8 @@ const TEXT = {
     'diag.intro': 'Finds out whether a slow connection comes from the Wi-Fi, the router or the ISP, in up to three short tests. Just follow the steps; nothing on your router is changed. These tests are not saved in History.',
     'diag.s.now': 'Test where you are', 'diag.s.near': 'Test near the router', 'diag.s.cable': 'Test with a LAN cable (optional)', 'diag.s.result': 'Conclusion',
     'diag.start': 'Start diagnosis', 'diag.skip': 'Skip this step', 'diag.again': 'Run again', 'diag.skipped': 'skipped',
+    'diag.skippedStrong': 'not needed ({0}% signal)',
+    'diag.cableMsgStrong': 'The Wi-Fi signal where you are is already strong ({0}%), so a test near the router would not change anything. Optional: plug a LAN cable from this laptop into the router and wait until Windows shows the wired connection. No cable? Skip this step.',
     'diag.ready': 'Step 1 runs a full test right where you normally use the internet (less than a minute).',
     'diag.nearMsg': 'Now take this laptop close to the router: about 2 meters away, in the same room, with no wall in between. Then start the next test.',
     'diag.goNear': 'Test near the router',
@@ -337,6 +339,8 @@ const TEXT = {
     'diag.intro': 'Mencari tahu apakah koneksi lambat karena Wi-Fi, router, atau ISP, lewat maksimal tiga tes singkat. Ikuti saja langkahnya; tidak ada pengaturan router yang diubah. Tes di sini tidak disimpan ke Riwayat.',
     'diag.s.now': 'Tes di posisi sekarang', 'diag.s.near': 'Tes dekat router', 'diag.s.cable': 'Tes pakai kabel LAN (opsional)', 'diag.s.result': 'Kesimpulan',
     'diag.start': 'Mulai diagnosa', 'diag.skip': 'Lewati langkah ini', 'diag.again': 'Ulangi diagnosa', 'diag.skipped': 'dilewati',
+    'diag.skippedStrong': 'tidak perlu (sinyal {0}%)',
+    'diag.cableMsgStrong': 'Sinyal Wi-Fi di posisimu sudah kuat ({0}%), jadi tes dekat router tidak akan mengubah apa pun. Opsional: colok kabel LAN dari laptop ini ke router, lalu tunggu sampai Windows menampilkan koneksi kabel. Tidak punya kabel? Lewati saja langkah ini.',
     'diag.ready': 'Langkah 1 menjalankan tes lengkap di tempat kamu biasa memakai internet (kurang dari 1 menit).',
     'diag.nearMsg': 'Sekarang bawa laptop ini ke dekat router: sekitar 2 meter, di ruangan yang sama, tanpa tembok di antaranya. Lalu mulai tes berikutnya.',
     'diag.goNear': 'Tes dekat router',
@@ -1905,16 +1909,17 @@ function renderRegions() {
 // Up to three tests (where you are, near the router, on a cable); Go draws
 // the conclusion. A step is skipped once the answer is already clear. The
 // tests are not stored in History.
-const diag = { step: 'now', steps: [], marks: {}, running: false, cancelled: false, result: null };
+const diag = { step: 'now', steps: [], marks: {}, running: false, cancelled: false, result: null, strongPct: 0 };
 
 function diagReset() {
-  Object.assign(diag, { step: 'now', steps: [], marks: {}, running: false, cancelled: false, result: null });
+  Object.assign(diag, { step: 'now', steps: [], marks: {}, running: false, cancelled: false, result: null, strongPct: 0 });
   renderDiag();
 }
 
 function diagMarkText(k) {
   const m = diag.marks[k];
   if (m === 'skip') return t('diag.skipped');
+  if (m === 'strong') return t('diag.skippedStrong', diag.strongPct);
   const st = diag.steps.find(x => x.kind === k);
   const r = st && st.result;
   if (!r) return '';
@@ -1922,11 +1927,25 @@ function diagMarkText(k) {
   return r.failure ? '✗' : '✓';
 }
 
+// The colour of a finished step follows that test's rating, so a slow
+// result is not shown in green.
+function diagQualityClass(k) {
+  const st = diag.steps.find(x => x.kind === k);
+  const r = st && st.result;
+  if (!r) return '';
+  const level = r.quality && r.quality.level;
+  if (level === 'EXCELLENT' || level === 'GOOD') return 'q-ok';
+  if (level === 'FAIR') return 'q-warn';
+  return level || r.failure ? 'q-bad' : '';
+}
+
 function renderDiag() {
   for (const k of ['now', 'near', 'cable', 'result']) {
     const li = $(`#diagSteps [data-step="${k}"]`);
     const m = diag.marks[k];
-    li.className = k === diag.step && !diag.result ? 'run' : m === 'skip' ? 'skip' : m ? 'done' : '';
+    li.className = k === diag.step && !diag.result ? 'run'
+      : m === 'skip' || m === 'strong' ? 'skip'
+        : m ? ('done ' + diagQualityClass(k)).trim() : '';
     li.querySelector('.ds-state').textContent = diagMarkText(k);
   }
   const done = !!diag.result;
@@ -1934,7 +1953,8 @@ function renderDiag() {
   $('#diagResult').classList.toggle('hidden', !done);
   if (done) { renderDiagResult(); return; }
   const s = diag.step;
-  $('#diagMsg').textContent = t(diag.cancelled ? 'diag.cancelled' : { now: 'diag.ready', near: 'diag.nearMsg', cable: 'diag.cableMsg' }[s]);
+  const cableMsg = diag.marks.near === 'strong' ? t('diag.cableMsgStrong', diag.strongPct) : t('diag.cableMsg');
+  $('#diagMsg').textContent = diag.cancelled ? t('diag.cancelled') : { now: t('diag.ready'), near: t('diag.nearMsg'), cable: cableMsg }[s];
   $('#diagGo').textContent = t({ now: 'diag.start', near: 'diag.goNear', cable: 'diag.goCable' }[s]);
   $('#diagGo').classList.toggle('hidden', diag.running);
   $('#diagCancel').classList.toggle('hidden', !diag.running);
@@ -1992,6 +2012,10 @@ function onDiagTestEvent(ev) {
   }
 }
 
+// Same limit as analysis.StrongSignal in Go.
+const STRONG_SIGNAL = 70;
+const wifiSignal = r => (r.network && r.network.wifi && r.network.wifi.signalPercent) || 0;
+
 // A cable or a walk to the router only helps on a wireless link.
 const wireless = r => !(r.network && ['Ethernet', 'Cellular'].includes(r.network.connection));
 
@@ -2006,7 +2030,15 @@ async function diagStepDone(r) {
   const clear = !d || kind === 'cable' || ['healthy', 'offline', 'offlineLocal', 'coverage'].includes(d.kind)
     || (kind === 'now' && !wireless(r));
   if (clear) { diagConclude(d); return; }
-  diag.step = kind === 'now' ? 'near' : 'cable';
+  if (kind === 'now' && wifiSignal(r) >= STRONG_SIGNAL) {
+    // Moving closer cannot help a strong signal; only a cable test can
+    // still tell the Wi-Fi from the ISP.
+    diag.marks.near = 'strong';
+    diag.strongPct = wifiSignal(r);
+    diag.step = 'cable';
+  } else {
+    diag.step = kind === 'now' ? 'near' : 'cable';
+  }
   renderDiag();
 }
 

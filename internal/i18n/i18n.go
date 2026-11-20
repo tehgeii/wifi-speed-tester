@@ -131,6 +131,7 @@ var catalog = map[string][2]string{
 	"diag.step.cable":          {"With a cable", "Dengan kabel"},
 	"diag.signal":              {"Wi-Fi signal %d%%", "sinyal Wi-Fi %d%%"},
 	"diag.onCable":             {"on a cable", "lewat kabel"},
+	"diag.strongSignal":        {"The Wi-Fi signal was already strong (%d%%), so the Wi-Fi is unlikely to be the cause. A test on a LAN cable would confirm it.", "Sinyal Wi-Fi sudah kuat (%d%%), jadi Wi-Fi kecil kemungkinan penyebabnya. Tes pakai kabel LAN untuk memastikan."},
 	"diag.cableIgnored":        {"The cable step was still on Wi-Fi, so it was not used.", "Langkah kabel ternyata masih lewat Wi-Fi, jadi tidak dipakai."},
 	"diag.dnsSlow":             {"Looking up the test server name took %s; a faster DNS may help websites open sooner.", "Mencari nama server tes butuh %s; DNS yang lebih cepat bisa membuat website lebih cepat terbuka."},
 	"region.best":              {"Lowest latency: %s (%s). Services hosted there will feel the snappiest.", "Paling dekat: %s (%s). Layanan yang servernya di sana akan terasa paling responsif."},

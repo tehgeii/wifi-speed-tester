@@ -104,3 +104,22 @@ func TestRegionAdvice(t *testing.T) {
 		t.Fatalf("advice = %v", adv)
 	}
 }
+
+// A strong signal where the user is cannot be improved by moving closer,
+// so one slow Wi-Fi test with the router answering points past the router.
+func TestDiagnoseStrongSignal(t *testing.T) {
+	r := res(model.QualityPoor, model.ConnWiFi, 5, 3)
+	r.Network.WiFi.SignalPercent = 85
+	d := Diagnose(steps("now", r), i18n.EN)
+	if d.Kind != "isp" || len(d.Facts) != 2 || !strings.Contains(d.Facts[1], "already strong (85%)") {
+		t.Fatalf("strong signal: %+v", d)
+	}
+	r.Network.WiFi.SignalPercent = StrongSignal - 1
+	if d := Diagnose(steps("now", r), i18n.EN); d.Kind != "unclear" {
+		t.Fatalf("signal %d%%: kind = %s, want unclear", StrongSignal-1, d.Kind)
+	}
+	// A cable test still decides when there is one.
+	if d := Diagnose(steps("now", r, "cable", res(model.QualityGood, model.ConnEthernet, 90, 1)), i18n.EN); d.Kind != "wifi" {
+		t.Fatalf("with cable: kind = %s, want wifi", d.Kind)
+	}
+}

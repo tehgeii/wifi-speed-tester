@@ -236,7 +236,7 @@ func (r *runner) connectivity(ctx context.Context) bool {
 	}
 	r.res.Network = info
 	r.emit(Event{Type: "network", Stage: StageConnection, Network: info})
-	r.check("adapter", model.CheckOK, string(info.Connection)+" — "+info.AdapterName)
+	r.check("adapter", model.CheckOK, adapterText(info))
 
 	if info.Gateway == "" {
 		r.check("gateway", model.CheckWarn, r.t("check.noGateway"))
@@ -519,4 +519,16 @@ func (r *runner) speed(ctx context.Context, stage string) *model.SpeedResult {
 	r.data += used
 	r.emit(Event{Type: "speed", Stage: stage, Progress: 1, Speed: &out})
 	return &out
+}
+
+// adapterText describes the adapter for the checks list. Windows often names
+// the adapter after the connection ("Wi-Fi"), so the name is added only when
+// it says something more.
+func adapterText(n *model.NetworkInfo) string {
+	conn := string(n.Connection)
+	name := strings.TrimSpace(n.AdapterName)
+	if name == "" || strings.EqualFold(name, conn) {
+		return conn
+	}
+	return conn + " — " + name
 }
