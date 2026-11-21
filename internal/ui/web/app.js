@@ -43,6 +43,7 @@ const TEXT = {
     'net.connection': 'Connection', 'net.network': 'Network', 'net.detecting': 'Detecting…',
     'net.signal': 'Signal', 'net.link': 'Wi-Fi Link Speed',
     'net.linkHint': 'Radio rate between this device and the router. Not your internet speed.',
+    'net.linkHintPhone': 'Radio rate between this device and the phone. Not your internet speed.',
     'net.notConnected': 'Not connected',
     'gauge.ready': 'Ready', 'gauge.starting': 'Starting…', 'gauge.cancelling': 'Cancelling…',
     'gauge.cancelled': 'Cancelled', 'gauge.failed': 'Failed', 'gauge.checking': 'Checking connection…',
@@ -218,6 +219,7 @@ const TEXT = {
     'net.connection': 'Koneksi', 'net.network': 'Jaringan', 'net.detecting': 'Mendeteksi…',
     'net.signal': 'Sinyal', 'net.link': 'Wi-Fi Link Speed',
     'net.linkHint': 'Kecepatan radio antara perangkat ini dan router. Bukan kecepatan internet kamu.',
+    'net.linkHintPhone': 'Kecepatan radio antara perangkat ini dan HP. Bukan kecepatan internet kamu.',
     'net.notConnected': 'Tidak terhubung',
     'gauge.ready': 'Siap', 'gauge.starting': 'Memulai…', 'gauge.cancelling': 'Membatalkan…',
     'gauge.cancelled': 'Dibatalkan', 'gauge.failed': 'Gagal', 'gauge.checking': 'Mengecek koneksi…',
@@ -493,6 +495,10 @@ function renderNetwork(n) {
   } else {
     wifiRow.classList.add('hidden');
   }
+  // Over a phone hotspot the radio link goes to the phone, not a router.
+  const hint = $('#wifiLinkKey');
+  hint.dataset.i18nTitle = n.connection === 'Hotspot / Tethering' ? 'net.linkHintPhone' : 'net.linkHint';
+  hint.title = t(hint.dataset.i18nTitle);
   const nt = wifiNote(w);
   note.textContent = nt;
   note.classList.toggle('hidden', !nt);

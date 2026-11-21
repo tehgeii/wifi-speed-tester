@@ -217,7 +217,7 @@ func TestHotspot(t *testing.T) {
 	p := config.Default().Profile("general")
 	hotspot := func(gwMs float64) *model.TestResult {
 		r := result(8, 6, 40, 6, 0)
-		r.Network = &model.NetworkInfo{Connection: model.ConnTethering, Metered: true, WiFi: &model.WiFiInfo{SignalPercent: 95, Band: "2.4 GHz"}}
+		r.Network = &model.NetworkInfo{Connection: model.ConnTethering, Metered: true, WiFi: &model.WiFiInfo{SignalPercent: 95, Band: "2.4 GHz", RxRateMbps: 72}}
 		r.Download.LoadedPingMs, r.Download.LoadedSamples = 250, 10
 		r.Pings = []model.PingStats{
 			{IsGateway: true, Sent: 20, Received: 20, AvgMs: gwMs, JitterMs: 8},
@@ -241,14 +241,17 @@ func TestHotspot(t *testing.T) {
 			t.Errorf("router tip %q given for a phone hotspot: %v", bad, q.Tips)
 		}
 	}
-	if strings.Contains(strings.Join(q.Notes, " "), "router") {
-		t.Errorf("notes talk about a router: %v", q.Notes)
+	if notes := strings.Join(q.Notes, " "); strings.Contains(notes, "router") || !strings.Contains(notes, "(72 Mbps) is the radio rate to the phone") {
+		t.Errorf("notes should speak of the phone, not a router: %v", q.Notes)
 	}
 
 	// The same 22 ms on home Wi-Fi is still a router problem.
 	r.Network.Connection = model.ConnWiFi
 	if !locate(r).gatewayIssue {
 		t.Error("22 ms to a home router not flagged")
+	}
+	if q := Evaluate(r, "general", p, i18n.EN); !strings.Contains(strings.Join(q.Notes, " "), "radio rate to the router") {
+		t.Errorf("home Wi-Fi link speed note: %v", q.Notes)
 	}
 
 	// A really slow link to the phone: notes and USB tethering.

@@ -89,6 +89,7 @@ var catalog = map[string][2]string{
 	"note.beyondRouter":    {"The local network looks healthy; the extra latency or loss is added beyond the router (ISP or internet route).", "Jaringan lokal terlihat sehat; tambahan ping atau loss terjadi setelah router (ISP atau rute internet)."},
 	"note.weakSignal":      {"Wi-Fi signal is weak (%d%%).", "Sinyal Wi-Fi lemah (%d%%)."},
 	"note.linkSpeed":       {"Wi-Fi link speed (%.0f Mbps) is the radio rate to the router, not your internet speed.", "Wi-Fi link speed (%.0f Mbps) adalah kecepatan radio ke router, bukan kecepatan internet kamu."},
+	"note.linkSpeedPhone":  {"Wi-Fi link speed (%.0f Mbps) is the radio rate to the phone, not your internet speed.", "Wi-Fi link speed (%.0f Mbps) adalah kecepatan radio ke HP, bukan kecepatan internet kamu."},
 
 	// Tips (actions)
 	"tip.sqm":           {"Turn on SQM / Smart Queue / QoS in your router settings, or avoid big downloads while gaming or on calls.", "Aktifkan SQM / Smart Queue / QoS di pengaturan router, atau hindari download besar saat main game atau video call."},

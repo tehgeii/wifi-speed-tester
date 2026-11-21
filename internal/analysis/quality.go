@@ -252,7 +252,11 @@ func locationNotes(r *model.TestResult, loc where, T func(string, ...any) string
 			notes = append(notes, T("note.weakSignal", w.SignalPercent))
 		}
 		if link := math.Max(w.RxRateMbps, w.TxRateMbps); link > 0 {
-			notes = append(notes, T("note.linkSpeed", link))
+			key := "note.linkSpeed"
+			if phone {
+				key = "note.linkSpeedPhone" // the radio link goes to the phone
+			}
+			notes = append(notes, T(key, link))
 		}
 	}
 	return notes
