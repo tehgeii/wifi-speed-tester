@@ -1,3 +1,8 @@
+## Yang baru di 2.1.1
+
+- Lewat hotspot HP, catatan dan keterangan ⓘ **Wi-Fi link speed** sekarang menyebut "kecepatan radio ke HP", bukan "ke router".
+- Ini versi pertama yang bisa didapat lewat **Update sekarang**: dari 2.1.0, klik **Update sekarang** lalu **Mulai ulang sekarang** di banner update. Tidak perlu download dan ekstrak zip lagi.
+
 ## Yang baru di 2.1
 
 - **Hotspot HP dikenali dengan benar.** Hotspot Android sekarang memakai alamat acak (misalnya 10.54.x.x), jadi dulu terbaca sebagai Wi-Fi rumah. Sekarang aplikasi membaca status *berkuota* yang dikirim HP ke Windows, lalu menampilkannya sebagai **Hotspot / Tethering**. Hasilnya:

@@ -453,8 +453,11 @@ async function main() {
   check(await page.isVisible('#hotspotHint') && /metered/.test(await page.textContent('#hotspotMsg')), 'a metered connection suggests data saver');
   await page.evaluate(() => renderNetwork({ ...state.network, metered: false }));
   check(!(await page.isVisible('#hotspotHint')), 'no hint on unmetered Wi-Fi');
+  const linkHint = () => page.getAttribute('#wifiLinkKey', 'title');
+  check(/and the router/.test(await linkHint()), 'on Wi-Fi the link speed is the rate to the router');
   await page.evaluate(() => renderNetwork({ ...state.network, connection: 'Hotspot / Tethering' }));
   check(await page.isVisible('#hotspotHint') && /phone hotspot/.test(await page.textContent('#hotspotMsg')), 'a phone hotspot suggests data saver');
+  check(/and the phone/.test(await linkHint()), 'over a hotspot the link speed is the rate to the phone');
   await page.click('#hotspotOn');
   check(await page.getAttribute('#saverBtn', 'aria-pressed') === 'true' && !(await page.isVisible('#hotspotHint')), 'one click turns data saver on');
   check(await eventually(async () => {
